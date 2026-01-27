@@ -18,6 +18,46 @@ msgstr ""
 
 #. module: pos_self_order_enhancement
 #: model:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-#: Note: Button text is hardcoded in Chinese in the template
 msgid "繼續點餐"
 msgstr "繼續點餐"
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+msgid "餐點已送至廚房準備中"
+msgstr "餐點已送至廚房準備中"
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+msgid "您可以繼續點餐或前往「我的訂單」統一結帳"
+msgstr "您可以繼續點餐或前往「我的訂單」統一結帳"
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+msgid "返回首頁"
+msgstr "返回首頁"
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+msgid "我的訂單"
+msgstr "我的訂單"
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+msgid "總計"
+msgstr "總計"
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+msgid "結帳付款"
+msgstr "結帳付款"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__meal
+msgid "餐點"
+msgstr "餐點"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__each
+msgid "整單"
+msgstr "整單"

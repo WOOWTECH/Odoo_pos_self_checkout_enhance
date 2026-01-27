@@ -16,6 +16,46 @@ msgstr ""
 
 #. module: pos_self_order_enhancement
 #: model:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-#: Note: Button text is hardcoded in Chinese in the template for zh_TW locale
-msgid "繼續點餐"
+msgid "Continue Ordering"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+msgid "Your order has been sent to kitchen"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+msgid "You can continue ordering or go to My Orders to checkout"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+msgid "Back to Home"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+msgid "My Orders"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+msgid "Total"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+msgid "Checkout"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__meal
+msgid "Per Meal"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__each
+msgid "Per Order"
 msgstr ""
