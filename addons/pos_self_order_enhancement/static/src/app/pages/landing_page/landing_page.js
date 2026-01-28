@@ -62,6 +62,44 @@ patch(LandingPage.prototype, {
     },
 
     /**
+     * Override hideBtn to also hide "立即訂購" button in "meal" mode
+     * when there are unpaid orders (order already submitted, waiting for payment).
+     *
+     * Original logic: hide products link when pay_after="each" and has draft orders
+     * New logic: ALSO hide products link when pay_after="meal" and has unpaid orders
+     */
+    hideBtn(link) {
+        const arrayLink = link.url.split("/");
+        const routeName = arrayLink[arrayLink.length - 1];
+
+        // Only apply to "products" route (立即訂購 button)
+        if (routeName !== "products") {
+            return false;
+        }
+
+        const payAfter = this.selfOrder?.config?.self_ordering_pay_after;
+
+        // Original behavior: hide in "each" mode when has draft orders
+        if (payAfter === "each" && this.draftOrder.length > 0) {
+            return true;
+        }
+
+        // New behavior: hide in "meal" mode when has unpaid orders
+        // (order submitted but not yet paid - user should pay first before ordering again)
+        if (payAfter === "meal" && this.draftOrder.length > 0) {
+            // Check if any draft order has been submitted (has tracking_number or pos_reference)
+            const hasSubmittedOrder = this.draftOrder.some(order =>
+                order.id && (order.tracking_number || order.pos_reference)
+            );
+            if (hasSubmittedOrder) {
+                return true;
+            }
+        }
+
+        return false;
+    },
+
+    /**
      * Check if the "Continue Ordering" button should be displayed.
      * Only show when:
      * - Customer has existing unpaid/draft orders
