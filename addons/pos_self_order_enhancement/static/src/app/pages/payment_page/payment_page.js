@@ -1,6 +1,6 @@
 /** @odoo-module */
 
-import { Component, useState } from "@odoo/owl";
+import { Component, useState, onMounted } from "@odoo/owl";
 import { useSelfOrder } from "@pos_self_order/app/self_order_service";
 import { useService } from "@web/core/utils/hooks";
 
@@ -19,6 +19,12 @@ export class PaymentPage extends Component {
         this.state = useState({
             loading: false,
             error: null,
+        });
+
+        // Reset state when component mounts (handles browser back button)
+        onMounted(() => {
+            this.state.loading = false;
+            this.state.error = null;
         });
     }
 
