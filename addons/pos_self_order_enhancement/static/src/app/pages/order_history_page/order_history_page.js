@@ -11,6 +11,7 @@ import { patch } from "@web/core/utils/patch";
  * - Add "Checkout" button to proceed to payment
  * - Add "Continue Ordering" button to go back to product list
  * - Hide checkout section if user just completed payment (view history mode)
+ * - In "Pay per Meal" mode, add edit button to modify order items
  */
 patch(OrdersHistoryPage.prototype, {
     /**
@@ -20,6 +21,18 @@ patch(OrdersHistoryPage.prototype, {
     get isPayPerOrder() {
         try {
             return this.selfOrder?.config?.self_ordering_pay_after === 'each';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /**
+     * Check if the POS is configured for "Pay per Meal" mode (餐點結).
+     * @returns {boolean}
+     */
+    get isPayPerMeal() {
+        try {
+            return this.selfOrder?.config?.self_ordering_pay_after === 'meal';
         } catch (e) {
             return false;
         }
@@ -176,6 +189,36 @@ patch(OrdersHistoryPage.prototype, {
             this.router.navigate("product_list");
         } catch (e) {
             console.error("Continue ordering error:", e);
+            this.router.navigate("product_list");
+        }
+    },
+
+    /**
+     * Edit a line item in the order (for meal mode).
+     * This navigates to the product page where user can modify quantity.
+     * @param {Event} ev - Click event
+     * @param {Object} order - The order containing the line
+     * @param {Object} line - The line item to edit
+     */
+    editLineItem(ev, order, line) {
+        ev.stopPropagation(); // Prevent order header click
+
+        try {
+            // Select the order
+            if (order.uuid) {
+                this.selfOrder.selectedOrderUuid = order.uuid;
+            }
+
+            // Navigate to product page with the line's product
+            const productId = line.product_id?.id || line.product_id;
+            if (productId) {
+                this.router.navigate("product", { id: productId });
+            } else {
+                // Fallback to product list
+                this.router.navigate("product_list");
+            }
+        } catch (e) {
+            console.error("Edit line item error:", e);
             this.router.navigate("product_list");
         }
     },

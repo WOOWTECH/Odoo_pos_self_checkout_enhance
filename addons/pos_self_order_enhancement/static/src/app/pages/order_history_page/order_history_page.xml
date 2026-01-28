@@ -32,6 +32,17 @@
             </t>
         </xpath>
 
+        <!-- Add edit button to each order line in meal mode (餐點結) -->
+        <xpath expr="//div[hasclass('o_self_order_item_card')]//span[hasclass('line_price')]" position="after">
+            <t t-if="isPayPerMeal and !order.state or order.state !== 'paid'">
+                <button class="btn btn-sm btn-outline-primary ms-2"
+                        t-on-click="(ev) => this.editLineItem(ev, order, line)"
+                        title="編輯">
+                    <i class="fa fa-pencil"></i>
+                </button>
+            </t>
+        </xpath>
+
     </t>
 
 </templates>
