@@ -46,4 +46,33 @@ patch(CartPage.prototype, {
             hasServerId
         );
     },
+
+    /**
+     * Increase quantity of a line item by 1.
+     * @param {Object} line - The order line to modify
+     */
+    increaseQuantity(line) {
+        line.qty += 1;
+        line.setDirty();
+    },
+
+    /**
+     * Decrease quantity of a line item by 1.
+     * If quantity would become 0, show confirmation dialog before deleting.
+     * @param {Object} line - The order line to modify
+     */
+    async decreaseQuantity(line) {
+        if (line.qty > 1) {
+            line.qty -= 1;
+            line.setDirty();
+        } else {
+            // Quantity is 1, confirm before deleting
+            const confirmed = window.confirm("確定要刪除此品項嗎？");
+            if (confirmed) {
+                line.qty = 0;
+                line.setDirty();
+                this.selfOrder.removeLine(line);
+            }
+        }
+    },
 });
