@@ -14,7 +14,8 @@ export class PaymentPage extends Component {
 
     setup() {
         this.selfOrder = useSelfOrder();
-        this.router = useService("router");
+        // Get router from selfOrder service (not useService)
+        this.router = this.selfOrder.router;
         this.state = useState({
             loading: false,
             error: null,
@@ -240,15 +241,17 @@ export class PaymentPage extends Component {
 
     /**
      * Handle counter payment selection (現場結帳)
-     * User chooses to pay at the counter
+     * User chooses to pay at the counter - go back to landing page
      */
     selectCounterPayment() {
         this.state.loading = true;
 
         try {
-            // Show confirmation and navigate to confirmation page
-            // The order is already submitted, just need to show success message
-            this.router.navigate("confirmation");
+            // For counter payment, just go back to landing page
+            // The order is submitted and will be paid at counter
+            // Reset order state and navigate to home
+            this.selfOrder.selectedOrderUuid = null;
+            this.router.navigate("default");
         } catch (error) {
             console.error("Counter payment error:", error);
             this.state.error = "處理失敗，請重試";
@@ -267,40 +270,40 @@ export class PaymentPage extends Component {
         try {
             // Get the current order
             const order = this.currentOrder;
-            if (!order) {
-                throw new Error("No order found");
-            }
-
-            // Get order details
-            const orderId = order.id;
-            const accessToken = order.access_token ||
-                               this.selfOrder.access_token ||
-                               this.selfOrder.config?.access_token;
             const configId = this.selfOrder.config?.id || 1;
 
+            // Get order details (with fallbacks)
+            const orderId = order?.id || '';
+            const orderAmount = order?.amount_total || this.totalAmount || 0;
+            const orderRef = order?.pos_reference || order?.name || order?.tracking_number || '';
+            const accessToken = order?.access_token ||
+                               this.selfOrder.access_token ||
+                               this.selfOrder.config?.access_token || '';
+            const currencyId = this.selfOrder.currency?.id || 136; // TWD default
+            const partnerId = order?.partner_id || '';
+
             // Debug logging
-            console.log("Order details:", {
+            console.log("Order details for payment:", {
                 orderId,
-                accessToken,
+                orderAmount,
+                orderRef,
+                accessToken: accessToken ? "present" : "missing",
                 configId,
-                orderName: order.name,
-                orderRef: order.pos_reference
+                currencyId
             });
 
             // Build the payment URL
-            // Use the POS self order payment route with proper parameters
             let paymentUrl;
 
-            // Try multiple URL formats for compatibility
-            if (accessToken) {
-                // Primary: Use access token based payment
-                paymentUrl = `/pos-self/${configId}/online-payment?order_id=${orderId}&access_token=${accessToken}&payment_method_id=${paymentMethodId}`;
-            } else {
-                // Fallback: Use payment provider portal
-                // This requires the order to be linked to a sale order
-                const saleOrderId = order.sale_order_id || order.id;
-                paymentUrl = `/payment/pay?amount=${order.amount_total || 0}&currency_id=${this.selfOrder.currency?.id || 1}&partner_id=${order.partner_id || ''}&reference=${order.pos_reference || order.name || ''}&payment_method_id=${paymentMethodId}`;
+            if (orderAmount <= 0) {
+                // No amount to pay
+                this.state.error = "目前沒有待付款金額";
+                this.state.loading = false;
+                return;
             }
+
+            // Use Odoo's payment portal
+            paymentUrl = `/payment/pay?amount=${orderAmount}&currency_id=${currencyId}&partner_id=${partnerId}&reference=${encodeURIComponent(orderRef)}&payment_method_id=${paymentMethodId}`;
 
             console.log("Redirecting to payment URL:", paymentUrl);
 
