@@ -46,39 +46,4 @@ patch(CartPage.prototype, {
             hasServerId
         );
     },
-
-    /**
-     * Edit line item in meal mode (餐點結).
-     * For posted orders, we add new lines rather than editing existing ones.
-     * User can add more quantity via the product page.
-     * To "delete", user needs to add negative adjustment or contact staff.
-     * @param {Object} line - The order line to edit
-     */
-    editLineInMealMode(line) {
-        try {
-            // Get product ID from line
-            const productId = line.product_id?.id || line.product_id;
-
-            if (productId) {
-                // Set the edited line so product page knows we're editing
-                this.selfOrder.editedLine = line;
-                // Navigate to product page to modify quantity
-                this.router.navigate("product", { id: productId });
-            } else {
-                // Fallback to product list
-                this.router.navigate("product_list");
-            }
-        } catch (e) {
-            console.error("Edit line error:", e);
-            this.router.navigate("product_list");
-        }
-    },
-
-    /**
-     * Check if we're in meal mode (餐點結)
-     * @returns {boolean}
-     */
-    get isPayPerMeal() {
-        return this.selfOrder?.config?.self_ordering_pay_after === 'meal';
-    },
 });
