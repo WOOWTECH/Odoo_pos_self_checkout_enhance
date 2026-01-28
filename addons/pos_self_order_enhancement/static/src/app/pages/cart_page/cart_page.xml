@@ -8,4 +8,12 @@
         </xpath>
     </t>
 
+    <!-- Override OrderWidget to hide "本次加點" in meal mode -->
+    <t t-inherit="pos_self_order.OrderWidget" t-inherit-mode="extension">
+        <!-- Hide the "to-order" section (本次加點) when in meal mode -->
+        <xpath expr="//div[contains(@class, 'to-order')]" position="attributes">
+            <attribute name="t-if">selfOrder.config.self_ordering_pay_after !== 'meal'</attribute>
+        </xpath>
+    </t>
+
 </templates>
