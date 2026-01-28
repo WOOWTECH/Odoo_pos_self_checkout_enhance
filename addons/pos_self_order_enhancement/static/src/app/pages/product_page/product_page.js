@@ -55,25 +55,34 @@ patch(ProductPage.prototype, {
 
     /**
      * Override addToCart to handle meal mode editing.
-     * If quantity is 0 in meal mode, remove the line instead of adding.
+     * In meal mode editing:
+     * - If quantity is 0, remove the line
+     * - Otherwise, UPDATE the existing line's quantity (not add new)
      */
     addToCart() {
-        // If editing in meal mode with quantity 0, this means delete
-        if (this.isEditingInMealMode && this.state.qty === 0) {
+        // If editing in meal mode, we need to UPDATE the existing line
+        if (this.isEditingInMealMode) {
             const editedLine = this.selfOrder.editedLine;
             if (editedLine) {
-                // Mark line for removal by setting qty to 0
-                editedLine.qty = 0;
-                editedLine.setDirty();
-
-                // Remove the line from the order
-                this.selfOrder.removeLine(editedLine);
+                if (this.state.qty === 0) {
+                    // Delete: set qty to 0 and remove the line
+                    editedLine.qty = 0;
+                    editedLine.setDirty();
+                    this.selfOrder.removeLine(editedLine);
+                } else {
+                    // Update: set the new quantity directly (not add to it)
+                    editedLine.qty = this.state.qty;
+                    editedLine.customer_note = this.state.customer_note;
+                    editedLine.setDirty();
+                }
+                // Clear the editedLine reference
+                this.selfOrder.editedLine = null;
             }
             this.router.back();
             return;
         }
 
-        // Normal add to cart behavior
+        // Normal add to cart behavior (not editing)
         this.selfOrder.addToCart(
             this.props.product,
             this.state.qty,
