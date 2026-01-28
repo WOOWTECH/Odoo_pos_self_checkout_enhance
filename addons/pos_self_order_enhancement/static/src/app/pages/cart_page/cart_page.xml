@@ -9,8 +9,8 @@
 
         <!-- Replace the quantity display "Nx" with +/- buttons in meal mode only -->
         <xpath expr="//span[contains(., 'x ') and @t-if='Object.keys(selfOrder.currentOrder.changes).length === 0']" position="replace">
-            <!-- In meal mode: show +/- buttons -->
-            <div t-if="Object.keys(selfOrder.currentOrder.changes).length === 0 and selfOrder.config.self_ordering_pay_after === 'meal'" class="d-inline-flex align-items-center me-2">
+            <!-- In meal mode: always show +/- buttons with current quantity -->
+            <div t-if="selfOrder.config.self_ordering_pay_after === 'meal'" class="d-inline-flex align-items-center me-2">
                 <button type="button"
                         class="btn btn-sm btn-outline-secondary px-2 py-0"
                         t-on-click="(ev) => { ev.stopPropagation(); this.decreaseQuantity(line); }">
@@ -23,8 +23,13 @@
                     <span class="fw-bold">＋</span>
                 </button>
             </div>
-            <!-- In other modes: show original "Nx" format -->
+            <!-- In other modes: show original "Nx" format (only when no changes) -->
             <span t-if="Object.keys(selfOrder.currentOrder.changes).length === 0 and selfOrder.config.self_ordering_pay_after !== 'meal'"><t t-esc="line.qty"/>x </span>
+        </xpath>
+
+        <!-- Hide the original +/- buttons in meal mode (they show +(-1) format which is confusing) -->
+        <xpath expr="//div[hasclass('btn-group') and .//button[contains(@t-on-click, 'changeQuantity')]]" position="attributes">
+            <attribute name="t-if">Object.keys(selfOrder.currentOrder.changes).length > 0 and selfOrder.config.self_ordering_pay_after !== 'meal'</attribute>
         </xpath>
     </t>
 
