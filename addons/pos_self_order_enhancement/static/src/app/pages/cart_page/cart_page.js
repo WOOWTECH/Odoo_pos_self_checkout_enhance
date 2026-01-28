@@ -75,4 +75,48 @@ patch(CartPage.prototype, {
             }
         }
     },
+
+    /**
+     * Override pay() to skip table selection in meal mode when order already has a table.
+     * In meal mode, the table was already selected when the order was first created.
+     */
+    async pay() {
+        const orderingMode = this.selfOrder.config.self_ordering_service_mode;
+        const type = this.selfOrder.config.self_ordering_mode;
+        const payAfter = this.selfOrder.config.self_ordering_pay_after;
+        const takeAway = this.selfOrder.currentOrder.takeaway;
+        const order = this.selfOrder.currentOrder;
+
+        if (
+            this.selfOrder.rpcLoading ||
+            !this.selfOrder.verifyCart() ||
+            !this.selfOrder.verifyPriceLoading()
+        ) {
+            return;
+        }
+
+        // In meal mode, if order already has a table_id, skip table selection
+        if (payAfter === "meal" && order.table_id) {
+            // Table already set from previous order, use it
+            this.selfOrder.currentTable = order.table_id;
+        }
+
+        if (
+            type === "mobile" &&
+            orderingMode === "table" &&
+            !takeAway &&
+            !this.selfOrder.currentTable
+        ) {
+            this.state.selectTable = true;
+            return;
+        } else {
+            this.selfOrder.currentOrder.update({
+                table_id: this.selfOrder.currentTable,
+            });
+        }
+
+        this.selfOrder.rpcLoading = true;
+        await this.selfOrder.confirmOrder();
+        this.selfOrder.rpcLoading = false;
+    },
 });
