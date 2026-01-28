@@ -39,6 +39,16 @@
         <xpath expr="//div[contains(@class, 'to-order')]" position="attributes">
             <attribute name="t-if">selfOrder.config.self_ordering_pay_after !== 'meal'</attribute>
         </xpath>
+
+        <!-- Hide the left back button (mobile version) in meal mode on cart page -->
+        <xpath expr="//button[contains(@class, 'd-sm-none') and contains(@t-on-click, 'onClickleftButton')]" position="attributes">
+            <attribute name="t-if">!(selfOrder.config.self_ordering_pay_after === 'meal' and this.router.activeSlot === 'cart')</attribute>
+        </xpath>
+
+        <!-- Hide the left back button (desktop version) in meal mode on cart page -->
+        <xpath expr="//button[contains(@class, 'btn-back') and contains(@class, 'd-none')]" position="attributes">
+            <attribute name="t-if">!(selfOrder.config.self_ordering_pay_after === 'meal' and this.router.activeSlot === 'cart')</attribute>
+        </xpath>
     </t>
 
 </templates>
