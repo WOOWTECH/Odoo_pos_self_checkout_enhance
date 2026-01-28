@@ -46,6 +46,23 @@ patch(ProductPage.prototype, {
     },
 
     /**
+     * Discard changes and go back.
+     * In meal mode editing, go directly to cart instead of product list.
+     */
+    discardEdit() {
+        // Clear editing references
+        this.selfOrder.editedLine = null;
+        this._editingLine = null;
+
+        // In meal mode, go to cart; otherwise use back navigation
+        if (this.isPayPerMeal) {
+            this.router.navigate("cart");
+        } else {
+            this.router.back();
+        }
+    },
+
+    /**
      * Override changeQuantity to allow quantity to go to 0 in meal mode.
      * When quantity is 0, the item will be removed when saving.
      * @param {boolean} increase - Whether to increase or decrease
