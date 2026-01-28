@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="pos_self_order_enhancement.PaymentPage">
+        <div class="o_self_order_payment_page d-flex flex-column h-100 bg-light">
+            <!-- Header -->
+            <div class="payment-header bg-white border-bottom p-3 d-flex align-items-center">
+                <button class="btn btn-link text-dark p-0 me-3" t-on-click="goBack">
+                    <i class="fa fa-arrow-left fa-lg"></i>
+                </button>
+                <h4 class="mb-0 fw-bold">付款</h4>
+            </div>
+
+            <!-- Content -->
+            <div class="payment-content flex-grow-1 overflow-auto p-3">
+                <!-- Loading State -->
+                <t t-if="state.loading">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">處理中，請稍候...</p>
+                    </div>
+                </t>
+
+                <!-- Error State -->
+                <t t-elif="state.error">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fa fa-exclamation-circle me-2"></i>
+                        <t t-esc="state.error"/>
+                    </div>
+                </t>
+
+                <!-- Payment Options -->
+                <t t-else="">
+                    <!-- Order Summary - Grouped by ordering session -->
+                    <div class="order-summary bg-white rounded-3 shadow-sm p-3 mb-3">
+                        <h6 class="fw-bold mb-3 text-muted">
+                            <i class="fa fa-list-alt me-2"></i>
+                            訂單摘要
+                        </h6>
+
+                        <!-- Grouped Order Lines -->
+                        <t t-foreach="groupedOrderLines" t-as="group" t-key="group.index">
+                            <!-- Group Header (only show if multiple sessions) -->
+                            <t t-if="!group.single">
+                                <div class="group-header d-flex justify-content-between align-items-center bg-light rounded-2 px-3 py-2 mb-2 mt-3">
+                                    <span class="fw-semibold text-secondary">
+                                        <i class="fa fa-cutlery me-1"></i>
+                                        第 <t t-esc="group.index"/> 次點餐
+                                    </span>
+                                    <span class="badge bg-secondary">
+                                        <t t-esc="formatCurrency(group.subtotal)"/>
+                                    </span>
+                                </div>
+                            </t>
+
+                            <!-- Order Lines in this group -->
+                            <div class="order-lines">
+                                <t t-foreach="group.lines" t-as="line" t-key="line.uuid || line.id">
+                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                        <div>
+                                            <span t-esc="line.full_product_name || line.product_id?.name"/>
+                                            <span class="text-muted ms-2">x<t t-esc="line.qty"/></span>
+                                        </div>
+                                        <span class="fw-semibold">
+                                            <t t-esc="formatCurrency(line.price_subtotal_incl || 0)"/>
+                                        </span>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+
+                        <!-- Total Section -->
+                        <div class="total-section pt-3 mt-2 border-top">
+                            <!-- Current Session Amount (if multiple sessions) -->
+                            <t t-if="hasMultipleSessions">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted">
+                                        <i class="fa fa-plus-circle me-1"></i>
+                                        本次加點
+                                    </span>
+                                    <span class="fw-semibold text-info">
+                                        <t t-esc="formatCurrency(currentSessionAmount)"/>
+                                    </span>
+                                </div>
+                            </t>
+                            <!-- Grand Total -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-5">總計</span>
+                                <span class="fw-bold fs-4 text-primary">
+                                    <t t-esc="formatCurrency(totalAmount)"/>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Online Payment Methods (if available) -->
+                    <t t-if="hasOnlinePayment">
+                        <div class="payment-methods bg-white rounded-3 shadow-sm p-3 mb-3">
+                            <h6 class="fw-bold mb-3 text-muted">選擇付款方式</h6>
+                            <div class="d-flex flex-column gap-2">
+                                <t t-foreach="onlinePaymentMethods" t-as="method" t-key="method.id">
+                                    <button class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3"
+                                            t-on-click="() => this.selectOnlinePayment(method.id)">
+                                        <i class="fa fa-credit-card me-3 fs-4"></i>
+                                        <span t-esc="method.name"/>
+                                    </button>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Counter Payment (整單結 - Full Bill Settlement) -->
+                    <t t-else="">
+                        <div class="counter-payment bg-white rounded-3 shadow-sm p-4 text-center">
+                            <!-- Friendly Icon -->
+                            <div class="mb-4">
+                                <div class="d-inline-flex justify-content-center align-items-center rounded-circle bg-success bg-opacity-10"
+                                     style="width: 100px; height: 100px;">
+                                    <i class="fa fa-cutlery fa-3x text-success"></i>
+                                </div>
+                            </div>
+
+                            <!-- Friendly Thank You Message -->
+                            <h4 class="fw-bold mb-2 text-success">感謝您的點餐！</h4>
+                            <p class="text-muted mb-4 fs-5">餐點準備中，請稍候～</p>
+
+                            <!-- Order Info Card -->
+                            <div class="order-info bg-light rounded-3 p-3 mb-4">
+                                <div class="mb-2">
+                                    <i class="fa fa-file-text-o me-1 text-muted"></i>
+                                    <span class="text-muted">訂單編號:</span>
+                                    <span class="fw-bold ms-2" t-esc="orderReference"/>
+                                </div>
+                                <!-- Current Session Amount (if multiple sessions) -->
+                                <t t-if="hasMultipleSessions">
+                                    <div class="mb-2">
+                                        <i class="fa fa-plus-circle me-1 text-info"></i>
+                                        <span class="text-muted">本次加點:</span>
+                                        <span class="fw-semibold text-info ms-2">
+                                            <t t-esc="formatCurrency(currentSessionAmount)"/>
+                                        </span>
+                                    </div>
+                                </t>
+                                <div>
+                                    <i class="fa fa-money me-1 text-primary"></i>
+                                    <span class="text-muted">總金額:</span>
+                                    <span class="fw-bold fs-5 text-primary ms-2">
+                                        <t t-esc="formatCurrency(totalAmount)"/>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Back to Home Button (整單結) -->
+                            <button class="btn btn-primary btn-lg w-100 py-3"
+                                    t-on-click="goToHome">
+                                <i class="fa fa-home me-2"></i>
+                                回到主頁
+                            </button>
+                        </div>
+                    </t>
+                </t>
+            </div>
+        </div>
+    </t>
+
+</templates>
