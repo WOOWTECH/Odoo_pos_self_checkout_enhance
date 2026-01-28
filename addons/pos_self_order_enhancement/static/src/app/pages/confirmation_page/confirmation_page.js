@@ -109,4 +109,11 @@ patch(ConfirmationPage.prototype, {
     goToMyOrders() {
         this.router.navigate("orderHistory");
     },
+
+    /**
+     * Navigate back to cart page (order list).
+     */
+    goToCart() {
+        this.router.navigate("cart");
+    },
 });
