@@ -33,22 +33,4 @@
         </xpath>
     </t>
 
-    <!-- Override OrderWidget to hide "本次加點" in meal mode -->
-    <t t-inherit="pos_self_order.OrderWidget" t-inherit-mode="extension">
-        <!-- Hide the "to-order" section (本次加點) when in meal mode -->
-        <xpath expr="//div[contains(@class, 'to-order')]" position="attributes">
-            <attribute name="t-if">selfOrder.config.self_ordering_pay_after !== 'meal'</attribute>
-        </xpath>
-
-        <!-- Hide the left back button (mobile version) in meal mode on cart page -->
-        <xpath expr="//button[contains(@class, 'd-sm-none') and contains(@t-on-click, 'onClickleftButton')]" position="attributes">
-            <attribute name="t-if">!(selfOrder.config.self_ordering_pay_after === 'meal' and router.activeSlot === 'cart')</attribute>
-        </xpath>
-
-        <!-- Hide the left back button (desktop version) in meal mode on cart page -->
-        <xpath expr="//button[contains(@class, 'btn-back') and contains(@class, 'd-none')]" position="attributes">
-            <attribute name="t-if">!(selfOrder.config.self_ordering_pay_after === 'meal' and router.activeSlot === 'cart')</attribute>
-        </xpath>
-    </t>
-
 </templates>

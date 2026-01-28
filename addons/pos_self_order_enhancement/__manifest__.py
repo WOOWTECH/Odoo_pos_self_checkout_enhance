@@ -59,6 +59,7 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     "assets": {
         "pos_self_order.assets": [
             "pos_self_order_enhancement/static/src/app/**/*",
+            "pos_self_order_enhancement/static/src/css/**/*",
         ],
         "web.assets_backend": [
             "pos_self_order_enhancement/static/src/fields/**/*",
