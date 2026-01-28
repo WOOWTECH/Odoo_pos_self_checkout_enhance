@@ -78,7 +78,8 @@ patch(ProductPage.prototype, {
                 // Clear the editedLine reference
                 this.selfOrder.editedLine = null;
             }
-            this.router.back();
+            // Navigate directly to cart page instead of going back to product list
+            this.router.navigate("cart");
             return;
         }
 
