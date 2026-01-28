@@ -258,7 +258,7 @@ export class PaymentPage extends Component {
 
     /**
      * Handle online payment selection (線上支付)
-     * Uses Odoo's standard payment portal flow
+     * Uses Odoo's payment portal flow
      */
     async selectOnlinePayment(paymentMethodId) {
         this.state.loading = true;
@@ -271,23 +271,35 @@ export class PaymentPage extends Component {
                 throw new Error("No order found");
             }
 
-            // Get order ID and access token
+            // Get order details
             const orderId = order.id;
             const accessToken = order.access_token ||
                                this.selfOrder.access_token ||
                                this.selfOrder.config?.access_token;
+            const configId = this.selfOrder.config?.id || 1;
 
-            // Build the payment portal URL
-            // Odoo standard payment portal: /my/orders/{order_id}/transaction
-            // Or use the pos self order payment route
+            // Debug logging
+            console.log("Order details:", {
+                orderId,
+                accessToken,
+                configId,
+                orderName: order.name,
+                orderRef: order.pos_reference
+            });
+
+            // Build the payment URL
+            // Use the POS self order payment route with proper parameters
             let paymentUrl;
 
+            // Try multiple URL formats for compatibility
             if (accessToken) {
-                // Use POS self order payment flow with access token
-                paymentUrl = `/pos-self-order/make-payment?order_id=${orderId}&access_token=${accessToken}&payment_method_id=${paymentMethodId}`;
+                // Primary: Use access token based payment
+                paymentUrl = `/pos-self/${configId}/online-payment?order_id=${orderId}&access_token=${accessToken}&payment_method_id=${paymentMethodId}`;
             } else {
-                // Fallback to standard portal payment
-                paymentUrl = `/my/orders/${orderId}/transaction?payment_method_id=${paymentMethodId}`;
+                // Fallback: Use payment provider portal
+                // This requires the order to be linked to a sale order
+                const saleOrderId = order.sale_order_id || order.id;
+                paymentUrl = `/payment/pay?amount=${order.amount_total || 0}&currency_id=${this.selfOrder.currency?.id || 1}&partner_id=${order.partner_id || ''}&reference=${order.pos_reference || order.name || ''}&payment_method_id=${paymentMethodId}`;
             }
 
             console.log("Redirecting to payment URL:", paymentUrl);
