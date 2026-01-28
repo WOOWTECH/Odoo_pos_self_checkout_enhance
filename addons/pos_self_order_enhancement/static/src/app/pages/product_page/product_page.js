@@ -25,7 +25,24 @@ patch(ProductPage.prototype, {
      * @returns {boolean}
      */
     get isEditingInMealMode() {
-        return this.isPayPerMeal && this.selfOrder.editedLine;
+        return this.isPayPerMeal && (this.selfOrder.editedLine || this._editingLine);
+    },
+
+    /**
+     * Override initState to capture the edited line reference
+     */
+    initState() {
+        const editedLine = this.selfOrder.editedLine;
+        if (editedLine && this.isPayPerMeal) {
+            // Store a reference to the line we're editing
+            this._editingLine = editedLine;
+        }
+        // Call the original initState
+        if (editedLine) {
+            this.state.customer_note = editedLine.customer_note;
+            this.state.qty = editedLine.qty;
+        }
+        return 0;
     },
 
     /**
@@ -62,7 +79,7 @@ patch(ProductPage.prototype, {
     addToCart() {
         // If editing in meal mode, we need to UPDATE the existing line
         if (this.isEditingInMealMode) {
-            const editedLine = this.selfOrder.editedLine;
+            const editedLine = this._editingLine || this.selfOrder.editedLine;
             if (editedLine) {
                 if (this.state.qty === 0) {
                     // Delete: set qty to 0 and remove the line
@@ -75,8 +92,9 @@ patch(ProductPage.prototype, {
                     editedLine.customer_note = this.state.customer_note;
                     editedLine.setDirty();
                 }
-                // Clear the editedLine reference
+                // Clear the editedLine references
                 this.selfOrder.editedLine = null;
+                this._editingLine = null;
             }
             // Navigate directly to cart page instead of going back to product list
             this.router.navigate("cart");
