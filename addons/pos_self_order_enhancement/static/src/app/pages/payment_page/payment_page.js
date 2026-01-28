@@ -244,6 +244,8 @@ export class PaymentPage extends Component {
      * User chooses to pay at the counter - go back to landing page
      */
     selectCounterPayment() {
+        // Clear any previous error state
+        this.state.error = null;
         this.state.loading = true;
 
         try {
@@ -251,11 +253,20 @@ export class PaymentPage extends Component {
             // The order is submitted and will be paid at counter
             // Reset order state and navigate to home
             this.selfOrder.selectedOrderUuid = null;
-            this.router.navigate("default");
+
+            // Use router if available, otherwise use window.location
+            if (this.router && typeof this.router.navigate === 'function') {
+                this.router.navigate("default");
+            } else {
+                // Fallback: redirect using window.location
+                const configId = this.selfOrder.config?.id || 1;
+                window.location.href = `/pos-self/${configId}`;
+            }
         } catch (error) {
             console.error("Counter payment error:", error);
-            this.state.error = "處理失敗，請重試";
-            this.state.loading = false;
+            // Fallback: redirect using window.location
+            const configId = this.selfOrder.config?.id || 1;
+            window.location.href = `/pos-self/${configId}`;
         }
     }
 
@@ -324,11 +335,20 @@ export class PaymentPage extends Component {
         try {
             // Reset order state for new session
             this.selfOrder.selectedOrderUuid = null;
-            // Navigate to landing page
-            this.router.navigate("default");
+
+            // Use router if available, otherwise use window.location
+            if (this.router && typeof this.router.navigate === 'function') {
+                this.router.navigate("default");
+            } else {
+                // Fallback: redirect using window.location
+                const configId = this.selfOrder.config?.id || 1;
+                window.location.href = `/pos-self/${configId}`;
+            }
         } catch (e) {
             console.error("Error navigating to home:", e);
-            this.router.navigate("default");
+            // Fallback: redirect using window.location
+            const configId = this.selfOrder.config?.id || 1;
+            window.location.href = `/pos-self/${configId}`;
         }
     }
 }
