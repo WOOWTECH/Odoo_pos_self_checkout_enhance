@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Override ProductPage to enable minus button in meal mode editing -->
+    <t t-inherit="pos_self_order.ProductPage" t-inherit-mode="extension">
+        <!-- Replace the minus button to enable it in meal mode -->
+        <xpath expr="//div[hasclass('o_self_order_incr_button')]/button[1]" position="replace">
+            <button type="button"
+                t-on-click="() => this.changeQuantity(false)"
+                t-attf-class="{{ (!this.env.editable and !this.isEditingInMealMode) ? 'disabled' : '' }} btn btn-secondary btn-lg">
+                <span class="fs-2 lh-1 fa-fw d-inline-block">－</span>
+            </button>
+        </xpath>
+    </t>
+
+</templates>
