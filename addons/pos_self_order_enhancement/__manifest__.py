@@ -52,8 +52,10 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     "author": "WoowTech",
     "website": "https://www.woowtech.com",
     "license": "LGPL-3",
-    "depends": ["pos_self_order"],
-    "data": [],
+    "depends": ["pos_self_order", "payment"],
+    "data": [
+        "views/payment_templates.xml",
+    ],
     "assets": {
         "pos_self_order.assets": [
             "pos_self_order_enhancement/static/src/app/**/*",
