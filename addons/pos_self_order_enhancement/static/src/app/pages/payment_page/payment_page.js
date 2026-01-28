@@ -144,29 +144,74 @@ export class PaymentPage extends Component {
 
     /**
      * Check if online payment methods are available
+     * Check multiple conditions:
+     * 1. self_ordering_online_payment_method_id is configured
+     * 2. OR there are payment methods with is_online_payment flag
      */
     get hasOnlinePayment() {
         try {
-            // Check for configured online payment method
-            const onlinePaymentMethodId = this.selfOrder.config.self_ordering_online_payment_method_id;
-            return onlinePaymentMethodId && onlinePaymentMethodId.length > 0;
+            // First check for specifically configured online payment method
+            const config = this.selfOrder.config;
+            const onlinePaymentMethodId = config?.self_ordering_online_payment_method_id;
+
+            // Check if configured payment method ID exists
+            if (onlinePaymentMethodId) {
+                // Could be an array [id, name] or just an ID
+                const methodId = Array.isArray(onlinePaymentMethodId)
+                    ? onlinePaymentMethodId[0]
+                    : onlinePaymentMethodId;
+                if (methodId) {
+                    return true;
+                }
+            }
+
+            // Also check if any payment methods are marked as online payment
+            const methods = this.onlinePaymentMethods;
+            return methods && methods.length > 0;
         } catch (e) {
+            console.error("hasOnlinePayment error:", e);
             return false;
         }
     }
 
     /**
      * Get available online payment methods
+     * Returns payment methods that are:
+     * 1. The configured self_ordering_online_payment_method_id
+     * 2. OR have is_online_payment flag set to true
+     * 3. OR use supported payment terminals (adyen, stripe, etc.)
      */
     get onlinePaymentMethods() {
         try {
-            const allMethods = this.selfOrder.models["pos.payment.method"].getAll();
-            // Filter to only online payment capable methods
-            return allMethods.filter(method => {
-                return method.is_online_payment ||
-                       ["adyen", "stripe"].includes(method.use_payment_terminal);
+            const allMethods = this.selfOrder.models["pos.payment.method"]?.getAll() || [];
+            const config = this.selfOrder.config;
+            const configuredMethodId = config?.self_ordering_online_payment_method_id;
+
+            // Get the configured method ID (could be array or number)
+            const targetMethodId = Array.isArray(configuredMethodId)
+                ? configuredMethodId[0]
+                : configuredMethodId;
+
+            // Filter to online payment capable methods
+            const methods = allMethods.filter(method => {
+                // Include if it's the configured online payment method
+                if (targetMethodId && method.id === targetMethodId) {
+                    return true;
+                }
+                // Include if marked as online payment
+                if (method.is_online_payment) {
+                    return true;
+                }
+                // Include if using supported payment terminal
+                if (["adyen", "stripe"].includes(method.use_payment_terminal)) {
+                    return true;
+                }
+                return false;
             });
+
+            return methods;
         } catch (e) {
+            console.error("onlinePaymentMethods error:", e);
             return [];
         }
     }
