@@ -12,7 +12,7 @@
             <button t-if="selfOrder.config.self_ordering_pay_after === 'meal' and Object.keys(selfOrder.currentOrder.changes).length === 0"
                     class="btn btn-sm btn-outline-primary ms-2"
                     t-on-click="() => this.editLineInMealMode(line)"
-                    title="編輯">
+                    title="編輯數量">
                 <i class="fa fa-pencil"></i>
             </button>
         </xpath>
