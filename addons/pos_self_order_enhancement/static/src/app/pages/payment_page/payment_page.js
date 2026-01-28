@@ -241,33 +241,13 @@ export class PaymentPage extends Component {
 
     /**
      * Handle counter payment selection (現場結帳)
-     * User chooses to pay at the counter - go back to landing page
+     * Display only - no action needed
+     * The button shows the payment option but does not trigger any navigation
      */
     selectCounterPayment() {
-        // Clear any previous error state
-        this.state.error = null;
-        this.state.loading = true;
-
-        try {
-            // For counter payment, just go back to landing page
-            // The order is submitted and will be paid at counter
-            // Reset order state and navigate to home
-            this.selfOrder.selectedOrderUuid = null;
-
-            // Use router if available, otherwise use window.location
-            if (this.router && typeof this.router.navigate === 'function') {
-                this.router.navigate("default");
-            } else {
-                // Fallback: redirect using window.location
-                const configId = this.selfOrder.config?.id || 1;
-                window.location.href = `/pos-self/${configId}`;
-            }
-        } catch (error) {
-            console.error("Counter payment error:", error);
-            // Fallback: redirect using window.location
-            const configId = this.selfOrder.config?.id || 1;
-            window.location.href = `/pos-self/${configId}`;
-        }
+        // Counter payment button is for display only
+        // User will pay at the counter, order is already submitted
+        // No action needed
     }
 
     /**
