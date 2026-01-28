@@ -16,10 +16,10 @@
                 class="btn btn-lg btn-secondary"
                 style="border-color: #714B67">
                 <t t-if="draftOrder.length > 0">
-                    My Order
+                    查看購物車
                 </t>
                 <t t-else="">
-                    My Orders
+                    歷史訂單
                 </t>
             </a>
         </xpath>
