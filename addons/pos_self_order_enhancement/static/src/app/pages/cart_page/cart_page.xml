@@ -7,10 +7,6 @@
         <xpath expr="//p[contains(@class, 'text-muted')]" position="replace">
         </xpath>
 
-        <!-- Hide the pencil edit button (prevents jumping to product options page) -->
-        <xpath expr="//button[contains(@class, 'btn-secondary') and .//i[contains(@class, 'fa-pencil')]]" position="replace">
-        </xpath>
-
         <!-- Replace the quantity display "Nx" with +/- buttons in meal mode only -->
         <xpath expr="//span[contains(., 'x ') and @t-if='Object.keys(selfOrder.currentOrder.changes).length === 0']" position="replace">
             <!-- In meal mode: show +/- buttons -->
