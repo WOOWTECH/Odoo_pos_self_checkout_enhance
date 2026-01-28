@@ -77,25 +77,26 @@ patch(ProductPage.prototype, {
      * - Otherwise, UPDATE the existing line's quantity (not add new)
      */
     addToCart() {
-        // If editing in meal mode, we need to UPDATE the existing line
-        if (this.isEditingInMealMode) {
-            const editedLine = this._editingLine || this.selfOrder.editedLine;
-            if (editedLine) {
-                if (this.state.qty === 0) {
-                    // Delete: set qty to 0 and remove the line
-                    editedLine.qty = 0;
-                    editedLine.setDirty();
-                    this.selfOrder.removeLine(editedLine);
-                } else {
-                    // Update: set the new quantity directly (not add to it)
-                    editedLine.qty = this.state.qty;
-                    editedLine.customer_note = this.state.customer_note;
-                    editedLine.setDirty();
-                }
-                // Clear the editedLine references
-                this.selfOrder.editedLine = null;
-                this._editingLine = null;
+        // Check if we're editing BEFORE any navigation
+        // Use _editingLine which was stored in initState
+        const editingLine = this._editingLine;
+        const isEditing = this.isPayPerMeal && editingLine;
+
+        if (isEditing) {
+            if (this.state.qty === 0) {
+                // Delete: set qty to 0 and remove the line
+                editingLine.qty = 0;
+                editingLine.setDirty();
+                this.selfOrder.removeLine(editingLine);
+            } else {
+                // Update: set the new quantity directly (not add to it)
+                editingLine.qty = this.state.qty;
+                editingLine.customer_note = this.state.customer_note;
+                editingLine.setDirty();
             }
+            // Clear the editedLine references BEFORE navigation
+            this.selfOrder.editedLine = null;
+            this._editingLine = null;
             // Navigate directly to cart page instead of going back to product list
             this.router.navigate("cart");
             return;
