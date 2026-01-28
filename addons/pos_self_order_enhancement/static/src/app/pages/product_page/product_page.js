@@ -110,6 +110,12 @@ patch(ProductPage.prototype, {
             this.env.selectedValues,
             this.env.customValues
         );
-        this.router.back();
+
+        // In meal mode, go directly to cart page; otherwise use back navigation
+        if (this.isPayPerMeal) {
+            this.router.navigate("cart");
+        } else {
+            this.router.back();
+        }
     },
 });
