@@ -46,4 +46,28 @@ patch(CartPage.prototype, {
             hasServerId
         );
     },
+
+    /**
+     * Edit line item in meal mode (餐點結).
+     * Instead of editing the existing line (which is not allowed for posted orders),
+     * navigate to the product page so user can add more of the same product.
+     * @param {Object} line - The order line to edit
+     */
+    editLineInMealMode(line) {
+        try {
+            // Get product ID from line
+            const productId = line.product_id?.id || line.product_id;
+
+            if (productId) {
+                // Navigate to product page to add more quantity
+                this.router.navigate("product", { id: productId });
+            } else {
+                // Fallback to product list
+                this.router.navigate("product_list");
+            }
+        } catch (e) {
+            console.error("Edit line error:", e);
+            this.router.navigate("product_list");
+        }
+    },
 });
