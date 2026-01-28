@@ -6,6 +6,16 @@
         <!-- Remove the tax line by replacing it with empty content -->
         <xpath expr="//p[contains(@class, 'text-muted')]" position="replace">
         </xpath>
+
+        <!-- Add edit button for each line item in meal mode (餐點結) -->
+        <xpath expr="//div[hasclass('product-controllers')]//div[hasclass('line-price')]" position="after">
+            <button t-if="selfOrder.config.self_ordering_pay_after === 'meal' and Object.keys(selfOrder.currentOrder.changes).length === 0"
+                    class="btn btn-sm btn-outline-primary ms-2"
+                    t-on-click="() => this.clickOnLine(line)"
+                    title="編輯">
+                <i class="fa fa-pencil"></i>
+            </button>
+        </xpath>
     </t>
 
     <!-- Override OrderWidget to hide "本次加點" in meal mode -->
