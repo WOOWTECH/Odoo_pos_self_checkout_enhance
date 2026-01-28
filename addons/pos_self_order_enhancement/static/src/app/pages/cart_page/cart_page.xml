@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Override CartPage to remove tax display -->
+    <t t-inherit="pos_self_order.CartPage" t-inherit-mode="extension">
+        <!-- Remove the tax line by replacing it with empty content -->
+        <xpath expr="//p[contains(@class, 'text-muted')]" position="replace">
+        </xpath>
+    </t>
+
+</templates>
