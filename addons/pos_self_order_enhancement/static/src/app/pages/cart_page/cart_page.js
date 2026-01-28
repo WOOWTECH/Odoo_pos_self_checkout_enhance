@@ -77,8 +77,9 @@ patch(CartPage.prototype, {
     },
 
     /**
-     * Override pay() to skip table selection in meal mode when order already has a table.
-     * In meal mode, the table was already selected when the order was first created.
+     * Override pay() to handle meal mode differently.
+     * In meal mode: first submit order, then navigate to confirmation page.
+     * Table selection (if needed) happens from the confirmation page.
      */
     async pay() {
         const orderingMode = this.selfOrder.config.self_ordering_service_mode;
@@ -95,12 +96,26 @@ patch(CartPage.prototype, {
             return;
         }
 
-        // In meal mode, if order already has a table_id, skip table selection
+        // In meal mode, if order already has a table_id, use it
         if (payAfter === "meal" && order.table_id) {
-            // Table already set from previous order, use it
             this.selfOrder.currentTable = order.table_id;
         }
 
+        // In meal mode: skip table popup here, go directly to confirm order
+        // Table selection will happen from confirmation page if needed
+        if (payAfter === "meal") {
+            if (this.selfOrder.currentTable) {
+                this.selfOrder.currentOrder.update({
+                    table_id: this.selfOrder.currentTable,
+                });
+            }
+            this.selfOrder.rpcLoading = true;
+            await this.selfOrder.confirmOrder();
+            this.selfOrder.rpcLoading = false;
+            return;
+        }
+
+        // For non-meal modes, use original logic with table popup
         if (
             type === "mobile" &&
             orderingMode === "table" &&
