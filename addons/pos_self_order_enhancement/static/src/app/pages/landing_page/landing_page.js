@@ -4,13 +4,14 @@ import { LandingPage } from "@pos_self_order/app/pages/landing_page/landing_page
 import { patch } from "@web/core/utils/patch";
 
 /**
- * Patch LandingPage to add "Continue Ordering" button.
+ * Patch LandingPage to add "Continue Ordering" button and "View Order History" button.
  *
  * Business Logic:
  * - When customer has an existing unpaid order, show "Continue Ordering" button
  * - Button appears below "My Order" button with the same style
  * - Clicking navigates directly to product list to add more items
  * - Only shown in mobile mode with pay_after="each" configuration
+ * - "我的銷售訂單" button navigates to order history in view-only mode
  */
 patch(LandingPage.prototype, {
     /**
@@ -28,6 +29,36 @@ patch(LandingPage.prototype, {
         }
         // Navigate to product list page
         this.router.navigate("product_list");
+    },
+
+    /**
+     * Navigate to order history page in view-only mode.
+     * This is for the "我的銷售訂單" button on landing page.
+     * Shows order history without checkout section.
+     */
+    viewOrderHistory() {
+        // Add viewHistory parameter to URL before navigating
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('viewHistory', 'true');
+        window.history.replaceState({}, '', currentUrl.toString());
+
+        // Navigate to order history page
+        this.router.navigate("orderHistory");
+    },
+
+    /**
+     * Enhanced version of clickMyOrder that:
+     * - Goes to cart if there are draft orders with items in cart
+     * - Goes to order history (view-only mode) if showing "My Orders" (no draft orders)
+     */
+    clickMyOrderEnhanced() {
+        if (this.draftOrder.length > 0) {
+            // Has draft orders - go to cart
+            this.router.navigate("cart");
+        } else {
+            // No draft orders - go to order history in view-only mode
+            this.viewOrderHistory();
+        }
     },
 
     /**

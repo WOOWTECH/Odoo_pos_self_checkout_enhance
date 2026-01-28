@@ -10,6 +10,7 @@ import { patch } from "@web/core/utils/patch";
  * - In "Pay per Order" mode, show total of all unpaid orders
  * - Add "Checkout" button to proceed to payment
  * - Add "Continue Ordering" button to go back to product list
+ * - Hide checkout section if user just completed payment (view history mode)
  */
 patch(OrdersHistoryPage.prototype, {
     /**
@@ -37,11 +38,75 @@ patch(OrdersHistoryPage.prototype, {
     },
 
     /**
+     * Get all paid orders (for history view).
+     * @returns {Array}
+     */
+    get paidOrders() {
+        try {
+            return this.orders.filter(order => order.state === 'paid');
+        } catch (e) {
+            return [];
+        }
+    },
+
+    /**
      * Check if there are unpaid orders that can be checked out.
+     * Only returns true if:
+     * 1. There are unpaid orders
+     * 2. Not in "view history only" mode (when coming from payment success or landing page "我的銷售訂單")
      * @returns {boolean}
      */
     get hasUnpaidOrders() {
+        // If URL has viewHistory parameter or came from payment success, hide checkout section
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewHistoryOnly = urlParams.get('viewHistory') === 'true';
+
+        if (viewHistoryOnly) {
+            return false;
+        }
+
         return this.unpaidOrders.length > 0;
+    },
+
+    /**
+     * Check if we should show the checkout section.
+     * Show checkout section only when:
+     * 1. In pay per order mode
+     * 2. There are unpaid orders
+     * 3. The unpaid orders have been submitted (have tracking_number or pos_reference)
+     * 4. Not all orders are paid (don't show checkout after payment success)
+     * @returns {boolean}
+     */
+    get showCheckoutSection() {
+        // Not in pay per order mode
+        if (!this.isPayPerOrder) {
+            return false;
+        }
+
+        // No unpaid orders
+        if (this.unpaidOrders.length === 0) {
+            return false;
+        }
+
+        // Check if unpaid orders have been submitted to server
+        // (have tracking_number or pos_reference, meaning they went through confirmation)
+        const hasSubmittedUnpaidOrder = this.unpaidOrders.some(order =>
+            order.id && (order.tracking_number || order.pos_reference)
+        );
+
+        if (!hasSubmittedUnpaidOrder) {
+            return false;
+        }
+
+        // Check if URL indicates view history mode (from landing page "我的銷售訂單" button)
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewHistoryOnly = urlParams.get('viewHistory') === 'true';
+
+        if (viewHistoryOnly) {
+            return false;
+        }
+
+        return true;
     },
 
     /**
