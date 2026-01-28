@@ -239,25 +239,71 @@ export class PaymentPage extends Component {
     }
 
     /**
-     * Handle online payment selection
+     * Handle counter payment selection (現場結帳)
+     * User chooses to pay at the counter
+     */
+    selectCounterPayment() {
+        this.state.loading = true;
+
+        try {
+            // Show confirmation and navigate to confirmation page
+            // The order is already submitted, just need to show success message
+            this.router.navigate("confirmation");
+        } catch (error) {
+            console.error("Counter payment error:", error);
+            this.state.error = "處理失敗，請重試";
+            this.state.loading = false;
+        }
+    }
+
+    /**
+     * Handle online payment selection (線上支付)
+     * Uses Odoo's standard payment portal flow
      */
     async selectOnlinePayment(paymentMethodId) {
         this.state.loading = true;
         this.state.error = null;
 
         try {
-            // Process online payment through Odoo's payment flow
-            await this.selfOrder.processOnlinePayment(paymentMethodId);
-            // Navigation will be handled by the payment service
+            // Get the current order
+            const order = this.currentOrder;
+            if (!order) {
+                throw new Error("No order found");
+            }
+
+            // Get order ID and access token
+            const orderId = order.id;
+            const accessToken = order.access_token ||
+                               this.selfOrder.access_token ||
+                               this.selfOrder.config?.access_token;
+
+            // Build the payment portal URL
+            // Odoo standard payment portal: /my/orders/{order_id}/transaction
+            // Or use the pos self order payment route
+            let paymentUrl;
+
+            if (accessToken) {
+                // Use POS self order payment flow with access token
+                paymentUrl = `/pos-self-order/make-payment?order_id=${orderId}&access_token=${accessToken}&payment_method_id=${paymentMethodId}`;
+            } else {
+                // Fallback to standard portal payment
+                paymentUrl = `/my/orders/${orderId}/transaction?payment_method_id=${paymentMethodId}`;
+            }
+
+            console.log("Redirecting to payment URL:", paymentUrl);
+
+            // Redirect to payment page
+            window.location.href = paymentUrl;
+
         } catch (error) {
             console.error("Online payment error:", error);
-            this.state.error = "付款處理失敗，請重試";
+            this.state.error = "付款處理失敗，請重試或選擇現場結帳";
             this.state.loading = false;
         }
     }
 
     /**
-     * Navigate back to home/landing page (整單結 - full bill settlement)
+     * Navigate back to home/landing page
      */
     goToHome() {
         try {

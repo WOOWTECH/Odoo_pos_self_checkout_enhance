@@ -95,71 +95,45 @@
                         </div>
                     </div>
 
-                    <!-- Online Payment Methods (if available) -->
-                    <t t-if="hasOnlinePayment">
-                        <div class="payment-methods bg-white rounded-3 shadow-sm p-3 mb-3">
-                            <h6 class="fw-bold mb-3 text-muted">選擇付款方式</h6>
-                            <div class="d-flex flex-column gap-2">
+                    <!-- Payment Method Selection -->
+                    <div class="payment-methods bg-white rounded-3 shadow-sm p-3 mb-3">
+                        <h6 class="fw-bold mb-3 text-muted">
+                            <i class="fa fa-credit-card me-2"></i>
+                            選擇付款方式
+                        </h6>
+                        <div class="d-flex flex-column gap-2">
+                            <!-- Counter Payment Option (現場結帳) -->
+                            <button class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
+                                    t-on-click="selectCounterPayment">
+                                <i class="fa fa-money me-3 fs-4"></i>
+                                <div class="text-start">
+                                    <span class="fw-bold">現場結帳</span>
+                                    <small class="d-block text-muted">至櫃台付款</small>
+                                </div>
+                            </button>
+
+                            <!-- Online Payment Options (線上支付) -->
+                            <t t-if="hasOnlinePayment">
                                 <t t-foreach="onlinePaymentMethods" t-as="method" t-key="method.id">
                                     <button class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3"
                                             t-on-click="() => this.selectOnlinePayment(method.id)">
-                                        <i class="fa fa-credit-card me-3 fs-4"></i>
-                                        <span t-esc="method.name"/>
+                                        <i class="fa fa-globe me-3 fs-4"></i>
+                                        <div class="text-start">
+                                            <span class="fw-bold" t-esc="method.name"/>
+                                            <small class="d-block text-muted">線上支付</small>
+                                        </div>
                                     </button>
                                 </t>
-                            </div>
+                            </t>
                         </div>
-                    </t>
+                    </div>
 
-                    <!-- Counter Payment (整單結 - Full Bill Settlement) -->
-                    <t t-else="">
-                        <div class="counter-payment bg-white rounded-3 shadow-sm p-4 text-center">
-                            <!-- Friendly Icon -->
-                            <div class="mb-4">
-                                <div class="d-inline-flex justify-content-center align-items-center rounded-circle bg-success bg-opacity-10"
-                                     style="width: 100px; height: 100px;">
-                                    <i class="fa fa-cutlery fa-3x text-success"></i>
-                                </div>
-                            </div>
-
-                            <!-- Friendly Thank You Message -->
-                            <h4 class="fw-bold mb-2 text-success">感謝您的點餐！</h4>
-                            <p class="text-muted mb-4 fs-5">餐點準備中，請稍候～</p>
-
-                            <!-- Order Info Card -->
-                            <div class="order-info bg-light rounded-3 p-3 mb-4">
-                                <div class="mb-2">
-                                    <i class="fa fa-file-text-o me-1 text-muted"></i>
-                                    <span class="text-muted">訂單編號:</span>
-                                    <span class="fw-bold ms-2" t-esc="orderReference"/>
-                                </div>
-                                <!-- Current Session Amount (if multiple sessions) -->
-                                <t t-if="hasMultipleSessions">
-                                    <div class="mb-2">
-                                        <i class="fa fa-plus-circle me-1 text-info"></i>
-                                        <span class="text-muted">本次加點:</span>
-                                        <span class="fw-semibold text-info ms-2">
-                                            <t t-esc="formatCurrency(currentSessionAmount)"/>
-                                        </span>
-                                    </div>
-                                </t>
-                                <div>
-                                    <i class="fa fa-money me-1 text-primary"></i>
-                                    <span class="text-muted">總金額:</span>
-                                    <span class="fw-bold fs-5 text-primary ms-2">
-                                        <t t-esc="formatCurrency(totalAmount)"/>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Back to Home Button (整單結) -->
-                            <button class="btn btn-primary btn-lg w-100 py-3"
-                                    t-on-click="goToHome">
-                                <i class="fa fa-home me-2"></i>
-                                回到主頁
-                            </button>
-                        </div>
-                    </t>
+                    <!-- Back to Home Button -->
+                    <button class="btn btn-secondary btn-lg w-100 py-3"
+                            t-on-click="goToHome">
+                        <i class="fa fa-home me-2"></i>
+                        回到主頁
+                    </button>
                 </t>
             </div>
         </div>
