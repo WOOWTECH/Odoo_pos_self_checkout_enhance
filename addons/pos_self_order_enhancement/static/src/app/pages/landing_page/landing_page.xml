@@ -16,7 +16,7 @@
                 class="btn btn-lg btn-secondary"
                 style="border-color: #714B67">
                 <t t-if="draftOrder.length > 0">
-                    查看購物車
+                    我的訂單
                 </t>
                 <t t-else="">
                     歷史訂單
