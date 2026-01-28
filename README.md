@@ -1,0 +1,1 @@
+# Odoo_pos_self_checkout_enhance
