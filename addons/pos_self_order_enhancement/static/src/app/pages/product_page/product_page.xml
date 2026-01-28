@@ -4,7 +4,7 @@
     <!-- Override ProductPage for meal mode editing -->
     <t t-inherit="pos_self_order.ProductPage" t-inherit-mode="extension">
         <!-- Replace the Discard button to go to cart in meal mode -->
-        <xpath expr="//button[hasclass('btn-secondary')][1]" position="replace">
+        <xpath expr="//button[hasclass('btn-secondary') and hasclass('text-nowrap')]" position="replace">
             <button class="btn btn-secondary btn-lg px-3 text-nowrap" t-on-click="() => this.discardEdit()">
                 <i class="oi oi-chevron-left" aria-hidden="true"/><span class="ms-2 d-none d-md-inline">Discard</span>
             </button>
