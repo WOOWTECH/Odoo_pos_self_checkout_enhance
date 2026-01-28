@@ -102,15 +102,15 @@
                             選擇付款方式
                         </h6>
                         <div class="d-flex flex-column gap-2">
-                            <!-- Counter Payment Option (現場結帳) -->
-                            <button class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
-                                    t-on-click="selectCounterPayment">
+                            <!-- Counter Payment Option (現場結帳) - Display only, no action -->
+                            <div class="btn btn-success btn-lg d-flex align-items-center justify-content-start p-3"
+                                 style="cursor: default; pointer-events: none;">
                                 <i class="fa fa-money me-3 fs-4"></i>
                                 <div class="text-start">
                                     <span class="fw-bold">現場結帳</span>
                                     <small class="d-block text-muted">至櫃台付款</small>
                                 </div>
-                            </button>
+                            </div>
 
                             <!-- Online Payment Options (線上支付) -->
                             <t t-if="hasOnlinePayment">
