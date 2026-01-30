@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Override CartPage to remove tax display and add inline quantity controls -->
+    <t t-inherit="pos_self_order.CartPage" t-inherit-mode="extension">
+        <!-- Remove the tax line by replacing it with empty content -->
+        <xpath expr="//p[contains(@class, 'text-muted')]" position="replace">
+        </xpath>
+
+        <!-- Replace the quantity display "Nx" with +/- buttons in meal mode only -->
+        <xpath expr="//span[contains(., 'x ') and @t-if='Object.keys(selfOrder.currentOrder.changes).length === 0']" position="replace">
+            <!-- In meal mode: always show +/- buttons with current quantity -->
+            <div t-if="selfOrder.config.self_ordering_pay_after === 'meal'" class="d-inline-flex align-items-center me-2">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary px-2 py-0"
+                        t-on-click="(ev) => { ev.stopPropagation(); this.decreaseQuantity(line); }">
+                    <span class="fw-bold">－</span>
+                </button>
+                <span class="mx-2 fw-bold" t-esc="line.qty"/>
+                <button type="button"
+                        class="btn btn-sm btn-outline-success px-2 py-0"
+                        t-on-click="(ev) => { ev.stopPropagation(); this.increaseQuantity(line); }">
+                    <span class="fw-bold">＋</span>
+                </button>
+            </div>
+            <!-- In other modes: show original "Nx" format (only when no changes) -->
+            <span t-if="Object.keys(selfOrder.currentOrder.changes).length === 0 and selfOrder.config.self_ordering_pay_after !== 'meal'"><t t-esc="line.qty"/>x </span>
+        </xpath>
+
+        <!-- Hide the original +/- buttons in meal mode (they show +(-1) format which is confusing) -->
+        <xpath expr="//div[hasclass('btn-group') and .//button[contains(@t-on-click, 'changeQuantity')]]" position="attributes">
+            <attribute name="t-if">Object.keys(selfOrder.currentOrder.changes).length > 0 and selfOrder.config.self_ordering_pay_after !== 'meal'</attribute>
+        </xpath>
+    </t>
+
+</templates>

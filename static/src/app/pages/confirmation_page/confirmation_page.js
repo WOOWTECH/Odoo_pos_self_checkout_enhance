@@ -109,4 +109,16 @@ patch(ConfirmationPage.prototype, {
     goToMyOrders() {
         this.router.navigate("orderHistory");
     },
+
+    /**
+     * Navigate back to cart page (order list).
+     * In meal mode, ensures the confirmed order is set as current order before navigating.
+     */
+    goToCart() {
+        // In meal mode, ensure the confirmed order is accessible as currentOrder
+        if (this.confirmedOrder && this.confirmedOrder.uuid) {
+            this.selfOrder.selectedOrderUuid = this.confirmedOrder.uuid;
+        }
+        this.router.navigate("cart");
+    },
 });
