@@ -10,16 +10,22 @@
         -->
         <xpath expr="//div[hasclass('px-3') and hasclass('py-4')]/button[hasclass('btn-primary')]" position="replace">
             <t t-if="showPayPerMealUI">
-                <!-- Pay per Meal mode: show payment button -->
+                <!-- Pay per Meal mode: show back to cart and payment buttons -->
                 <div class="d-flex flex-column gap-3 w-100">
                     <p class="text-center text-muted mb-3">
                         餐點已送至廚房準備中<br/>
                         請前往付款頁面完成結帳
                     </p>
-                    <button class="btn btn-lg btn-primary w-100" t-on-click="goToPayment">
-                        <i class="fa fa-credit-card me-2"></i>
-                        前往付款
-                    </button>
+                    <div class="d-flex gap-3 w-100">
+                        <button class="btn btn-lg btn-secondary flex-grow-1" t-on-click="goToCart">
+                            <i class="oi oi-chevron-left me-2"></i>
+                            返回訂單
+                        </button>
+                        <button class="btn btn-lg btn-primary flex-grow-1" t-on-click="goToPayment">
+                            <i class="fa fa-credit-card me-2"></i>
+                            前往付款
+                        </button>
+                    </div>
                 </div>
             </t>
             <t t-elif="showPayPerOrderUI">

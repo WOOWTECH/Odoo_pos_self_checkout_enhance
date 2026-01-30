@@ -4,6 +4,9 @@ import { selfOrderIndex } from "@pos_self_order/app/self_order_index";
 import { PaymentPage } from "./pages/payment_page/payment_page";
 import { PaymentSuccessPage } from "./pages/payment_success_page/payment_success_page";
 
+// Import component patches (side-effect only imports)
+import "@pos_self_order_enhancement/app/components/order_widget/order_widget";
+
 /**
  * Override selfOrderIndex components to register custom page components.
  * This makes PaymentPage and PaymentSuccessPage available in the router.

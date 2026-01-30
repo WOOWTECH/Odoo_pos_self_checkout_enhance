@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Extend payment confirmation page to add "Return to Ordering" button -->
+        <template id="payment_confirm_extend" inherit_id="payment.confirm" priority="99">
+            <!-- Add "Return to Ordering" button next to "Go to my Account" -->
+            <xpath expr="//a[@href='/my/home']" position="after">
+                <a t-attf-href="/pos-self-order/return-to-order?reference=#{tx.reference}"
+                   class="btn btn-secondary float-end me-2">
+                    <i class="fa fa-cutlery me-1"/>
+                    回到點餐頁面
+                </a>
+            </xpath>
+        </template>
+
+    </data>
+</odoo>

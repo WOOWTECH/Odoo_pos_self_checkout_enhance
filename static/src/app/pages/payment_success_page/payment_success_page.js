@@ -66,12 +66,12 @@ export class PaymentSuccessPage extends Component {
             // Reset current order state to start fresh
             this.selfOrder.selectedOrderUuid = null;
 
-            // Navigate back to landing page
-            this.router.navigate("landing");
+            // Navigate back to landing page (use "default" route name)
+            this.router.navigate("default");
         } catch (e) {
             console.error("Error starting new order:", e);
-            // Fallback: just navigate to landing
-            this.router.navigate("landing");
+            // Fallback: just navigate to default landing page
+            this.router.navigate("default");
         }
     }
 }

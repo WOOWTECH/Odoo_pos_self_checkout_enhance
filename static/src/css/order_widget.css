@@ -1,0 +1,11 @@
+/**
+ * Hide back button on cart page in meal mode.
+ * The class 'hide-self-order-back-button' is added to body by JavaScript
+ * when we're on the cart page in meal mode.
+ */
+body.hide-self-order-back-button .page-buttons button[class*="btn-back"],
+body.hide-self-order-back-button .page-buttons button[class*="btn-cancel"],
+body.hide-self-order-back-button .page-buttons > button:first-child,
+body.hide-self-order-back-button .page-buttons > button:nth-child(2) {
+    display: none !important;
+}

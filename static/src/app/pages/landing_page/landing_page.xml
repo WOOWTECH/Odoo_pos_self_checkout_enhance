@@ -5,6 +5,26 @@
     <t t-inherit="pos_self_order.LandingPage" t-inherit-mode="extension">
 
         <!--
+            Override the "My Order/My Orders" button to use viewOrderHistory
+            when showing "My Orders" (order history view).
+            This ensures the checkout section is hidden when viewing order history.
+        -->
+        <xpath expr="//a[contains(@t-on-click, 'clickMyOrder')]" position="replace">
+            <a
+                type="button"
+                t-on-click="clickMyOrderEnhanced"
+                class="btn btn-lg btn-secondary"
+                style="border-color: #714B67">
+                <t t-if="draftOrder.length > 0">
+                    我的訂單
+                </t>
+                <t t-else="">
+                    歷史訂單
+                </t>
+            </a>
+        </xpath>
+
+        <!--
             Add "Continue Ordering" button after "My Order" button.
             The button has the same style as "My Order" button.
             Only shown when customer has existing unpaid orders.

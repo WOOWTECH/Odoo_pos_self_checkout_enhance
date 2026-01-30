@@ -46,4 +46,101 @@ patch(CartPage.prototype, {
             hasServerId
         );
     },
+
+    /**
+     * Increase quantity of a line item by 1.
+     * @param {Object} line - The order line to modify
+     */
+    increaseQuantity(line) {
+        line.qty += 1;
+        line.setDirty();
+    },
+
+    /**
+     * Decrease quantity of a line item by 1.
+     * If quantity would become 0, show confirmation dialog before deleting.
+     * @param {Object} line - The order line to modify
+     */
+    async decreaseQuantity(line) {
+        if (line.qty > 1) {
+            line.qty -= 1;
+            line.setDirty();
+        } else {
+            // Quantity is 1, confirm before deleting
+            const confirmed = window.confirm("確定要刪除此品項嗎？");
+            if (confirmed) {
+                line.qty = 0;
+                line.setDirty();
+                this.selfOrder.removeLine(line);
+            }
+        }
+    },
+
+    /**
+     * Override pay() for meal mode.
+     * If there are unsaved quantity changes, sync them first and stay on cart page.
+     * Only proceed to table selection when there are no pending changes.
+     */
+    async pay() {
+        const payAfter = this.selfOrder.config.self_ordering_pay_after;
+        const order = this.selfOrder.currentOrder;
+        const hasChanges = Object.keys(order.changes).length > 0;
+
+        // In meal mode with pending changes: sync changes and stay on cart page
+        if (payAfter === "meal" && hasChanges) {
+            if (this.selfOrder.rpcLoading) {
+                return;
+            }
+
+            // Use existing table_id if available
+            if (order.table_id) {
+                this.selfOrder.currentTable = order.table_id;
+            }
+
+            // Sync changes to server
+            this.selfOrder.rpcLoading = true;
+            await this.selfOrder.sendDraftOrderToServer();
+            this.selfOrder.rpcLoading = false;
+
+            // Stay on cart page - changes are now synced
+            // User will see updated quantities and can press Order again to proceed
+            return;
+        }
+
+        // For all other cases, use original pay() logic
+        const orderingMode = this.selfOrder.config.self_ordering_service_mode;
+        const type = this.selfOrder.config.self_ordering_mode;
+        const takeAway = order.takeaway;
+
+        if (
+            this.selfOrder.rpcLoading ||
+            !this.selfOrder.verifyCart() ||
+            !this.selfOrder.verifyPriceLoading()
+        ) {
+            return;
+        }
+
+        // In meal mode without changes, use existing table_id
+        if (payAfter === "meal" && order.table_id) {
+            this.selfOrder.currentTable = order.table_id;
+        }
+
+        if (
+            type === "mobile" &&
+            orderingMode === "table" &&
+            !takeAway &&
+            !this.selfOrder.currentTable
+        ) {
+            this.state.selectTable = true;
+            return;
+        } else {
+            this.selfOrder.currentOrder.update({
+                table_id: this.selfOrder.currentTable,
+            });
+        }
+
+        this.selfOrder.rpcLoading = true;
+        await this.selfOrder.confirmOrder();
+        this.selfOrder.rpcLoading = false;
+    },
 });
