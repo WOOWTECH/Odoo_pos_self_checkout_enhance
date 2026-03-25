@@ -16,3 +16,8 @@ Thumbs.db
 
 # Odoo
 *.pyc
+
+.claude/
+user_prompt.md
+.playwright-mcp/
+USER_GUIDE.md
