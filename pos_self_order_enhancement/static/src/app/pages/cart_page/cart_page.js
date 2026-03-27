@@ -92,8 +92,12 @@ patch(CartPage.prototype, {
                 return;
             }
 
-            // Use existing table_id if available
-            if (order.table_id) {
+            // Set table from QR scan if not already set on order
+            if (!order.table_id && this.selfOrder.currentTable) {
+                this.selfOrder.currentOrder.update({
+                    table_id: this.selfOrder.currentTable,
+                });
+            } else if (order.table_id) {
                 this.selfOrder.currentTable = order.table_id;
             }
 
