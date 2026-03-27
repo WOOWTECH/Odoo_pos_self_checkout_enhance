@@ -4,16 +4,13 @@
     <!-- Extend OrdersHistoryPage for "Pay per Order" checkout -->
     <t t-inherit="pos_self_order.OrdersHistoryPage" t-inherit-mode="extension">
 
-        <!--
-            Add checkout section at the bottom of the page.
-            Shows total amount and checkout/continue buttons.
-        -->
+        <!-- Add checkout section at the bottom of the page -->
         <xpath expr="//div[hasclass('d-flex') and .//button[contains(@t-on-click, 'back')]]" position="before">
             <t t-if="showCheckoutSection">
                 <div class="checkout-section bg-white border-top p-3 sticky-bottom">
                     <!-- Total amount display -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="fw-bold fs-5">總計</span>
+                        <span class="fw-bold fs-5">Total</span>
                         <span class="fw-bold fs-4 text-primary">
                             <t t-esc="formatCurrency(totalUnpaidAmount)"/>
                         </span>
@@ -22,10 +19,10 @@
                     <!-- Action buttons -->
                     <div class="d-flex flex-column gap-2">
                         <button class="btn btn-lg btn-primary w-100" t-on-click="checkout">
-                            結帳付款
+                            Checkout
                         </button>
                         <button class="btn btn-lg btn-outline-secondary w-100" t-on-click="continueOrdering">
-                            繼續點餐
+                            Continue Ordering
                         </button>
                     </div>
                 </div>

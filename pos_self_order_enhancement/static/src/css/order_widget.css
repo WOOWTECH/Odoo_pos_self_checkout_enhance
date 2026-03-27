@@ -1,11 +1,12 @@
 /**
- * Hide back button on cart page in meal mode.
- * The class 'hide-self-order-back-button' is added to body by JavaScript
- * when we're on the cart page in meal mode.
+ * Hide back/cancel button on cart page in meal mode.
+ * The class 'hide-self-order-back-button' is toggled on body
+ * by the OrderWidget lifecycle hooks.
+ *
+ * Targets buttons with known Odoo icon classes (btn-back, btn-cancel, btn-close).
  */
 body.hide-self-order-back-button .page-buttons button[class*="btn-back"],
 body.hide-self-order-back-button .page-buttons button[class*="btn-cancel"],
-body.hide-self-order-back-button .page-buttons > button:first-child,
-body.hide-self-order-back-button .page-buttons > button:nth-child(2) {
+body.hide-self-order-back-button .page-buttons button[class*="btn-close"] {
     display: none !important;
 }

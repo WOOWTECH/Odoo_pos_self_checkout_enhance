@@ -1,4 +1,4 @@
-from odoo import models
+from odoo import models, _
 
 
 class PosConfig(models.Model):
@@ -10,6 +10,6 @@ class PosConfig(models.Model):
         This allows Community version to use the 'Pay per Order' feature.
         """
         return [
-            ('meal', '餐點'),
-            ('each', '整單'),
+            ('meal', _('Meal')),
+            ('each', _('Each Order')),
         ]

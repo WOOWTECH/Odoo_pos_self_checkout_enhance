@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-27 00:00+0000\n"
-"PO-Revision-Date: 2026-01-27 00:00+0000\n"
+"POT-Creation-Date: 2026-03-27 00:00+0000\n"
+"PO-Revision-Date: 2026-03-27 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -15,47 +15,163 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-msgid "Continue Ordering"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Your order has been sent to kitchen"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "You can continue ordering or go to My Orders to checkout"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Back to Home"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "My Orders"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "Total"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "Checkout"
-msgstr ""
-
-#. module: pos_self_order_enhancement
 #: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__meal
-msgid "Per Meal"
+msgid "Meal"
 msgstr ""
 
 #. module: pos_self_order_enhancement
 #: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__each
-msgid "Per Order"
+msgid "Each Order"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Remove item"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Currency not configured"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "No amount to pay"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Payment processing failed. Please try again or pay at counter."
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "My Order"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Order History"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Continue Ordering"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Select Payment Method"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Payment"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Processing, please wait..."
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Order Summary"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Current Session"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Total"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Pay at Counter"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Pay at the cashier"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Online Payment"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Back to Home"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Payment Error"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Retry"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Processing Payment..."
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Payment Successful!"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Order Number:"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Amount Paid:"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Thank you for your order"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Your food is being prepared"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Order Again"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Checkout"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Your order has been sent to the kitchen."
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Please proceed to payment."
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Back to Order"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Go to Payment"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "You can continue ordering or checkout from \"My Orders\"."
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "My Orders"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Return to Ordering"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Close"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "OK"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+msgid "Order #"
 msgstr ""

@@ -3,8 +3,8 @@
 
     <!-- Override CartPage to remove tax display and add inline quantity controls -->
     <t t-inherit="pos_self_order.CartPage" t-inherit-mode="extension">
-        <!-- Remove the tax line by replacing it with empty content -->
-        <xpath expr="//p[contains(@class, 'text-muted')]" position="replace">
+        <!-- Remove the tax line using more specific XPath (M8) -->
+        <xpath expr="//p[contains(@class, 'o-so-tabular-nums') and contains(@class, 'text-muted')]" position="replace">
         </xpath>
 
         <!-- Replace the quantity display "Nx" with +/- buttons in meal mode only -->
@@ -14,13 +14,13 @@
                 <button type="button"
                         class="btn btn-sm btn-outline-secondary px-2 py-0"
                         t-on-click="(ev) => { ev.stopPropagation(); this.decreaseQuantity(line); }">
-                    <span class="fw-bold">－</span>
+                    <span class="fw-bold">-</span>
                 </button>
                 <span class="mx-2 fw-bold" t-esc="line.qty"/>
                 <button type="button"
                         class="btn btn-sm btn-outline-success px-2 py-0"
                         t-on-click="(ev) => { ev.stopPropagation(); this.increaseQuantity(line); }">
-                    <span class="fw-bold">＋</span>
+                    <span class="fw-bold">+</span>
                 </button>
             </div>
             <!-- In other modes: show original "Nx" format (only when no changes) -->

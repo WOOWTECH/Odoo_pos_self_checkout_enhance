@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-27 00:00+0000\n"
-"PO-Revision-Date: 2026-01-27 00:00+0000\n"
+"POT-Creation-Date: 2026-03-27 00:00+0000\n"
+"PO-Revision-Date: 2026-03-27 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Traditional Chinese\n"
 "MIME-Version: 1.0\n"
@@ -17,122 +17,163 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-msgid "繼續點餐"
-msgstr "繼續點餐"
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "餐點已送至廚房準備中"
-msgstr "餐點已送至廚房準備中"
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "您可以繼續點餐或前往「我的訂單」統一結帳"
-msgstr "您可以繼續點餐或前往「我的訂單」統一結帳"
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "返回首頁"
-msgstr "返回首頁"
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "我的訂單"
-msgstr "我的訂單"
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "總計"
-msgstr "總計"
-
-#. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "結帳付款"
-msgstr "結帳付款"
-
-#. module: pos_self_order_enhancement
-#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__meal
-msgid "餐點"
+#: model:ir.model.fields.selection
+msgid "Meal"
 msgstr "餐點"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_config__self_ordering_pay_after__each
-msgid "整單"
+#: model:ir.model.fields.selection
+msgid "Each Order"
 msgstr "整單"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "付款"
-msgstr "付款"
+#. odoo-javascript
+msgid "Remove item"
+msgstr "移除品項"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "處理中，請稍候..."
-msgstr "處理中，請稍候..."
+#. odoo-javascript
+msgid "Currency not configured"
+msgstr "幣別未設定"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "訂單摘要"
-msgstr "訂單摘要"
+#. odoo-javascript
+msgid "No amount to pay"
+msgstr "目前沒有待付款金額"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "選擇付款方式"
+#. odoo-javascript
+msgid "Payment processing failed. Please try again or pay at counter."
+msgstr "付款處理失敗，請重試或選擇現場結帳"
+
+#. module: pos_self_order_enhancement
+msgid "My Order"
+msgstr "我的訂單"
+
+#. module: pos_self_order_enhancement
+msgid "Order History"
+msgstr "歷史訂單"
+
+#. module: pos_self_order_enhancement
+msgid "Continue Ordering"
+msgstr "繼續點餐"
+
+#. module: pos_self_order_enhancement
+msgid "Select Payment Method"
 msgstr "選擇付款方式"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "請至櫃台付款"
-msgstr "請至櫃台付款"
+msgid "Payment"
+msgstr "付款"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "訂單編號:"
-msgstr "訂單編號:"
+msgid "Processing, please wait..."
+msgstr "處理中，請稍候..."
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "請出示此畫面給服務人員"
-msgstr "請出示此畫面給服務人員"
+msgid "Order Summary"
+msgstr "訂單摘要"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "我已完成付款"
-msgstr "我已完成付款"
+msgid "Current Session"
+msgstr "本次加點"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "付款成功！"
+msgid "Total"
+msgstr "總計"
+
+#. module: pos_self_order_enhancement
+msgid "Pay at Counter"
+msgstr "現場結帳"
+
+#. module: pos_self_order_enhancement
+msgid "Pay at the cashier"
+msgstr "至櫃台付款"
+
+#. module: pos_self_order_enhancement
+msgid "Online Payment"
+msgstr "線上支付"
+
+#. module: pos_self_order_enhancement
+msgid "Back to Home"
+msgstr "回到主頁"
+
+#. module: pos_self_order_enhancement
+msgid "Payment Error"
+msgstr "付款錯誤"
+
+#. module: pos_self_order_enhancement
+msgid "Retry"
+msgstr "重試"
+
+#. module: pos_self_order_enhancement
+msgid "Processing Payment..."
+msgstr "付款處理中..."
+
+#. module: pos_self_order_enhancement
+msgid "Payment Successful!"
 msgstr "付款成功！"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "付款金額:"
+msgid "Order Number:"
+msgstr "訂單編號:"
+
+#. module: pos_self_order_enhancement
+msgid "Amount Paid:"
 msgstr "付款金額:"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "感謝您的惠顧"
+msgid "Thank you for your order"
 msgstr "感謝您的惠顧"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "餐點準備中，請稍候"
+msgid "Your food is being prepared"
 msgstr "餐點準備中，請稍候"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "再點一份"
+msgid "Order Again"
 msgstr "再點一份"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "請前往付款頁面完成結帳"
+msgid "Checkout"
+msgstr "結帳付款"
+
+#. module: pos_self_order_enhancement
+msgid "Your order has been sent to the kitchen."
+msgstr "餐點已送至廚房準備中"
+
+#. module: pos_self_order_enhancement
+msgid "Please proceed to payment."
 msgstr "請前往付款頁面完成結帳"
 
 #. module: pos_self_order_enhancement
-#: model:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "前往付款"
+msgid "Back to Order"
+msgstr "返回訂單"
+
+#. module: pos_self_order_enhancement
+msgid "Go to Payment"
 msgstr "前往付款"
+
+#. module: pos_self_order_enhancement
+msgid "You can continue ordering or checkout from \"My Orders\"."
+msgstr "您可以繼續點餐或前往「我的訂單」統一結帳"
+
+#. module: pos_self_order_enhancement
+msgid "My Orders"
+msgstr "我的訂單"
+
+#. module: pos_self_order_enhancement
+msgid "Return to Ordering"
+msgstr "回到點餐頁面"
+
+#. module: pos_self_order_enhancement
+msgid "Close"
+msgstr "關閉"
+
+#. module: pos_self_order_enhancement
+msgid "OK"
+msgstr "確定"
+
+#. module: pos_self_order_enhancement
+msgid "Order #"
+msgstr "第 # 次點餐"
