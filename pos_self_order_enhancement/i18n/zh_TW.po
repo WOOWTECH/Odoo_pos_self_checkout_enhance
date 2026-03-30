@@ -177,3 +177,18 @@ msgstr "確定"
 #. module: pos_self_order_enhancement
 msgid "Order #"
 msgstr "第 # 次點餐"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Sent to Kitchen"
+msgstr "已送出至廚房"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "New Items"
+msgstr "新增品項"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Subtotal"
+msgstr "小計"

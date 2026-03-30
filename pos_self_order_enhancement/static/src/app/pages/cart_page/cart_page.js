@@ -6,6 +6,53 @@ import { _t } from "@web/core/l10n/translation";
 import { CancelPopup } from "@pos_self_order/app/components/cancel_popup/cancel_popup";
 
 patch(CartPage.prototype, {
+    // ── Meal mode section getters ──
+
+    get isMealMode() {
+        return this.selfOrder.config.self_ordering_pay_after === "meal";
+    },
+
+    get sentLines() {
+        const order = this.selfOrder.currentOrder;
+        const lineChanges = order.uiState.lineChanges;
+        return order.lines.filter(
+            (l) =>
+                !l.combo_parent_id &&
+                lineChanges[l.uuid] &&
+                lineChanges[l.uuid].qty === l.qty
+        );
+    },
+
+    get newLines() {
+        const order = this.selfOrder.currentOrder;
+        return order.unsentLines.filter((l) => !l.combo_parent_id);
+    },
+
+    get hasSentLines() {
+        return this.sentLines.length > 0;
+    },
+
+    get hasNewLines() {
+        return this.newLines.length > 0;
+    },
+
+    get sentLinesSubtotal() {
+        return this.sentLines.reduce((sum, line) => sum + this.getPrice(line), 0);
+    },
+
+    get newLinesSubtotal() {
+        return this.newLines.reduce((sum, line) => sum + this.getPrice(line), 0);
+    },
+
+    get linesToDisplay() {
+        if (this.isMealMode) {
+            // In meal mode, the original foreach only renders new/unsent items.
+            // Sent items are rendered separately in the "Sent to Kitchen" section.
+            return this.selfOrder.currentOrder.unsentLines;
+        }
+        return super.linesToDisplay;
+    },
+
     /**
      * Hide cancel button for submitted orders.
      * Submitted = has tracking_number or pos_reference (sent to kitchen).
