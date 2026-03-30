@@ -244,33 +244,58 @@ export class PaymentPage extends Component {
     }
 
     /**
-     * Handle online payment via Odoo's payment portal.
+     * Handle online payment via Odoo's POS payment portal.
+     * Uses /pos/pay/{order_id} endpoint which supports public (anonymous) access.
      */
     async selectOnlinePayment(paymentMethodId) {
         this.state.loading = true;
         this.state.error = null;
 
         try {
-            const order = this.currentOrder;
-            const orderAmount = order?.amount_total || this.totalAmount || 0;
-            const orderRef = order?.pos_reference || order?.name || order?.tracking_number || '';
-            const partnerId = order?.partner_id || '';
+            let order = this.currentOrder;
 
-            const currencyId = this.selfOrder.currency?.id;
-            if (!currencyId) {
-                this.state.error = _t("Currency not configured");
+            if (!order?.id) {
+                this.state.error = _t("No order to pay");
                 this.state.loading = false;
                 return;
             }
 
-            if (orderAmount <= 0) {
+            if ((order.amount_total || 0) <= 0) {
                 this.state.error = _t("No amount to pay");
                 this.state.loading = false;
                 return;
             }
 
-            const paymentUrl = `/payment/pay?amount=${orderAmount}&currency_id=${currencyId}&partner_id=${partnerId}&reference=${encodeURIComponent(orderRef)}&payment_method_id=${paymentMethodId}`;
-            window.location.href = paymentUrl;
+            // Ensure order is sent to server and has access_token
+            if (!order.access_token) {
+                order = await this.selfOrder.sendDraftOrderToServer();
+            }
+
+            if (order.state === "draft") {
+                // Build payment URL using window.location.origin instead of session.base_url
+                // to avoid reverse proxy issues (session.base_url returns internal Docker IP)
+                const baseUrl = window.location.origin;
+                const configId = this.selfOrder.config.id;
+                const payAfter = this.selfOrder.config.self_ordering_pay_after;
+
+                let exitRouteUrl = `${baseUrl}/pos-self/${configId}`;
+                if (payAfter === "each") {
+                    exitRouteUrl += `/confirmation/${order.access_token}/order`;
+                }
+
+                let table = "";
+                if (this.selfOrder.currentTable) {
+                    table = `&table_identifier=${this.selfOrder.currentTable.identifier}`;
+                }
+                exitRouteUrl += `?access_token=${this.selfOrder.access_token}${table}`;
+
+                const exitRoute = encodeURIComponent(exitRouteUrl);
+                const paymentUrl = `${baseUrl}/pos/pay/${order.id}?access_token=${order.access_token}&exit_route=${exitRoute}`;
+                window.open(paymentUrl, "_self");
+            } else {
+                this.state.error = _t("The current order cannot be paid (maybe it is already paid).");
+                this.state.loading = false;
+            }
         } catch (error) {
             console.error("Online payment error:", error);
             this.state.error = _t("Payment processing failed. Please try again or pay at counter.");
