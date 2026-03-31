@@ -3,14 +3,14 @@
     <t t-name="pos_self_order_enhancement.ProductInfoPopup" t-inherit="point_of_sale.ProductInfoPopup" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('section-inventory')]" position="before">
             <div class="section-sold-out mt-3 mb-4 pb-4 border-bottom text-start d-flex align-items-center">
-                <h3 class="section-title">已售完 Sold Out (86):</h3>
+                <h3 class="section-title">Sold Out (86):</h3>
                 <div class="d-flex ms-auto align-items-center">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" t-att-checked="props.product.is_sold_out" t-on-click="() => this.toggleSoldOut()" />
                     </div>
                     <span>
-                        <t t-if="props.product.is_sold_out">已售完</t>
-                        <t t-else="">供應中</t>
+                        <t t-if="props.product.is_sold_out">Sold Out</t>
+                        <t t-else="">Available</t>
                     </span>
                 </div>
             </div>

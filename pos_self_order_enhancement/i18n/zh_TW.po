@@ -274,3 +274,28 @@ msgstr "列印代理已收到工作但無法列印。請確認出單機已開機
 #: model:ir.model.fields
 msgid "Printer IP Address cannot be empty."
 msgstr "出單機 IP 位址不可為空。"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "Sold Out (86)"
+msgstr "已售完 (86)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Sold Out (86):"
+msgstr "已售完 (86):"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Sold Out"
+msgstr "已售完"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Sold Out for QR Order, but available for staff order"
+msgstr "QR點餐已售完，但員工訂單仍可使用"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Available"
+msgstr "供應中"
