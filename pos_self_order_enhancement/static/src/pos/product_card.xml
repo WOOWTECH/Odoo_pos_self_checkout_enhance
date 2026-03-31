@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.PosProductCard" t-inherit="point_of_sale.ProductCard" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('product-content')]" position="after">
+            <span t-if="props.product.is_sold_out"
+                class="position-absolute bottom-0 start-0 w-100 text-center text-white fw-bold py-1"
+                style="background: rgba(220, 53, 69, 0.85); font-size: 11px;">
+                QR點餐已售完
+            </span>
+        </xpath>
+    </t>
+</templates>
