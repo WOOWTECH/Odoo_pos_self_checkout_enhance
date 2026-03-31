@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_printer_form_escpos" model="ir.ui.view">
+        <field name="name">pos.printer.form.escpos</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <field name="printer_type" position="after">
+                <field name="escpos_printer_ip"
+                       invisible="printer_type != 'network_escpos'"
+                       placeholder="192.168.1.100"/>
+            </field>
+        </field>
+    </record>
+</odoo>

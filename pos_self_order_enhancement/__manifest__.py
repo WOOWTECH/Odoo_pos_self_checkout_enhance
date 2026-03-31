@@ -48,6 +48,13 @@ Features | 功能特色
    - 即時廚房訂單顯示，支援任何瀏覽器
    - 品項劃線、完成出餐、召回、總覽功能
 
+7. **ESC/POS Network Printer | 網路出單機支援**
+   - Use any generic ESC/POS network printer as preparation printer
+   - No IoT Box or Epson printer required
+   - Lightweight print proxy server included
+   - 支援任何 ESC/POS 網路出單機作為備餐印表機
+   - 不需要 IoT Box 或 Epson 印表機
+
 Technical Details | 技術細節
 ----------------------------
 - OWL (Odoo Web Library) components
@@ -58,18 +65,22 @@ Technical Details | 技術細節
 GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     """,
     "author": "WoowTech",
-    "website": "https://www.woowtech.com",
+    "website": "https://aiot.woowtech.io/",
     "license": "LGPL-3",
     "depends": ["pos_self_order", "payment"],
     "data": [
         "views/payment_templates.xml",
         "views/kds_templates.xml",
         "views/pos_config_view.xml",
+        "views/pos_printer_views.xml",
     ],
     "assets": {
         "pos_self_order.assets": [
             "pos_self_order_enhancement/static/src/app/**/*",
             "pos_self_order_enhancement/static/src/css/**/*",
+        ],
+        "point_of_sale._assets_pos": [
+            "pos_self_order_enhancement/static/src/printer/**/*",
         ],
         "web.assets_backend": [
             "pos_self_order_enhancement/static/src/fields/**/*",

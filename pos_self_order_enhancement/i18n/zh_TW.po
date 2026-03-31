@@ -239,3 +239,38 @@ msgstr "廚房顯示螢幕 (KDS)"
 #. module: pos_self_order_enhancement
 msgid "KDS Done Items"
 msgstr "KDS 已完成品項"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection
+msgid "Use a network ESC/POS printer"
+msgstr "使用網路 ESC/POS 出單機"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "Printer IP Address"
+msgstr "出單機 IP 位址"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Connection to print proxy failed"
+msgstr "無法連線至列印代理伺服器"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Please check that the ESC/POS print proxy server is running. Start it with: python tools/print_proxy.py"
+msgstr "請確認 ESC/POS 列印代理伺服器正在運行。啟動方式：python tools/print_proxy.py"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "Printing failed"
+msgstr "列印失敗"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+msgid "The print proxy received the job but could not print. Please check that the printer is powered on, connected to the network, and has paper loaded."
+msgstr "列印代理已收到工作但無法列印。請確認出單機已開機、已連接網路，且紙張已裝妥。"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "Printer IP Address cannot be empty."
+msgstr "出單機 IP 位址不可為空。"
