@@ -31,6 +31,21 @@ class PosKitchenDisplay(http.Controller):
 
         return config
 
+    def _is_sent_to_kitchen(self, order):
+        """Check if order was sent to kitchen by staff (not just customer self-order).
+
+        When staff clicks 訂單, updateLastOrderChange() populates
+        last_order_preparation_change.lines with actual item data.
+        Self-orders only have empty lines: {}.
+        """
+        if not order.last_order_preparation_change:
+            return False
+        try:
+            change = json.loads(order.last_order_preparation_change)
+            return bool(change.get('lines'))
+        except (json.JSONDecodeError, TypeError):
+            return False
+
     def _get_active_orders(self, config):
         """Fetch active kitchen orders for the current session."""
         session = config.current_session_id
@@ -41,7 +56,11 @@ class PosKitchenDisplay(http.Controller):
             ('session_id', '=', session.id),
             ('state', '=', 'draft'),
             ('kds_state', 'in', ('new', 'in_progress')),
+            ('last_order_preparation_change', '!=', False),
         ], order='date_order asc')
+
+        # Filter: only orders where staff clicked 訂單 (lines not empty)
+        orders = orders.filtered(self._is_sent_to_kitchen)
 
         return self._serialize_orders(orders)
 
@@ -54,7 +73,10 @@ class PosKitchenDisplay(http.Controller):
         orders = request.env['pos.order'].sudo().search([
             ('session_id', '=', session.id),
             ('kds_state', '=', 'done'),
+            ('last_order_preparation_change', '!=', False),
         ], order='write_date desc', limit=limit)
+
+        orders = orders.filtered(self._is_sent_to_kitchen)
 
         return self._serialize_orders(orders)
 
