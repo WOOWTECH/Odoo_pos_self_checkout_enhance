@@ -192,3 +192,50 @@ msgstr "新增品項"
 #. odoo-javascript
 msgid "Subtotal"
 msgstr "小計"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "Kitchen Display"
+msgstr "廚房顯示螢幕"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "KDS Access Token"
+msgstr "KDS 存取令牌"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "KDS URL"
+msgstr "KDS 網址"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields
+msgid "Kitchen Status"
+msgstr "廚房狀態"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection
+msgid "New"
+msgstr "新訂單"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection
+msgid "In Progress"
+msgstr "製作中"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection
+msgid "Done"
+msgstr "完成"
+
+#. module: pos_self_order_enhancement
+msgid "Regenerate Token"
+msgstr "重新產生令牌"
+
+#. module: pos_self_order_enhancement
+msgid "Kitchen Display Screen (KDS)"
+msgstr "廚房顯示螢幕 (KDS)"
+
+#. module: pos_self_order_enhancement
+msgid "KDS Done Items"
+msgstr "KDS 已完成品項"

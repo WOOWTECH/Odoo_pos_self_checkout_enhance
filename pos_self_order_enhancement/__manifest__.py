@@ -40,6 +40,14 @@ Features | 功能特色
    - Simplified customer interface
    - 移除稅金資訊，簡化介面
 
+6. **Kitchen Display Screen (KDS) | 廚房顯示螢幕**
+   - Real-time kitchen order display on any browser
+   - Item-level strikethrough, bump, recall, all-day view
+   - Audio chime on new orders, timer color escalation
+   - Token-based auth, no login required
+   - 即時廚房訂單顯示，支援任何瀏覽器
+   - 品項劃線、完成出餐、召回、總覽功能
+
 Technical Details | 技術細節
 ----------------------------
 - OWL (Odoo Web Library) components
@@ -55,6 +63,8 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     "depends": ["pos_self_order", "payment"],
     "data": [
         "views/payment_templates.xml",
+        "views/kds_templates.xml",
+        "views/pos_config_view.xml",
     ],
     "assets": {
         "pos_self_order.assets": [

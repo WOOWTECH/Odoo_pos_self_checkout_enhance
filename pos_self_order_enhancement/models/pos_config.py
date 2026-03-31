@@ -1,8 +1,31 @@
-from odoo import models, _
+import uuid
+
+from odoo import models, fields, api, _
 
 
 class PosConfig(models.Model):
     _inherit = 'pos.config'
+
+    kds_enabled = fields.Boolean('Kitchen Display', default=False)
+    kds_access_token = fields.Char(
+        'KDS Access Token',
+        copy=False,
+        default=lambda self: uuid.uuid4().hex[:16],
+    )
+    kds_url = fields.Char('KDS URL', compute='_compute_kds_url')
+
+    @api.depends('kds_enabled', 'kds_access_token')
+    def _compute_kds_url(self):
+        base_url = self.env['pos.session'].get_base_url()
+        for record in self:
+            if record.kds_enabled and record.kds_access_token:
+                record.kds_url = f"{base_url}/pos-kds/{record.id}?token={record.kds_access_token}"
+            else:
+                record.kds_url = ''
+
+    def action_regenerate_kds_token(self):
+        self.ensure_one()
+        self.kds_access_token = uuid.uuid4().hex[:16]
 
     def _compute_selection_pay_after(self):
         """

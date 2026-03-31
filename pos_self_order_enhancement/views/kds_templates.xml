@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="kds_index" name="Kitchen Display Screen">
+        <html>
+        <head>
+            <meta charset="UTF-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+            <title>廚房顯示 - Kitchen Display</title>
+            <link rel="stylesheet" t-attf-href="/pos_self_order_enhancement/static/src/kds/kds.css?v=2"/>
+        </head>
+        <body>
+            <div id="kds-app"></div>
+            <script>
+                window.__kds_session_info__ = <t t-raw="session_info_json"/>;
+            </script>
+            <script t-attf-src="/pos_self_order_enhancement/static/src/kds/kds.js?v=2"/>
+        </body>
+        </html>
+    </template>
+</odoo>

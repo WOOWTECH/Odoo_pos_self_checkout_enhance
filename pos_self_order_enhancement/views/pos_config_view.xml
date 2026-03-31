@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Add KDS settings to POS Configuration form -->
+    <record id="pos_config_view_form_kds" model="ir.ui.view">
+        <field name="name">pos.config.form.kds</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@groups='base.group_system']" position="before">
+                <setting string="Kitchen Display Screen (KDS)" help="Real-time kitchen order display on any browser">
+                    <div class="content-group">
+                        <div class="row">
+                            <div class="col-lg-5 o_light_label">
+                                <label string="Kitchen Display" for="kds_enabled"/>
+                            </div>
+                            <div class="col-lg-7">
+                                <field name="kds_enabled"/>
+                            </div>
+                        </div>
+                        <div class="row" invisible="not kds_enabled">
+                            <div class="col-lg-5 o_light_label">
+                                <label string="KDS URL" for="kds_url"/>
+                            </div>
+                            <div class="col-lg-7">
+                                <field name="kds_url" widget="CopyClipboardChar"/>
+                            </div>
+                        </div>
+                        <field name="kds_access_token" invisible="1"/>
+                        <div class="row mt-2" invisible="not kds_enabled">
+                            <div class="col-lg-5"/>
+                            <div class="col-lg-7">
+                                <button name="action_regenerate_kds_token"
+                                        string="Regenerate Token"
+                                        type="object"
+                                        class="btn-secondary btn-sm"/>
+                            </div>
+                        </div>
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>
