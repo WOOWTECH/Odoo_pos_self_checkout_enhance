@@ -246,6 +246,7 @@
                 : "";
             linesHtml += `
             <div class="kds-line ${doneClass}" data-order-id="${order.id}" data-line-id="${line.id}">
+                <span class="kds-line-check">${line.is_done ? '☑' : '☐'}</span>
                 <span class="kds-line-qty">${line.qty}x</span>
                 <span class="kds-line-name">${escapeHtml(line.product_name)}</span>
                 ${noteHtml}
