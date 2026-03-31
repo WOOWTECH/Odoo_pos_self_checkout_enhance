@@ -1,5 +1,3 @@
-import json as json_lib
-
 from odoo import models, fields, api
 
 
@@ -18,15 +16,11 @@ class PosOrder(models.Model):
         help='JSON dict of line UUIDs marked as done on the KDS',
     )
 
-    def _is_sent_to_kitchen(self):
-        """Check if staff clicked 訂單 (lines populated in last_order_preparation_change)."""
-        if not self.last_order_preparation_change:
-            return False
-        try:
-            change = json_lib.loads(self.last_order_preparation_change)
-            return bool(change.get('lines'))
-        except (json_lib.JSONDecodeError, TypeError):
-            return False
+    kds_sent_to_kitchen = fields.Boolean(
+        string='Sent to Kitchen by Staff',
+        default=False,
+        help='Set to True when FOH staff clicks the Order button to send to kitchen',
+    )
 
     def _send_notification(self, order_ids):
         """Extend to also notify KDS screens (only for kitchen-confirmed orders)."""
@@ -34,7 +28,7 @@ class PosOrder(models.Model):
         config_ids = order_ids.config_id
         for config in config_ids:
             if config.kds_enabled:
-                kitchen_orders = order_ids.filtered(lambda o: o._is_sent_to_kitchen())
+                kitchen_orders = order_ids.filtered(lambda o: o.kds_sent_to_kitchen)
                 if kitchen_orders:
                     config._notify('KDS_ORDER_UPDATE', {})
 
