@@ -187,9 +187,6 @@
                 <button class="kds-btn kds-btn-header ${alldayClass}" data-action="allday">
                     📊 總覽
                 </button>
-                <button class="kds-btn kds-btn-header" data-action="recall">
-                    ↩️ 召回
-                </button>
                 <button class="kds-btn kds-btn-header ${completedClass}" data-action="completed">
                     ✅ 已完成
                 </button>
@@ -381,12 +378,6 @@
             btn.addEventListener("click", () => {
                 currentView = currentView === "allday" ? "active" : "allday";
                 render();
-            });
-        });
-
-        document.querySelectorAll('[data-action="recall"]').forEach((btn) => {
-            btn.addEventListener("click", () => {
-                recallOrder();
             });
         });
 
