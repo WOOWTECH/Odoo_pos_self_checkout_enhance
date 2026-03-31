@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="pos_config_kanban_kds" model="ir.ui.view">
+        <field name="name">pos.config.kanban.view.inherit.kds</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_config_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="kds_enabled" invisible="1"/>
+                <field name="kds_url" invisible="1"/>
+                <a class="badge text-bg-warning o_kanban_inline_block me-2"
+                   t-att-href="record.kds_url.raw_value"
+                   target="_blank"
+                   invisible="not kds_enabled"
+                   title="Open Kitchen Display Screen">
+                    🍳 KDS
+                </a>
+            </xpath>
+        </field>
+    </record>
+</odoo>
