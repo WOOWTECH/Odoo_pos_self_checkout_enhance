@@ -22,6 +22,14 @@ class PosOrder(models.Model):
         help='Set to True when FOH staff clicks the Order button to send to kitchen',
     )
 
+    def mark_sent_to_kitchen(self):
+        """Called by POS frontend when staff clicks 訂單 (Order button)."""
+        self.write({'kds_sent_to_kitchen': True})
+        for config in self.config_id:
+            if config.kds_enabled:
+                config._notify('KDS_ORDER_UPDATE', {})
+        return True
+
     def _send_notification(self, order_ids):
         """Extend to also notify KDS screens (only for kitchen-confirmed orders)."""
         super()._send_notification(order_ids)

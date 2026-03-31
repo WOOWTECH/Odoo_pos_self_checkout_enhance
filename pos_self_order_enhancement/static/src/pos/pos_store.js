@@ -6,10 +6,19 @@ import { patch } from "@web/core/utils/patch";
 patch(PosStore.prototype, {
     async sendOrderInPreparation(order, cancelled = false) {
         await super.sendOrderInPreparation(order, cancelled);
-        // Mark order as sent to kitchen by staff for KDS display
-        if (!order.kds_sent_to_kitchen) {
-            order.kds_sent_to_kitchen = true;
-            await this.syncAllOrders({ orders: [order] });
+        // Mark order as sent to kitchen via direct RPC call.
+        // Cannot use order.kds_sent_to_kitchen = true because the OWL data model
+        // doesn't include this field in its schema, so serialize({orm: true}) ignores it.
+        if (order.id) {
+            try {
+                await this.data.call(
+                    "pos.order",
+                    "mark_sent_to_kitchen",
+                    [[order.id]]
+                );
+            } catch (e) {
+                console.warn("KDS mark_sent_to_kitchen failed:", e);
+            }
         }
     },
 });
