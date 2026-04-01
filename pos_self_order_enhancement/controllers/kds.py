@@ -250,6 +250,72 @@ class PosKitchenDisplay(http.Controller):
         })
         return {'success': True, 'order_id': order.id}
 
+    @http.route('/pos-kds/batch-item-done/<int:config_id>', type='json', auth='public')
+    def kds_batch_item_done(self, config_id, token=None, product_name=None, **kwargs):
+        """Mark all order lines matching a product name as done across active orders."""
+        config = self._verify_kds_access(config_id, token)
+        if not product_name:
+            return {'success': False, 'error': 'Missing product_name'}
+
+        session = config.current_session_id
+        if not session:
+            return {'success': False, 'error': 'No active session'}
+
+        orders = request.env['pos.order'].sudo().search([
+            ('session_id', '=', session.id),
+            ('state', 'not in', ('cancel',)),
+            ('kds_state', 'in', ('new', 'in_progress')),
+            ('kds_sent_to_kitchen', '=', True),
+        ])
+
+        updated_count = 0
+        bumped_order_ids = []
+
+        for order in orders:
+            try:
+                done_items = json.loads(order.kds_done_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                done_items = {}
+
+            changed = False
+            for line in order.lines:
+                if line.qty <= 0:
+                    continue
+                line_name = line.full_product_name or line.product_id.display_name
+                if line_name == product_name and not done_items.get(str(line.id), False):
+                    done_items[str(line.id)] = True
+                    changed = True
+                    updated_count += 1
+
+            if not changed:
+                continue
+
+            # Check if all items in order are now done
+            all_done = True
+            for line in order.lines:
+                if line.qty > 0 and not done_items.get(str(line.id), False):
+                    all_done = False
+                    break
+
+            vals = {'kds_done_items': json.dumps(done_items)}
+            if all_done:
+                vals['kds_state'] = 'done'
+                bumped_order_ids.append(order.id)
+            elif order.kds_state == 'new':
+                vals['kds_state'] = 'in_progress'
+
+            order.write(vals)
+            config._notify('KDS_ORDER_UPDATE', {
+                'order_id': order.id,
+                'kds_state': vals.get('kds_state', order.kds_state),
+            })
+
+        return {
+            'success': True,
+            'updated_count': updated_count,
+            'bumped_order_ids': bumped_order_ids,
+        }
+
     @http.route('/pos-kds/completed/<int:config_id>', type='json', auth='public')
     def kds_get_completed(self, config_id, token=None, **kwargs):
         """Fetch recently completed orders."""

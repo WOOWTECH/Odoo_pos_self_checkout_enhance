@@ -116,6 +116,15 @@
         }
     }
 
+    async function batchMarkDone(productName) {
+        const result = await rpc(`${BASE_URL}/pos-kds/batch-item-done/${CONFIG_ID}`, {
+            product_name: productName,
+        });
+        if (result && result.success) {
+            await fetchOrders();
+        }
+    }
+
     async function recallOrder(orderId) {
         const params = orderId ? { order_id: orderId } : {};
         await rpc(`${BASE_URL}/pos-kds/recall/${CONFIG_ID}`, params);
@@ -186,6 +195,9 @@
                 <span class="kds-title">廚房顯示 - ${escapeHtml(INFO.config_name)}</span>
             </div>
             <div class="kds-header-right">
+                <button class="kds-btn kds-btn-header ${activeClass}" data-action="active">
+                    🔥 進行中
+                </button>
                 <button class="kds-btn kds-btn-header ${alldayClass}" data-action="allday">
                     📊 總覽
                 </button>
@@ -309,15 +321,16 @@
         <div class="kds-allday">
             <div class="kds-allday-header">
                 <h2>📊 總覽 — All Day Summary</h2>
-                <button class="kds-btn kds-btn-header" data-action="back-active">← 返回</button>
             </div>
             <div class="kds-allday-grid">`;
 
         for (const item of sorted) {
             const remaining = item.qty - item.done;
-            const doneClass = remaining === 0 ? "allday-done" : "";
+            const allDone = remaining === 0;
+            const doneClass = allDone ? "allday-done" : "";
             html += `
-            <div class="kds-allday-item ${doneClass}">
+            <div class="kds-allday-item ${doneClass}" data-action="batch-done" data-product-name="${escapeHtml(item.name)}">
+                <span class="kds-allday-check">${allDone ? '☑' : '☐'}</span>
                 <span class="kds-allday-qty">${item.qty}</span>
                 <span class="kds-allday-name">${escapeHtml(item.name)}</span>
                 ${item.done > 0 ? `<span class="kds-allday-progress">(${item.done}/${item.qty} done)</span>` : ""}
@@ -333,7 +346,6 @@
         <div class="kds-completed-view">
             <div class="kds-allday-header">
                 <h2>✅ 已完成 — Completed Orders</h2>
-                <button class="kds-btn kds-btn-header" data-action="back-active">← 返回</button>
             </div>`;
 
         if (completedOrders.length === 0) {
@@ -376,7 +388,24 @@
             });
         });
 
+        // Batch mark done in All Day view
+        document.querySelectorAll('[data-action="batch-done"]').forEach((el) => {
+            el.addEventListener("click", () => {
+                const productName = el.dataset.productName;
+                if (productName && !el.classList.contains("allday-done")) {
+                    batchMarkDone(productName);
+                }
+            });
+        });
+
         // Header buttons
+        document.querySelectorAll('[data-action="active"]').forEach((btn) => {
+            btn.addEventListener("click", () => {
+                currentView = "active";
+                render();
+            });
+        });
+
         document.querySelectorAll('[data-action="allday"]').forEach((btn) => {
             btn.addEventListener("click", () => {
                 currentView = currentView === "allday" ? "active" : "allday";
@@ -393,13 +422,6 @@
                     currentView = "completed";
                     await fetchCompleted();
                 }
-            });
-        });
-
-        document.querySelectorAll('[data-action="back-active"]').forEach((btn) => {
-            btn.addEventListener("click", () => {
-                currentView = "active";
-                render();
             });
         });
 
