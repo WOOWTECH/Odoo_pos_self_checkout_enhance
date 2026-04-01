@@ -63,9 +63,17 @@ class PosOrder(models.Model):
                 if kitchen_orders:
                     config._notify('KDS_ORDER_UPDATE', {})
 
+    # Fields managed exclusively by KDS endpoints / mark_sent_to_kitchen —
+    # must never be overwritten by stale POS frontend sync payloads.
+    _KDS_PROTECTED_FIELDS = ('kds_state', 'kds_sent_to_kitchen', 'kds_done_items')
+
     @api.model
     def sync_from_ui(self, orders):
-        """Reset kds_state to 'new' only when new lines are actually added."""
+        """Protect KDS fields from frontend overwrite; reset kds_state on new lines."""
+        for order in orders:
+            for field in self._KDS_PROTECTED_FIELDS:
+                order.pop(field, None)
+
         existing_order_ids = []
         for order in orders:
             if order.get('id') and isinstance(order['id'], int):
