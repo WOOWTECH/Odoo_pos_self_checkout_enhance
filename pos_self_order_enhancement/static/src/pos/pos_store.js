@@ -6,10 +6,16 @@ import { patch } from "@web/core/utils/patch";
 patch(PosStore.prototype, {
     async sendOrderInPreparation(order, cancelled = false) {
         await super.sendOrderInPreparation(order, cancelled);
+
+        // Ensure order is synced to backend (gets numeric DB ID).
+        // Core sendOrderInPreparation only syncs when printers are configured;
+        // without printers the order stays local with a string ID.
+        if (typeof order.id !== "number") {
+            await this.syncAllOrders({ orders: [order] });
+        }
+
         // Mark order as sent to kitchen via direct RPC call.
-        // Cannot use order.kds_sent_to_kitchen = true because the OWL data model
-        // doesn't include this field in its schema, so serialize({orm: true}) ignores it.
-        if (order.id) {
+        if (typeof order.id === "number") {
             try {
                 await this.data.call(
                     "pos.order",

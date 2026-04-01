@@ -10,7 +10,9 @@
     const INFO = window.__kds_session_info__;
     const CONFIG_ID = INFO.config_id;
     const TOKEN = INFO.access_token;
-    const BASE_URL = INFO.base_url || "";
+    // Always use relative URLs — the KDS page is served from the same origin.
+    // INFO.base_url may omit the port (e.g. proxy on 80 vs Odoo on 8069) causing CORS.
+    const BASE_URL = "";
 
     // ── State ───────────────────────────────────────────────
     let orders = [];

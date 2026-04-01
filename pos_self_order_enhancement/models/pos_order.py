@@ -24,7 +24,13 @@ class PosOrder(models.Model):
 
     def mark_sent_to_kitchen(self):
         """Called by POS frontend when staff clicks 訂單 (Order button)."""
-        self.write({'kds_sent_to_kitchen': True})
+        vals = {'kds_sent_to_kitchen': True}
+        # sync_from_ui may skip field defaults, so ensure kds_state is set
+        for order in self:
+            if not order.kds_state:
+                vals['kds_state'] = 'new'
+                break
+        self.write(vals)
         for config in self.config_id:
             if config.kds_enabled:
                 config._notify('KDS_ORDER_UPDATE', {})

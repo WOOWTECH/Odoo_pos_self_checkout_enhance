@@ -39,7 +39,7 @@ class PosKitchenDisplay(http.Controller):
 
         orders = request.env['pos.order'].sudo().search([
             ('session_id', '=', session.id),
-            ('state', '=', 'draft'),
+            ('state', 'not in', ('cancel',)),
             ('kds_state', 'in', ('new', 'in_progress')),
             ('kds_sent_to_kitchen', '=', True),
         ], order='date_order asc')
