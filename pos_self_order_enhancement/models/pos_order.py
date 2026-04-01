@@ -1,3 +1,5 @@
+import json
+
 from odoo import models, fields, api
 
 
@@ -21,6 +23,12 @@ class PosOrder(models.Model):
         string='Sent to Kitchen by Staff',
         default=False,
         help='Set to True when FOH staff clicks the Order button to send to kitchen',
+    )
+
+    kds_remake_data = fields.Text(
+        string='KDS Remake Data',
+        default='{}',
+        help='JSON: {"<line_id>": {"count": N, "reason": "..."}}',
     )
 
     def mark_sent_to_kitchen(self):
@@ -53,6 +61,52 @@ class PosOrder(models.Model):
                     })
         return True
 
+    def mark_remake(self, line_ids, reason='remake'):
+        """Called by POS frontend to send items back to kitchen for remake."""
+        for order in self:
+            try:
+                remake_data = json.loads(order.kds_remake_data or '{}')
+            except (json.JSONDecodeError, TypeError):
+                remake_data = {}
+
+            # When coming from done/served, all items were implicitly done.
+            # Explicitly mark all lines as done first, then unmark remade ones.
+            done_items = {}
+            if order.kds_state in ('done', 'served'):
+                for line in order.lines:
+                    if line.qty > 0:
+                        done_items[str(line.id)] = True
+            else:
+                try:
+                    done_items = json.loads(order.kds_done_items or '{}')
+                except (json.JSONDecodeError, TypeError):
+                    done_items = {}
+
+            remake_line_ids = set(str(lid) for lid in line_ids)
+            for lid in line_ids:
+                key = str(lid)
+                if key not in remake_data:
+                    remake_data[key] = {'count': 0, 'reason': ''}
+                remake_data[key]['count'] += 1
+                remake_data[key]['reason'] = reason
+                # Reset done status only for remade items
+                done_items[key] = False
+
+            order.write({
+                'kds_state': 'in_progress',
+                'kds_done_items': json.dumps(done_items),
+                'kds_remake_data': json.dumps(remake_data),
+            })
+
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': 'new',
+                        'is_remake': True,
+                    })
+        return True
+
     def _send_notification(self, order_ids):
         """Extend to also notify KDS screens (only for kitchen-confirmed orders)."""
         super()._send_notification(order_ids)
@@ -65,7 +119,7 @@ class PosOrder(models.Model):
 
     # Fields managed exclusively by KDS endpoints / mark_sent_to_kitchen —
     # must never be overwritten by stale POS frontend sync payloads.
-    _KDS_PROTECTED_FIELDS = ('kds_state', 'kds_sent_to_kitchen', 'kds_done_items')
+    _KDS_PROTECTED_FIELDS = ('kds_state', 'kds_sent_to_kitchen', 'kds_done_items', 'kds_remake_data')
 
     @api.model
     def sync_from_ui(self, orders):

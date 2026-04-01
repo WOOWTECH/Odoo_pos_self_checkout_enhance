@@ -1,12 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
+    <!-- Desktop: inject into ControlButtons (visible when !ui.isSmall) -->
     <t t-name="pos_self_order_enhancement.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
-        <xpath expr="//button[hasclass('more-btn')]" position="before">
+        <xpath expr="//SelectPartnerButton" position="before">
             <button t-if="orderIsKdsReady"
                     class="btn btn-success btn-lg flex-shrink-0"
                     t-on-click="onClickServed">
                 ✓ Served
             </button>
+            <button t-if="orderCanSendBack"
+                    class="btn btn-danger btn-lg flex-shrink-0"
+                    t-on-click="onClickSendBack">
+                ↩ Send Back
+            </button>
+        </xpath>
+    </t>
+
+    <!-- Mobile: inject into ProductScreen switchpane (visible when ui.isSmall) -->
+    <t t-name="pos_self_order_enhancement.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('switchpane')]" position="before">
+            <div t-if="orderIsKdsReady or orderCanSendBack" class="d-flex gap-2 p-2 border-top bg-view">
+                <button t-if="orderIsKdsReady"
+                        class="btn btn-success btn-lg flex-fill"
+                        t-on-click="onClickServed">
+                    ✓ Served
+                </button>
+                <button t-if="orderCanSendBack"
+                        class="btn btn-danger btn-lg flex-fill"
+                        t-on-click="onClickSendBack">
+                    ↩ Send Back
+                </button>
+            </div>
         </xpath>
     </t>
 </templates>

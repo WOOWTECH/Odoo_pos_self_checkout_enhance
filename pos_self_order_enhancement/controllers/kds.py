@@ -75,18 +75,33 @@ class PosKitchenDisplay(http.Controller):
             except (json.JSONDecodeError, TypeError):
                 done_items = {}
 
+            # Parse remake data
+            try:
+                remake_data = json.loads(order.kds_remake_data or '{}')
+            except (json.JSONDecodeError, TypeError):
+                remake_data = {}
+
             # Build order lines
             lines = []
+            has_active_remake = False
             for line in order.lines:
                 if line.qty <= 0:
                     continue
+                line_key = str(line.id)
+                line_remake = remake_data.get(line_key, {})
+                is_done = done_items.get(line_key, False)
+                # A line is actively remade if it has remake data and is not yet done
+                if line_remake and not is_done:
+                    has_active_remake = True
                 lines.append({
                     'id': line.id,
                     'uuid': line.uuid,
                     'product_name': line.full_product_name or line.product_id.display_name,
                     'qty': line.qty,
                     'customer_note': line.customer_note or '',
-                    'is_done': done_items.get(str(line.id), False),
+                    'is_done': is_done,
+                    'remake_count': line_remake.get('count', 0),
+                    'remake_reason': line_remake.get('reason', ''),
                 })
 
             # Table info
@@ -106,6 +121,7 @@ class PosKitchenDisplay(http.Controller):
                 'floor_name': floor_name,
                 'is_takeaway': is_takeaway,
                 'kds_state': order.kds_state,
+                'is_remake': has_active_remake,
                 'date_order': order.date_order.strftime('%H:%M'),
                 'elapsed_minutes': elapsed_minutes,
                 'elapsed_seconds': elapsed_seconds,

@@ -34,6 +34,21 @@ patch(PosStore.prototype, {
         }
     },
 
+    async markOrderRemake(order, lineIds, reason) {
+        if (typeof order.id === "number") {
+            try {
+                await this.data.call("pos.order", "mark_remake", [
+                    [order.id],
+                    lineIds,
+                    reason,
+                ]);
+                order.kds_state = "new";
+            } catch (e) {
+                console.warn("KDS mark_remake failed:", e);
+            }
+        }
+    },
+
     async sendOrderInPreparation(order, cancelled = false) {
         await super.sendOrderInPreparation(order, cancelled);
 

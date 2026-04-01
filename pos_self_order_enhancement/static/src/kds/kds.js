@@ -31,6 +31,7 @@
             items_overview: "Items Overview",
             completed_orders: "Completed Orders",
             done_progress: "done",
+            remake: "REMAKE",
         },
         zh_TW: {
             kitchen_display: "\u5EDA\u623F\u986F\u793A",
@@ -47,6 +48,7 @@
             items_overview: "\u54C1\u9805\u7E3D\u89BD",
             completed_orders: "\u5DF2\u5B8C\u6210\u8A02\u55AE",
             done_progress: "\u5B8C\u6210",
+            remake: "\u91CD\u505A",
         },
     };
 
@@ -90,19 +92,38 @@
     // ── Audio ───────────────────────────────────────────────
     function playChime() {
         try {
-            if (!chimeAudio) {
-                // Generate a simple chime using Web Audio API
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            osc.type = "sine";
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+            // Audio may not be available
+        }
+    }
+
+    function playRemakeChime() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Double beep at lower frequency for urgency
+            for (let i = 0; i < 2; i++) {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                osc.frequency.value = 880;
-                osc.type = "sine";
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.5);
+                osc.frequency.value = 660;
+                osc.type = "square";
+                const start = ctx.currentTime + i * 0.3;
+                gain.gain.setValueAtTime(0.3, start);
+                gain.gain.exponentialRampToValueAtTime(0.01, start + 0.2);
+                osc.start(start);
+                osc.stop(start + 0.2);
             }
         } catch (e) {
             // Audio may not be available
@@ -115,11 +136,15 @@
         if (!result) return;
 
         const oldIds = new Set(orders.map((o) => o.id));
+        const oldRemakeIds = new Set(orders.filter((o) => o.is_remake).map((o) => o.id));
         orders = result.orders || [];
 
-        // Check for new orders
+        // Check for new orders or new remake orders
+        const newRemake = orders.some((o) => o.is_remake && !oldRemakeIds.has(o.id));
         const hasNew = orders.some((o) => !oldIds.has(o.id));
-        if (hasNew && oldIds.size > 0) {
+        if (newRemake && oldIds.size > 0) {
+            playRemakeChime();
+        } else if (hasNew && oldIds.size > 0) {
             playChime();
         }
 
@@ -276,8 +301,14 @@
                 <div class="kds-empty-text">${escapeHtml(t("no_active_orders"))}</div>
             </div>`;
         } else {
+            // Sort remake orders first
+            const sorted = [...orders].sort((a, b) => {
+                if (a.is_remake && !b.is_remake) return -1;
+                if (!a.is_remake && b.is_remake) return 1;
+                return 0;
+            });
             html += '<div class="kds-grid">';
-            for (const order of orders) {
+            for (const order of sorted) {
                 html += renderOrderCard(order, false);
             }
             html += "</div>";
@@ -292,6 +323,7 @@
         const secs = String(order.elapsed_seconds || 0).padStart(2, "0");
         const timerClass = getTimerClass(mins);
         const stateClass = order.kds_state === "in_progress" ? "state-progress" : "state-new";
+        const remakeClass = order.is_remake ? "remake" : "";
 
         // Table or takeaway label
         let locationLabel = "";
@@ -309,12 +341,16 @@
             const noteHtml = line.customer_note
                 ? `<div class="kds-line-note">${escapeHtml(line.customer_note)}</div>`
                 : "";
+            const remakeReasonHtml = line.remake_reason && !line.is_done
+                ? `<div class="kds-line-remake-reason">${escapeHtml(t("remake"))}: ${escapeHtml(line.remake_reason)}${line.remake_count > 1 ? ` (x${line.remake_count})` : ""}</div>`
+                : "";
             linesHtml += `
             <div class="kds-line ${doneClass}" data-order-id="${order.id}" data-line-id="${line.id}">
                 <span class="kds-line-check">${line.is_done ? '\u2611' : '\u2610'}</span>
                 <span class="kds-line-qty">${line.qty}x</span>
                 <span class="kds-line-name">${escapeHtml(line.product_name)}</span>
                 ${noteHtml}
+                ${remakeReasonHtml}
             </div>`;
         }
 
@@ -328,10 +364,14 @@
             ? `<button class="kds-btn kds-btn-recall" data-action="recall-order" data-order-id="${order.id}">\u21A9\uFE0F ${escapeHtml(t("recall"))}</button>`
             : `<button class="kds-btn kds-btn-bump" data-action="bump" data-order-id="${order.id}">${escapeHtml(t("bump"))}</button>`;
 
+        const remakeBadgeHtml = order.is_remake
+            ? `<span class="kds-remake-badge">${escapeHtml(t("remake"))}</span>`
+            : "";
+
         return `
-        <div class="kds-card ${stateClass}" data-order-id="${order.id}">
+        <div class="kds-card ${stateClass} ${remakeClass}" data-order-id="${order.id}">
             <div class="kds-card-header">
-                <div class="kds-location">${locationLabel}</div>
+                <div class="kds-location">${locationLabel} ${remakeBadgeHtml}</div>
                 <div class="kds-timer ${timerClass}">${mins}:${secs}</div>
             </div>
             <div class="kds-card-body">

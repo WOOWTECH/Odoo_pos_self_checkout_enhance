@@ -422,3 +422,37 @@ html, body {
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     }
 }
+
+/* ── Remake / Send-Back Styling ──────────────────────── */
+
+.kds-card.remake {
+    border-color: #e74c3c;
+    border-width: 3px;
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
+}
+
+.kds-remake-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-left: 8px;
+    animation: remakePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes remakePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.kds-line-remake-reason {
+    width: 100%;
+    font-size: 13px;
+    color: #e74c3c;
+    padding-left: 72px;
+    font-weight: 600;
+}
