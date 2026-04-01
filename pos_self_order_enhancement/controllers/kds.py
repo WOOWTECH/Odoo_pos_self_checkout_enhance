@@ -159,7 +159,10 @@ class PosKitchenDisplay(http.Controller):
             return {'success': False, 'error': 'Order not found'}
 
         order.write({'kds_state': 'done'})
-        config._notify('KDS_ORDER_UPDATE', {})
+        config._notify('KDS_ORDER_UPDATE', {
+            'order_id': order.id,
+            'kds_state': 'done',
+        })
         return {'success': True}
 
     @http.route('/pos-kds/state/<int:config_id>', type='json', auth='public')
@@ -174,7 +177,10 @@ class PosKitchenDisplay(http.Controller):
             return {'success': False, 'error': 'Order not found'}
 
         order.write({'kds_state': state})
-        config._notify('KDS_ORDER_UPDATE', {})
+        config._notify('KDS_ORDER_UPDATE', {
+            'order_id': order.id,
+            'kds_state': state,
+        })
         return {'success': True}
 
     @http.route('/pos-kds/item-done/<int:config_id>', type='json', auth='public')
@@ -207,7 +213,10 @@ class PosKitchenDisplay(http.Controller):
             vals['kds_state'] = 'in_progress'
 
         order.write(vals)
-        config._notify('KDS_ORDER_UPDATE', {})
+        config._notify('KDS_ORDER_UPDATE', {
+            'order_id': order.id,
+            'kds_state': vals.get('kds_state', order.kds_state),
+        })
         return {'success': True, 'all_done': all_done}
 
     @http.route('/pos-kds/recall/<int:config_id>', type='json', auth='public')
@@ -235,7 +244,10 @@ class PosKitchenDisplay(http.Controller):
             'kds_state': 'new',
             'kds_done_items': '{}',
         })
-        config._notify('KDS_ORDER_UPDATE', {})
+        config._notify('KDS_ORDER_UPDATE', {
+            'order_id': order.id,
+            'kds_state': 'new',
+        })
         return {'success': True, 'order_id': order.id}
 
     @http.route('/pos-kds/completed/<int:config_id>', type='json', auth='public')

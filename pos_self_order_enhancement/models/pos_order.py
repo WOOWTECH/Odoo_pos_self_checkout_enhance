@@ -8,6 +8,7 @@ class PosOrder(models.Model):
         ('new', 'New'),
         ('in_progress', 'In Progress'),
         ('done', 'Done'),
+        ('served', 'Served'),
     ], string='Kitchen Status', default='new', index=True)
 
     kds_done_items = fields.Text(
@@ -31,9 +32,25 @@ class PosOrder(models.Model):
                 vals['kds_state'] = 'new'
                 break
         self.write(vals)
-        for config in self.config_id:
-            if config.kds_enabled:
-                config._notify('KDS_ORDER_UPDATE', {})
+        for order in self:
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': order.kds_state,
+                    })
+        return True
+
+    def mark_served(self):
+        """Called by POS frontend when staff confirms food has been served."""
+        self.write({'kds_state': 'served'})
+        for order in self:
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': 'served',
+                    })
         return True
 
     def _send_notification(self, order_ids):

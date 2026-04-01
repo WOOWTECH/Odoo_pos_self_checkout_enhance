@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('more-btn')]" position="before">
+            <button t-if="orderIsKdsReady"
+                    class="btn btn-success btn-lg flex-shrink-0"
+                    t-on-click="onClickServed">
+                ✓ Served
+            </button>
+        </xpath>
+    </t>
+</templates>
