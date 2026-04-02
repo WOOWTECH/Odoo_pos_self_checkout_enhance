@@ -508,7 +508,10 @@
                 const seq = line.course_sequence || 0;
                 if (seq > 0 && !line.is_fired) continue;
 
-                const note = line.customer_note || "";
+                const parts = [];
+                if (line.customer_note) parts.push(line.customer_note);
+                if (order.general_note) parts.push("\uD83D\uDCDD " + order.general_note);
+                const note = parts.join(" | ");
                 const key = note ? `${line.product_name}||${note}` : line.product_name;
                 if (!items[key]) {
                     items[key] = { name: line.product_name, note: note, qty: 0, done: 0 };
