@@ -134,6 +134,26 @@ patch(PosStore.prototype, {
                     "mark_sent_to_kitchen",
                     [[order.id]]
                 );
+                // Update local state so fire buttons appear immediately
+                order.kds_sent_to_kitchen = true;
+                const sequences = new Set();
+                for (const line of order.lines) {
+                    if (line.qty <= 0) continue;
+                    const categs = line.product_id?.pos_categ_ids;
+                    if (categs && categs.length > 0) {
+                        const categ = Array.isArray(categs) ? categs[0] : categs;
+                        const seq = categ.kds_course_sequence || 0;
+                        if (seq > 0) sequences.add(seq);
+                    }
+                }
+                if (sequences.size > 0) {
+                    const minSeq = Math.min(...sequences);
+                    const fired = {};
+                    for (const seq of sequences) {
+                        fired[String(seq)] = (seq === minSeq);
+                    }
+                    order.kds_fired_courses = JSON.stringify(fired);
+                }
             } catch (e) {
                 console.warn("KDS mark_sent_to_kitchen failed:", e);
             }
