@@ -3,6 +3,13 @@
     <!-- Desktop: inject into ControlButtons (visible when !ui.isSmall) -->
     <t t-name="pos_self_order_enhancement.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
         <xpath expr="//SelectPartnerButton" position="before">
+            <t t-foreach="courseGroups" t-as="cg" t-key="cg.sequence">
+                <button t-if="!cg.is_fired"
+                        class="btn btn-warning btn-lg flex-shrink-0"
+                        t-on-click="() => this.onFireCourse(cg.sequence)">
+                    <t t-esc="cg.name"/> - FIRE
+                </button>
+            </t>
             <button t-if="orderIsKdsReady"
                     class="btn btn-success btn-lg flex-shrink-0"
                     t-on-click="onClickServed">
@@ -19,7 +26,14 @@
     <!-- Mobile: inject into ProductScreen switchpane (visible when ui.isSmall) -->
     <t t-name="pos_self_order_enhancement.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('switchpane')]" position="before">
-            <div t-if="orderIsKdsReady or orderCanSendBack" class="d-flex gap-2 p-2 border-top bg-view">
+            <div t-if="courseGroups.length > 0 or orderIsKdsReady or orderCanSendBack" class="d-flex flex-wrap gap-2 p-2 border-top bg-view">
+                <t t-foreach="courseGroups" t-as="cg" t-key="cg.sequence">
+                    <button t-if="!cg.is_fired"
+                            class="btn btn-warning btn-lg flex-fill"
+                            t-on-click="() => this.onFireCourse(cg.sequence)">
+                        <t t-esc="cg.name"/> - FIRE
+                    </button>
+                </t>
                 <button t-if="orderIsKdsReady"
                         class="btn btn-success btn-lg flex-fill"
                         t-on-click="onClickServed">

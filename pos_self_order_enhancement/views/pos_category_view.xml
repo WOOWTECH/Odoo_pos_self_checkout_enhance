@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="pos_category_form_kds_course" model="ir.ui.view">
+        <field name="name">pos.category.form.kds.course</field>
+        <field name="model">pos.category</field>
+        <field name="inherit_id" ref="point_of_sale.product_pos_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='sequence']" position="after">
+                <group string="KDS Course">
+                    <field name="kds_course_sequence"
+                           help="Items sharing the same sequence number fire together as one course. 0 = no course grouping."/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

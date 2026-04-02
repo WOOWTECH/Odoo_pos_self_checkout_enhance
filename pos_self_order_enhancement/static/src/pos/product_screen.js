@@ -45,6 +45,19 @@ async function handleClickSendBack(pos, dialog) {
     }
 }
 
+function getOrderCourseGroups(pos) {
+    const order = pos.get_order();
+    if (!order || !order.kds_sent_to_kitchen) return [];
+    return pos.getOrderCourseGroups(order);
+}
+
+async function handleFireCourse(pos, courseSequence) {
+    const order = pos.get_order();
+    if (order) {
+        await pos.fireOrderCourse(order, courseSequence);
+    }
+}
+
 // Desktop: ControlButtons patch (rendered when !ui.isSmall)
 patch(ControlButtons.prototype, {
     get orderIsKdsReady() {
@@ -53,11 +66,17 @@ patch(ControlButtons.prototype, {
     get orderCanSendBack() {
         return getOrderCanSendBack(this.pos);
     },
+    get courseGroups() {
+        return getOrderCourseGroups(this.pos);
+    },
     async onClickServed() {
         await handleClickServed(this.pos);
     },
     async onClickSendBack() {
         await handleClickSendBack(this.pos, this.dialog);
+    },
+    async onFireCourse(courseSequence) {
+        await handleFireCourse(this.pos, courseSequence);
     },
 });
 
@@ -73,10 +92,16 @@ patch(ProductScreen.prototype, {
     get orderCanSendBack() {
         return getOrderCanSendBack(this.pos);
     },
+    get courseGroups() {
+        return getOrderCourseGroups(this.pos);
+    },
     async onClickServed() {
         await handleClickServed(this.pos);
     },
     async onClickSendBack() {
         await handleClickSendBack(this.pos, this.kdsDialog);
+    },
+    async onFireCourse(courseSequence) {
+        await handleFireCourse(this.pos, courseSequence);
     },
 });

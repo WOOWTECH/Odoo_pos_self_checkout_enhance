@@ -19,6 +19,14 @@ patch(PosStore.prototype, {
             );
             if (order) {
                 order.kds_state = data.kds_state;
+                if (data.course_fired !== undefined) {
+                    // Update local fired courses state
+                    try {
+                        const fired = JSON.parse(order.kds_fired_courses || "{}");
+                        fired[String(data.course_fired)] = true;
+                        order.kds_fired_courses = JSON.stringify(fired);
+                    } catch (e) { /* ignore */ }
+                }
             }
         }
     },
@@ -47,6 +55,65 @@ patch(PosStore.prototype, {
                 console.warn("KDS mark_remake failed:", e);
             }
         }
+    },
+
+    async fireOrderCourse(order, courseSequence) {
+        if (typeof order.id === "number") {
+            try {
+                await this.data.call("pos.order", "fire_course", [
+                    [order.id],
+                    courseSequence,
+                ]);
+                // Update local state
+                try {
+                    const fired = JSON.parse(order.kds_fired_courses || "{}");
+                    fired[String(courseSequence)] = true;
+                    order.kds_fired_courses = JSON.stringify(fired);
+                } catch (e) { /* ignore */ }
+                if (order.kds_state === "done") {
+                    order.kds_state = "in_progress";
+                }
+            } catch (e) {
+                console.warn("KDS fire_course failed:", e);
+            }
+        }
+    },
+
+    /**
+     * Get course groups for the current order.
+     * Returns [{sequence, name, is_fired, all_done}] sorted by sequence.
+     */
+    getOrderCourseGroups(order) {
+        if (!order || !order.lines) return [];
+
+        let fired = {};
+        try {
+            fired = JSON.parse(order.kds_fired_courses || "{}");
+        } catch (e) { /* ignore */ }
+
+        const groups = {};  // seq -> {sequence, name, is_fired}
+        for (const line of order.lines) {
+            if (line.qty <= 0) continue;
+            const categs = line.product_id?.pos_categ_ids;
+            let seq = 0;
+            let name = "";
+            if (categs && categs.length > 0) {
+                const categ = Array.isArray(categs) ? categs[0] : categs;
+                seq = categ.kds_course_sequence || 0;
+                name = categ.name || "";
+            }
+            if (seq === 0) continue;
+
+            if (!groups[seq]) {
+                groups[seq] = {
+                    sequence: seq,
+                    name: name || `Course ${seq}`,
+                    is_fired: !!fired[String(seq)],
+                };
+            }
+        }
+
+        return Object.values(groups).sort((a, b) => a.sequence - b.sequence);
     },
 
     async sendOrderInPreparation(order, cancelled = false) {

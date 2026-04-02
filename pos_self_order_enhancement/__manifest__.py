@@ -74,6 +74,7 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
         "views/pos_config_view.xml",
         "views/pos_dashboard_kds.xml",
         "views/pos_printer_views.xml",
+        "views/pos_category_view.xml",
     ],
     "assets": {
         "pos_self_order.assets": [

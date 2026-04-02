@@ -33,6 +33,10 @@
             done_progress: "done",
             remake: "REMAKE",
             tap_to_enable_sound: "Tap anywhere to enable sound notifications",
+            fire: "FIRE",
+            fired: "FIRED",
+            held: "HOLD",
+            course_done: "DONE",
         },
         zh_TW: {
             kitchen_display: "\u5EDA\u623F\u986F\u793A",
@@ -51,6 +55,10 @@
             done_progress: "\u5B8C\u6210",
             remake: "\u91CD\u505A",
             tap_to_enable_sound: "\u9EDE\u64CA\u4EFB\u610F\u4F4D\u7F6E\u4EE5\u555F\u7528\u8072\u97F3\u901A\u77E5",
+            fire: "\u51FA\u9910",
+            fired: "\u5DF2\u51FA",
+            held: "\u7B49\u5F85",
+            course_done: "\u5B8C\u6210",
         },
     };
 
@@ -241,6 +249,14 @@
         await fetchOrders();
     }
 
+    async function fireCourse(orderId, courseSequence) {
+        await rpc(`${BASE_URL}/pos-kds/fire-course/${CONFIG_ID}`, {
+            order_id: orderId,
+            course_sequence: courseSequence,
+        });
+        await fetchOrders();
+    }
+
     // ── Polling (interval-based, fetches every 3s) ────────
     function startPolling() {
         if (pollingActive) return;
@@ -377,8 +393,29 @@
             locationLabel = order.name;
         }
 
-        let linesHtml = "";
+        // Group lines by course sequence
+        const courseGroups = {};  // seq -> {name, is_fired, lines[]}
+        const noCourseLines = []; // seq 0 lines (always active)
         for (const line of order.lines) {
+            const seq = line.course_sequence || 0;
+            if (seq === 0) {
+                noCourseLines.push(line);
+            } else {
+                if (!courseGroups[seq]) {
+                    courseGroups[seq] = {
+                        name: line.course_name || `Course ${seq}`,
+                        is_fired: line.is_fired,
+                        lines: [],
+                    };
+                }
+                courseGroups[seq].lines.push(line);
+            }
+        }
+
+        let linesHtml = "";
+
+        // Render helper for a single line
+        function renderLine(line, heldClass) {
             const doneClass = line.is_done ? "line-done" : "";
             const noteHtml = line.customer_note
                 ? `<div class="kds-line-note">${escapeHtml(line.customer_note)}</div>`
@@ -386,14 +423,49 @@
             const remakeReasonHtml = line.remake_reason && !line.is_done
                 ? `<div class="kds-line-remake-reason">${escapeHtml(t("remake"))}: ${escapeHtml(line.remake_reason)}${line.remake_count > 1 ? ` (x${line.remake_count})` : ""}</div>`
                 : "";
-            linesHtml += `
-            <div class="kds-line ${doneClass}" data-order-id="${order.id}" data-line-id="${line.id}">
+            return `
+            <div class="kds-line ${doneClass} ${heldClass}" data-order-id="${order.id}" data-line-id="${line.id}">
                 <span class="kds-line-check">${line.is_done ? '\u2611' : '\u2610'}</span>
                 <span class="kds-line-qty">${line.qty}x</span>
                 <span class="kds-line-name">${escapeHtml(line.product_name)}</span>
                 ${noteHtml}
                 ${remakeReasonHtml}
             </div>`;
+        }
+
+        // Render no-course lines first (always active)
+        for (const line of noCourseLines) {
+            linesHtml += renderLine(line, "");
+        }
+
+        // Render course groups sorted by sequence
+        const sortedSeqs = Object.keys(courseGroups).map(Number).sort((a, b) => a - b);
+        const hasCourses = sortedSeqs.length > 0;
+
+        for (const seq of sortedSeqs) {
+            const group = courseGroups[seq];
+            const isFired = group.is_fired;
+            const heldClass = isFired ? "" : "course-held";
+            const headerClass = isFired ? "course-fired" : "course-held";
+            const allDone = isFired && group.lines.every(l => l.is_done);
+            let statusBadge;
+            if (allDone) {
+                statusBadge = `<span class="kds-course-badge badge-done">${escapeHtml(t("course_done"))}</span>`;
+            } else if (isFired) {
+                statusBadge = `<span class="kds-course-badge badge-fired">${escapeHtml(t("fired"))}</span>`;
+            } else {
+                statusBadge = `<button class="kds-btn kds-btn-fire" data-action="fire-course" data-order-id="${order.id}" data-course-seq="${seq}">${escapeHtml(t("fire"))}</button>`;
+            }
+
+            linesHtml += `
+            <div class="kds-course-header ${headerClass}">
+                <span class="kds-course-name">${escapeHtml(group.name)}</span>
+                ${statusBadge}
+            </div>`;
+
+            for (const line of group.lines) {
+                linesHtml += renderLine(line, heldClass);
+            }
         }
 
         // General note
@@ -427,13 +499,19 @@
     }
 
     function renderItemsView() {
-        // Aggregate item counts across all active orders
+        // Aggregate item counts across all active orders (only fired course items)
+        // Items with different notes stay as separate lines (industry-standard KDS pattern)
         const items = {};
         for (const order of orders) {
             for (const line of order.lines) {
-                const key = line.product_name;
+                // Skip items in held courses
+                const seq = line.course_sequence || 0;
+                if (seq > 0 && !line.is_fired) continue;
+
+                const note = line.customer_note || "";
+                const key = note ? `${line.product_name}||${note}` : line.product_name;
                 if (!items[key]) {
-                    items[key] = { name: key, qty: 0, done: 0 };
+                    items[key] = { name: line.product_name, note: note, qty: 0, done: 0 };
                 }
                 items[key].qty += line.qty;
                 if (line.is_done) items[key].done += line.qty;
@@ -464,11 +542,14 @@
             const remaining = item.qty - item.done;
             const allDone = remaining === 0;
             const doneClass = allDone ? "allday-done" : "";
+            const noteHtml = item.note
+                ? `<div class="kds-line-note">${escapeHtml(item.note)}</div>`
+                : "";
             html += `
             <div class="kds-allday-item ${doneClass}" data-action="batch-done" data-product-name="${escapeHtml(item.name)}">
                 <span class="kds-allday-check">${allDone ? '\u2611' : '\u2610'}</span>
                 <span class="kds-allday-qty">${item.qty}</span>
-                <span class="kds-allday-name">${escapeHtml(item.name)}</span>
+                <span class="kds-allday-name">${escapeHtml(item.name)}${noteHtml}</span>
                 ${item.done > 0 ? `<span class="kds-allday-progress">(${item.done}/${item.qty} ${escapeHtml(t("done_progress"))})</span>` : ""}
             </div>`;
         }
@@ -566,6 +647,16 @@
                 e.stopPropagation();
                 const orderId = parseInt(btn.dataset.orderId);
                 recallOrder(orderId);
+            });
+        });
+
+        // Fire course buttons
+        document.querySelectorAll('[data-action="fire-course"]').forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const orderId = parseInt(btn.dataset.orderId);
+                const courseSeq = parseInt(btn.dataset.courseSeq);
+                fireCourse(orderId, courseSeq);
             });
         });
 

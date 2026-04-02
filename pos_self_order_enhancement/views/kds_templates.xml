@@ -6,14 +6,14 @@
             <meta charset="UTF-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
             <title>Kitchen Display - KDS</title>
-            <link rel="stylesheet" t-attf-href="/pos_self_order_enhancement/static/src/kds/kds.css?v=13"/>
+            <link rel="stylesheet" t-attf-href="/pos_self_order_enhancement/static/src/kds/kds.css?v=14"/>
         </head>
         <body>
             <div id="kds-app"></div>
             <script>
                 window.__kds_session_info__ = <t t-raw="session_info_json"/>;
             </script>
-            <script t-attf-src="/pos_self_order_enhancement/static/src/kds/kds.js?v=13"/>
+            <script t-attf-src="/pos_self_order_enhancement/static/src/kds/kds.js?v=14"/>
         </body>
         </html>
     </template>
