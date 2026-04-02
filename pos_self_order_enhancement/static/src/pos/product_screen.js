@@ -7,15 +7,52 @@ import { useService } from "@web/core/utils/hooks";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { SendBackPopup } from "@pos_self_order_enhancement/pos/send_back_popup";
 
+// Helper: parse KDS JSON fields safely
+function parseKdsJson(raw) {
+    try {
+        return typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
+    } catch (e) {
+        return {};
+    }
+}
+
+// Helper: check if order has any done-but-not-served items
+function hasReadyItems(order) {
+    try {
+        const done = parseKdsJson(order.kds_done_items);
+        const served = parseKdsJson(order.kds_served_items);
+        return Object.entries(done).some(([k, v]) => v === true && !served[k]);
+    } catch (e) {
+        return false;
+    }
+}
+
+// Helper: check if order has any served or done items
+function hasServedOrDoneItems(order) {
+    try {
+        const done = parseKdsJson(order.kds_done_items);
+        const served = parseKdsJson(order.kds_served_items);
+        const hasDone = Object.values(done).some(v => v === true);
+        const hasServed = Object.values(served).some(v => v === true);
+        return hasDone || hasServed;
+    } catch (e) {
+        return false;
+    }
+}
+
 // Shared helpers for KDS button logic
 function getOrderIsKdsReady(pos) {
     const order = pos.get_order();
-    return order && order.kds_state === "done";
+    if (!order || !order.kds_sent_to_kitchen) return false;
+    if (order.kds_state === "served") return false;
+    return hasReadyItems(order);
 }
 
 function getOrderCanSendBack(pos) {
     const order = pos.get_order();
-    return order && (order.kds_state === "done" || order.kds_state === "served");
+    if (!order || !order.kds_sent_to_kitchen) return false;
+    if (order.kds_state === "served") return true;
+    return hasServedOrDoneItems(order);
 }
 
 async function handleClickServed(pos) {
@@ -29,8 +66,13 @@ async function handleClickSendBack(pos, dialog) {
     const order = pos.get_order();
     if (!order) return;
 
+    // Only show items that are done or served (not pending/still cooking)
     const lines = (order.lines || [])
-        .filter((l) => l.qty > 0)
+        .filter((l) => {
+            if (l.qty <= 0) return false;
+            const status = l.getKdsStatus?.() || null;
+            return status === "done" || status === "served";
+        })
         .map((l) => ({
             id: l.id,
             qty: l.qty,

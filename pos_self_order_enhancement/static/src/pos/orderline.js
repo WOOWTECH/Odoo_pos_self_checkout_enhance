@@ -5,8 +5,8 @@ import { patch } from "@web/core/utils/patch";
 
 patch(PosOrderline.prototype, {
     /**
-     * Get KDS done status for this order line.
-     * Returns "done", "pending", or null (not sent to kitchen).
+     * Get KDS status for this order line.
+     * Returns "served", "done", "remake", "pending", or null (not sent to kitchen).
      */
     getKdsStatus() {
         try {
@@ -14,9 +14,22 @@ patch(PosOrderline.prototype, {
             if (!order || typeof order.id !== "number" || !order.kds_sent_to_kitchen) {
                 return null;
             }
-            const raw = order.kds_done_items;
-            const doneItems = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
-            return doneItems[String(this.id)] ? "done" : "pending";
+            const key = String(this.id);
+
+            const rawServed = order.kds_served_items;
+            const served = typeof rawServed === "string" ? JSON.parse(rawServed || "{}") : (rawServed || {});
+            if (served[key]) return "served";
+
+            const rawDone = order.kds_done_items;
+            const done = typeof rawDone === "string" ? JSON.parse(rawDone || "{}") : (rawDone || {});
+            if (done[key]) return "done";
+
+            // Check if item was sent back for remake (has remake data but not done)
+            const rawRemake = order.kds_remake_data;
+            const remake = typeof rawRemake === "string" ? JSON.parse(rawRemake || "{}") : (rawRemake || {});
+            if (remake[key] && remake[key].count > 0) return "remake";
+
+            return "pending";
         } catch (e) {
             return null;
         }

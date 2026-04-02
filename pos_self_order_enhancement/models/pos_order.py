@@ -37,6 +37,12 @@ class PosOrder(models.Model):
         help='JSON dict: {"<category_id>": true/false}. Tracks which category groups are fired.',
     )
 
+    kds_served_items = fields.Text(
+        string='KDS Served Items',
+        default='{}',
+        help='JSON dict: {"<line_id>": true}. Tracks which items have been served to the table.',
+    )
+
     # ── helpers ──────────────────────────────────────────────
 
     def _get_line_hold_fire_category(self, line):
@@ -133,14 +139,41 @@ class PosOrder(models.Model):
         return True
 
     def mark_served(self):
-        """Called by POS frontend when staff confirms food has been served."""
-        self.write({'kds_state': 'served'})
+        """Mark done items as served. Only sets kds_state='served' when ALL items are served."""
         for order in self:
+            try:
+                done_items = json.loads(order.kds_done_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                done_items = {}
+            try:
+                served_items = json.loads(order.kds_served_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                served_items = {}
+
+            # Mark all done-but-not-served items as served
+            for key, is_done in done_items.items():
+                if is_done and not served_items.get(key, False):
+                    served_items[key] = True
+
+            vals = {'kds_served_items': json.dumps(served_items)}
+
+            # Check if ALL items are now served
+            all_served = True
+            for line in order.lines:
+                if line.qty > 0 and not served_items.get(str(line.id), False):
+                    all_served = False
+                    break
+
+            if all_served:
+                vals['kds_state'] = 'served'
+
+            order.write(vals)
             for config in order.config_id:
                 if config.kds_enabled:
                     config._notify('KDS_ORDER_UPDATE', {
                         'order_id': order.id,
-                        'kds_state': 'served',
+                        'kds_state': vals.get('kds_state', order.kds_state),
+                        'kds_served_items': json.dumps(served_items),
                     })
         return True
 
@@ -163,6 +196,11 @@ class PosOrder(models.Model):
                 except (json.JSONDecodeError, TypeError):
                     done_items = {}
 
+            try:
+                served_items = json.loads(order.kds_served_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                served_items = {}
+
             for lid in line_ids:
                 key = str(lid)
                 if key not in remake_data:
@@ -170,11 +208,13 @@ class PosOrder(models.Model):
                 remake_data[key]['count'] += 1
                 remake_data[key]['reason'] = reason
                 done_items[key] = False
+                served_items.pop(key, None)  # clear served status
 
             order.write({
                 'kds_state': 'in_progress',
                 'kds_done_items': json.dumps(done_items),
                 'kds_remake_data': json.dumps(remake_data),
+                'kds_served_items': json.dumps(served_items),
             })
 
             for config in order.config_id:
@@ -183,6 +223,9 @@ class PosOrder(models.Model):
                         'order_id': order.id,
                         'kds_state': 'new',
                         'is_remake': True,
+                        'kds_done_items': json.dumps(done_items),
+                        'kds_remake_data': json.dumps(remake_data),
+                        'kds_served_items': json.dumps(served_items),
                     })
         return True
 
@@ -198,7 +241,7 @@ class PosOrder(models.Model):
 
     _KDS_PROTECTED_FIELDS = (
         'kds_state', 'kds_sent_to_kitchen', 'kds_done_items',
-        'kds_remake_data', 'kds_fired_courses',
+        'kds_remake_data', 'kds_fired_courses', 'kds_served_items',
     )
 
     @api.model

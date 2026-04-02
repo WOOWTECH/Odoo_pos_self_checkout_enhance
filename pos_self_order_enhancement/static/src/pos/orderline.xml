@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <!-- Extend OrderSummary to show KDS status icons in the product-name slot -->
+    <!-- Extend OrderSummary to show KDS status badges in the product-name slot -->
     <t t-name="pos_self_order_enhancement.OrderSummary" t-inherit="point_of_sale.OrderSummary" t-inherit-mode="extension">
         <xpath expr="//t[@t-set-slot='product-name']" position="inside">
-            <span t-if="line.getKdsStatus() === 'done'" class="text-success ms-1" style="font-size: 0.85em;">✓</span>
-            <span t-elif="line.getKdsStatus() === 'pending'" class="text-muted ms-1" style="font-size: 0.85em;">○</span>
+            <span t-if="line.getKdsStatus() === 'served'" class="ms-1 badge bg-secondary bg-opacity-25 text-muted" style="font-size: 0.65em; padding: 2px 5px;">Served</span>
+            <span t-elif="line.getKdsStatus() === 'done'" class="ms-1 badge bg-success" style="font-size: 0.65em; padding: 2px 5px;">Ready</span>
+            <span t-elif="line.getKdsStatus() === 'remake'" class="ms-1 badge bg-danger" style="font-size: 0.65em; padding: 2px 5px;">Remake</span>
+            <span t-elif="line.getKdsStatus() === 'pending'" class="ms-1 badge bg-secondary bg-opacity-25 text-muted" style="font-size: 0.65em; padding: 2px 5px;">Not Ready</span>
         </xpath>
     </t>
 </templates>

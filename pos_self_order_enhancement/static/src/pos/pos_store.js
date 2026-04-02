@@ -58,6 +58,12 @@ patch(PosStore.prototype, {
                 if (data.kds_done_items !== undefined) {
                     order.kds_done_items = data.kds_done_items;
                 }
+                if (data.kds_served_items !== undefined) {
+                    order.kds_served_items = data.kds_served_items;
+                }
+                if (data.kds_remake_data !== undefined) {
+                    order.kds_remake_data = data.kds_remake_data;
+                }
             }
         }
     },
@@ -66,7 +72,24 @@ patch(PosStore.prototype, {
         if (typeof order.id === "number") {
             try {
                 await this.data.call("pos.order", "mark_served", [[order.id]]);
-                order.kds_state = "served";
+                // Update local served items — mark all done items as served
+                try {
+                    const rawDone = order.kds_done_items;
+                    const done = typeof rawDone === "string" ? JSON.parse(rawDone || "{}") : (rawDone || {});
+                    const rawServed = order.kds_served_items;
+                    const served = typeof rawServed === "string" ? JSON.parse(rawServed || "{}") : (rawServed || {});
+                    for (const [k, v] of Object.entries(done)) {
+                        if (v) served[k] = true;
+                    }
+                    order.kds_served_items = JSON.stringify(served);
+                    // Check if all items served — backend will set kds_state
+                    const allServed = (order.lines || [])
+                        .filter(l => l.qty > 0)
+                        .every(l => served[String(l.id)]);
+                    if (allServed) {
+                        order.kds_state = "served";
+                    }
+                } catch (e) { /* ignore */ }
             } catch (e) {
                 console.warn("KDS mark_served failed:", e);
             }
