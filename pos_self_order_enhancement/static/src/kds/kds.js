@@ -471,7 +471,7 @@
         // General note
         let generalNoteHtml = "";
         if (order.general_note) {
-            generalNoteHtml = `<div class="kds-general-note">\uD83D\uDCDD ${escapeHtml(order.general_note)}</div>`;
+            generalNoteHtml = `<div class="kds-general-note">${escapeHtml(order.general_note)}</div>`;
         }
 
         const bumpBtn = isCompleted
@@ -510,7 +510,7 @@
 
                 const parts = [];
                 if (line.customer_note) parts.push(line.customer_note);
-                if (order.general_note) parts.push("\uD83D\uDCDD " + order.general_note);
+                if (order.general_note) parts.push(order.general_note);
                 const note = parts.join(" | ");
                 const key = note ? `${line.product_name}||${note}` : line.product_name;
                 if (!items[key]) {
