@@ -6,14 +6,15 @@ import { patch } from "@web/core/utils/patch";
 patch(PosOrderline.prototype, {
     getDisplayData() {
         const data = super.getDisplayData();
-        const order = this.order_id;
-        if (order && order.kds_sent_to_kitchen) {
-            try {
-                const doneItems = JSON.parse(order.kds_done_items || "{}");
+        try {
+            const order = this.order_id;
+            if (order && typeof order.id === "number" && order.kds_sent_to_kitchen) {
+                const raw = order.kds_done_items;
+                const doneItems = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
                 data.kdsStatus = doneItems[String(this.id)] ? "done" : "pending";
-            } catch (e) {
-                data.kdsStatus = null;
             }
+        } catch (e) {
+            // Silently ignore — line may not be saved yet
         }
         return data;
     },

@@ -3,6 +3,34 @@
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 
+/**
+ * Safely get the first pos.category with kds_hold_fire from a product.
+ * Handles ORM proxy objects for Many2many fields.
+ * Returns {id, name, kds_hold_fire} or null.
+ */
+function getHoldFireCategory(line) {
+    try {
+        const product = line.product_id;
+        if (!product) return null;
+        const categs = product.pos_categ_ids;
+        if (!categs) return null;
+        // Handle both array and ORM proxy
+        let first = null;
+        if (typeof categs[Symbol.iterator] === "function") {
+            for (const c of categs) {
+                first = c;
+                break;
+            }
+        } else if (categs[0]) {
+            first = categs[0];
+        }
+        if (!first || !first.kds_hold_fire) return null;
+        return first;
+    } catch (e) {
+        return null;
+    }
+}
+
 patch(PosStore.prototype, {
     async initServerData() {
         const result = await super.initServerData(...arguments);
@@ -21,7 +49,8 @@ patch(PosStore.prototype, {
                 order.kds_state = data.kds_state;
                 if (data.course_fired !== undefined) {
                     try {
-                        const fired = JSON.parse(order.kds_fired_courses || "{}");
+                        const raw = order.kds_fired_courses;
+                        const fired = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
                         fired[String(data.course_fired)] = true;
                         order.kds_fired_courses = JSON.stringify(fired);
                     } catch (e) { /* ignore */ }
@@ -67,7 +96,8 @@ patch(PosStore.prototype, {
                     categoryId,
                 ]);
                 try {
-                    const fired = JSON.parse(order.kds_fired_courses || "{}");
+                    const raw = order.kds_fired_courses;
+                    const fired = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
                     fired[String(categoryId)] = true;
                     order.kds_fired_courses = JSON.stringify(fired);
                 } catch (e) { /* ignore */ }
@@ -80,37 +110,36 @@ patch(PosStore.prototype, {
         }
     },
 
-    /**
-     * Get course groups for the current order.
-     * Returns [{id, name, is_fired}] sorted by name.
-     */
     getOrderCourseGroups(order) {
-        if (!order || !order.lines) return [];
-
-        let fired = {};
         try {
-            fired = JSON.parse(order.kds_fired_courses || "{}");
-        } catch (e) { /* ignore */ }
+            if (!order || !order.lines) return [];
 
-        const groups = {};
-        for (const line of order.lines) {
-            if (line.qty <= 0) continue;
-            const categs = line.product_id?.pos_categ_ids;
-            if (!categs || categs.length === 0) continue;
-            const categ = Array.isArray(categs) ? categs[0] : categs;
-            if (!categ.kds_hold_fire) continue;
+            let fired = {};
+            try {
+                const raw = order.kds_fired_courses;
+                fired = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
+            } catch (e) { /* ignore */ }
 
-            const cid = categ.id;
-            if (!groups[cid]) {
-                groups[cid] = {
-                    id: cid,
-                    name: categ.name || `Category ${cid}`,
-                    is_fired: !!fired[String(cid)],
-                };
+            const groups = {};
+            for (const line of order.lines) {
+                if (line.qty <= 0) continue;
+                const categ = getHoldFireCategory(line);
+                if (!categ) continue;
+
+                const cid = categ.id;
+                if (!groups[cid]) {
+                    groups[cid] = {
+                        id: cid,
+                        name: categ.name || `Category ${cid}`,
+                        is_fired: !!fired[String(cid)],
+                    };
+                }
             }
-        }
 
-        return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
+            return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
+        } catch (e) {
+            return [];
+        }
     },
 
     async sendOrderInPreparation(order, cancelled = false) {
@@ -127,15 +156,12 @@ patch(PosStore.prototype, {
                     "mark_sent_to_kitchen",
                     [[order.id]]
                 );
-                // Update local state so fire buttons appear immediately
                 order.kds_sent_to_kitchen = true;
                 const categories = {};
                 for (const line of order.lines) {
                     if (line.qty <= 0) continue;
-                    const categs = line.product_id?.pos_categ_ids;
-                    if (!categs || categs.length === 0) continue;
-                    const categ = Array.isArray(categs) ? categs[0] : categs;
-                    if (!categ.kds_hold_fire) continue;
+                    const categ = getHoldFireCategory(line);
+                    if (!categ) continue;
                     categories[categ.id] = categ.name || "";
                 }
                 if (Object.keys(categories).length > 0) {

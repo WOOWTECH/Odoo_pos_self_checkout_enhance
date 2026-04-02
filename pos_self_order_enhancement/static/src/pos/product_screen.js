@@ -46,9 +46,13 @@ async function handleClickSendBack(pos, dialog) {
 }
 
 function getOrderCourseGroups(pos) {
-    const order = pos.get_order();
-    if (!order || !order.kds_sent_to_kitchen) return [];
-    return pos.getOrderCourseGroups(order);
+    try {
+        const order = pos.get_order();
+        if (!order || !order.kds_sent_to_kitchen) return [];
+        return pos.getOrderCourseGroups(order);
+    } catch (e) {
+        return [];
+    }
 }
 
 async function handleFireCourse(pos, categoryId) {
