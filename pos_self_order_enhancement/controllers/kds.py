@@ -85,7 +85,7 @@ class PosKitchenDisplay(http.Controller):
             lines = []
             has_active_remake = False
             for line in order.lines:
-                if line.qty <= 0:
+                if line.qty <= 0 or line.price_unit < 0:
                     continue
                 line_key = str(line.id)
                 line_remake = remake_data.get(line_key, {})
@@ -98,7 +98,7 @@ class PosKitchenDisplay(http.Controller):
                     'uuid': line.uuid,
                     'product_name': line.full_product_name or line.product_id.display_name,
                     'qty': line.qty,
-                    'customer_note': line.customer_note or '',
+                    'customer_note': line.note or '',
                     'is_done': is_done,
                     'remake_count': line_remake.get('count', 0),
                     'remake_reason': line_remake.get('reason', ''),
@@ -295,7 +295,7 @@ class PosKitchenDisplay(http.Controller):
 
             changed = False
             for line in order.lines:
-                if line.qty <= 0:
+                if line.qty <= 0 or line.price_unit < 0:
                     continue
                 line_name = line.full_product_name or line.product_id.display_name
                 if line_name == product_name and not done_items.get(str(line.id), False):
