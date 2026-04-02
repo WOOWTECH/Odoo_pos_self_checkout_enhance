@@ -20,12 +20,14 @@ patch(PosStore.prototype, {
             if (order) {
                 order.kds_state = data.kds_state;
                 if (data.course_fired !== undefined) {
-                    // Update local fired courses state
                     try {
                         const fired = JSON.parse(order.kds_fired_courses || "{}");
                         fired[String(data.course_fired)] = true;
                         order.kds_fired_courses = JSON.stringify(fired);
                     } catch (e) { /* ignore */ }
+                }
+                if (data.kds_done_items !== undefined) {
+                    order.kds_done_items = data.kds_done_items;
                 }
             }
         }
@@ -57,17 +59,16 @@ patch(PosStore.prototype, {
         }
     },
 
-    async fireOrderCourse(order, courseSequence) {
+    async fireOrderCourse(order, categoryId) {
         if (typeof order.id === "number") {
             try {
                 await this.data.call("pos.order", "fire_course", [
                     [order.id],
-                    courseSequence,
+                    categoryId,
                 ]);
-                // Update local state
                 try {
                     const fired = JSON.parse(order.kds_fired_courses || "{}");
-                    fired[String(courseSequence)] = true;
+                    fired[String(categoryId)] = true;
                     order.kds_fired_courses = JSON.stringify(fired);
                 } catch (e) { /* ignore */ }
                 if (order.kds_state === "done") {
@@ -81,7 +82,7 @@ patch(PosStore.prototype, {
 
     /**
      * Get course groups for the current order.
-     * Returns [{sequence, name, is_fired, all_done}] sorted by sequence.
+     * Returns [{id, name, is_fired}] sorted by name.
      */
     getOrderCourseGroups(order) {
         if (!order || !order.lines) return [];
@@ -91,42 +92,34 @@ patch(PosStore.prototype, {
             fired = JSON.parse(order.kds_fired_courses || "{}");
         } catch (e) { /* ignore */ }
 
-        const groups = {};  // seq -> {sequence, name, is_fired}
+        const groups = {};
         for (const line of order.lines) {
             if (line.qty <= 0) continue;
             const categs = line.product_id?.pos_categ_ids;
-            let seq = 0;
-            let name = "";
-            if (categs && categs.length > 0) {
-                const categ = Array.isArray(categs) ? categs[0] : categs;
-                seq = categ.kds_course_sequence || 0;
-                name = categ.name || "";
-            }
-            if (seq === 0) continue;
+            if (!categs || categs.length === 0) continue;
+            const categ = Array.isArray(categs) ? categs[0] : categs;
+            if (!categ.kds_hold_fire) continue;
 
-            if (!groups[seq]) {
-                groups[seq] = {
-                    sequence: seq,
-                    name: name || `Course ${seq}`,
-                    is_fired: !!fired[String(seq)],
+            const cid = categ.id;
+            if (!groups[cid]) {
+                groups[cid] = {
+                    id: cid,
+                    name: categ.name || `Category ${cid}`,
+                    is_fired: !!fired[String(cid)],
                 };
             }
         }
 
-        return Object.values(groups).sort((a, b) => a.sequence - b.sequence);
+        return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
     },
 
     async sendOrderInPreparation(order, cancelled = false) {
         await super.sendOrderInPreparation(order, cancelled);
 
-        // Ensure order is synced to backend (gets numeric DB ID).
-        // Core sendOrderInPreparation only syncs when printers are configured;
-        // without printers the order stays local with a string ID.
         if (typeof order.id !== "number") {
             await this.syncAllOrders({ orders: [order] });
         }
 
-        // Mark order as sent to kitchen via direct RPC call.
         if (typeof order.id === "number") {
             try {
                 await this.data.call(
@@ -136,21 +129,21 @@ patch(PosStore.prototype, {
                 );
                 // Update local state so fire buttons appear immediately
                 order.kds_sent_to_kitchen = true;
-                const sequences = new Set();
+                const categories = {};
                 for (const line of order.lines) {
                     if (line.qty <= 0) continue;
                     const categs = line.product_id?.pos_categ_ids;
-                    if (categs && categs.length > 0) {
-                        const categ = Array.isArray(categs) ? categs[0] : categs;
-                        const seq = categ.kds_course_sequence || 0;
-                        if (seq > 0) sequences.add(seq);
-                    }
+                    if (!categs || categs.length === 0) continue;
+                    const categ = Array.isArray(categs) ? categs[0] : categs;
+                    if (!categ.kds_hold_fire) continue;
+                    categories[categ.id] = categ.name || "";
                 }
-                if (sequences.size > 0) {
-                    const minSeq = Math.min(...sequences);
+                if (Object.keys(categories).length > 0) {
+                    const sorted = Object.entries(categories).sort((a, b) => a[1].localeCompare(b[1]));
+                    const firstId = parseInt(sorted[0][0]);
                     const fired = {};
-                    for (const seq of sequences) {
-                        fired[String(seq)] = (seq === minSeq);
+                    for (const [cid] of sorted) {
+                        fired[cid] = (parseInt(cid) === firstId);
                     }
                     order.kds_fired_courses = JSON.stringify(fired);
                 }

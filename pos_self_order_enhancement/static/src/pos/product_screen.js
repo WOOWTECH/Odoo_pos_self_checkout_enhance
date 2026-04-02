@@ -51,10 +51,10 @@ function getOrderCourseGroups(pos) {
     return pos.getOrderCourseGroups(order);
 }
 
-async function handleFireCourse(pos, courseSequence) {
+async function handleFireCourse(pos, categoryId) {
     const order = pos.get_order();
     if (order) {
-        await pos.fireOrderCourse(order, courseSequence);
+        await pos.fireOrderCourse(order, categoryId);
     }
 }
 
@@ -75,8 +75,8 @@ patch(ControlButtons.prototype, {
     async onClickSendBack() {
         await handleClickSendBack(this.pos, this.dialog);
     },
-    async onFireCourse(courseSequence) {
-        await handleFireCourse(this.pos, courseSequence);
+    async onFireCourse(categoryId) {
+        await handleFireCourse(this.pos, categoryId);
     },
 });
 
@@ -101,7 +101,7 @@ patch(ProductScreen.prototype, {
     async onClickSendBack() {
         await handleClickSendBack(this.pos, this.kdsDialog);
     },
-    async onFireCourse(courseSequence) {
-        await handleFireCourse(this.pos, courseSequence);
+    async onFireCourse(categoryId) {
+        await handleFireCourse(this.pos, categoryId);
     },
 });

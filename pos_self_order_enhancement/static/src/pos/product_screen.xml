@@ -5,10 +5,10 @@
         <xpath expr="//div[hasclass('subpads')]" position="before">
             <div t-if="courseGroups.length > 0 or orderIsKdsReady or orderCanSendBack"
                  class="d-flex gap-2 w-100 py-1">
-                <t t-foreach="courseGroups" t-as="cg" t-key="cg.sequence">
+                <t t-foreach="courseGroups" t-as="cg" t-key="cg.id">
                     <button t-if="!cg.is_fired"
                             class="btn btn-warning flex-grow-1"
-                            t-on-click="() => this.onFireCourse(cg.sequence)">
+                            t-on-click="() => this.onFireCourse(cg.id)">
                         <t t-esc="cg.name"/> - FIRE
                     </button>
                 </t>
@@ -29,10 +29,10 @@
         <xpath expr="//div[hasclass('switchpane')]" position="before">
             <div t-if="courseGroups.length > 0 or orderIsKdsReady or orderCanSendBack"
                  class="d-flex flex-wrap gap-2 p-2 border-top bg-view">
-                <t t-foreach="courseGroups" t-as="cg" t-key="cg.sequence">
+                <t t-foreach="courseGroups" t-as="cg" t-key="cg.id">
                     <button t-if="!cg.is_fired"
                             class="btn btn-warning flex-fill"
-                            t-on-click="() => this.onFireCourse(cg.sequence)">
+                            t-on-click="() => this.onFireCourse(cg.id)">
                         <t t-esc="cg.name"/> - FIRE
                     </button>
                 </t>

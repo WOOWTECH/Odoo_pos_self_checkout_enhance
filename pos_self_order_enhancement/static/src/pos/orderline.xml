@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.Orderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('text-wrap')]" position="before">
+            <span t-if="line.kdsStatus === 'done'" class="text-success me-1" style="font-size: 0.9em;">✓</span>
+            <span t-elif="line.kdsStatus === 'pending'" class="text-muted me-1" style="font-size: 0.9em;">○</span>
+        </xpath>
+    </t>
+</templates>

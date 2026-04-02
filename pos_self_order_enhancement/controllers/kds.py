@@ -33,17 +33,13 @@ class PosKitchenDisplay(http.Controller):
         return config
 
     def _get_line_course_info(self, order, line, fired_courses):
-        """Get course sequence, name, and fire status for an order line."""
-        seq = order._get_line_course_sequence(line)
-        if seq == 0:
+        """Get category-based course info for an order line."""
+        categ_id, categ_name = order._get_line_hold_fire_category(line)
+        if categ_id == 0:
             return 0, '', True  # always fired
 
-        # Get category name for this sequence
-        categs = line.product_id.pos_categ_ids
-        course_name = categs[0].name if categs else ''
-
-        is_fired = fired_courses.get(str(seq), False)
-        return seq, course_name, is_fired
+        is_fired = fired_courses.get(str(categ_id), False)
+        return categ_id, categ_name, is_fired
 
     def _get_active_orders(self, config):
         """Fetch active kitchen orders sent to kitchen by staff."""
@@ -83,28 +79,23 @@ class PosKitchenDisplay(http.Controller):
             elapsed_minutes = int(elapsed // 60)
             elapsed_seconds = int(elapsed % 60)
 
-            # Parse done items
             try:
                 done_items = json.loads(order.kds_done_items or '{}')
             except (json.JSONDecodeError, TypeError):
                 done_items = {}
 
-            # Parse remake data
             try:
                 remake_data = json.loads(order.kds_remake_data or '{}')
             except (json.JSONDecodeError, TypeError):
                 remake_data = {}
 
-            # Parse fired courses
             try:
                 fired_courses = json.loads(order.kds_fired_courses or '{}')
             except (json.JSONDecodeError, TypeError):
                 fired_courses = {}
 
-            # Build order lines with course info
             lines = []
             has_active_remake = False
-            # Track course groups: {seq: {name, is_fired, line_ids, all_done}}
             course_groups_map = OrderedDict()
 
             for line in order.lines:
@@ -115,12 +106,10 @@ class PosKitchenDisplay(http.Controller):
                 line_remake = remake_data.get(line_key, {})
                 is_done = done_items.get(line_key, False)
 
-                # Course info
-                seq, course_name, is_fired = self._get_line_course_info(
+                categ_id, course_name, is_fired = self._get_line_course_info(
                     order, line, fired_courses
                 )
 
-                # A line is actively remade if it has remake data and is not yet done
                 if line_remake and not is_done:
                     has_active_remake = True
 
@@ -133,29 +122,26 @@ class PosKitchenDisplay(http.Controller):
                     'is_done': is_done,
                     'remake_count': line_remake.get('count', 0),
                     'remake_reason': line_remake.get('reason', ''),
-                    'course_sequence': seq,
+                    'course_id': categ_id,
                     'course_name': course_name,
                     'is_fired': is_fired,
                 })
 
-                # Build course group tracking
-                if seq > 0:
-                    if seq not in course_groups_map:
-                        course_groups_map[seq] = {
-                            'sequence': seq,
+                if categ_id > 0:
+                    if categ_id not in course_groups_map:
+                        course_groups_map[categ_id] = {
+                            'id': categ_id,
                             'name': course_name,
                             'is_fired': is_fired,
                             'all_items_done': True,
                         }
                     if not is_done:
-                        course_groups_map[seq]['all_items_done'] = False
+                        course_groups_map[categ_id]['all_items_done'] = False
 
-            # Sort course groups by sequence
             course_groups = sorted(
-                course_groups_map.values(), key=lambda g: g['sequence']
+                course_groups_map.values(), key=lambda g: g['name']
             )
 
-            # Table info
             table_name = ''
             floor_name = ''
             if hasattr(order, 'table_id') and order.table_id:
@@ -185,42 +171,33 @@ class PosKitchenDisplay(http.Controller):
         return result
 
     def _check_all_fired_done(self, order, done_items):
-        """Check if all items in fired courses are done.
-
-        Items in held courses or with sequence 0 are always included.
-        Returns (all_fired_done, course_completed_seq).
-        """
+        """Check if all items in fired courses are done."""
         try:
             fired_courses = json.loads(order.kds_fired_courses or '{}')
         except (json.JSONDecodeError, TypeError):
             fired_courses = {}
 
         all_fired_done = True
-        # Track per-course completion
-        course_items = {}  # seq -> list of is_done booleans
+        course_items = {}
 
         for line in order.lines:
             if line.qty <= 0:
                 continue
-            seq = order._get_line_course_sequence(line)
+            categ_id, _ = order._get_line_hold_fire_category(line)
             is_done = done_items.get(str(line.id), False)
 
-            if seq == 0:
-                # Always-fired items must be done
+            if categ_id == 0:
                 if not is_done:
                     all_fired_done = False
-            elif fired_courses.get(str(seq), False):
-                # Fired course items must be done
+            elif fired_courses.get(str(categ_id), False):
                 if not is_done:
                     all_fired_done = False
-                course_items.setdefault(seq, []).append(is_done)
-            # Held course items are excluded from all_done check
+                course_items.setdefault(categ_id, []).append(is_done)
 
-        # Find which course just completed (all items done)
         course_completed = None
-        for seq, statuses in course_items.items():
+        for cid, statuses in course_items.items():
             if all(statuses):
-                course_completed = seq
+                course_completed = cid
 
         return all_fired_done, course_completed
 
@@ -266,7 +243,6 @@ class PosKitchenDisplay(http.Controller):
         if not order.exists() or order.config_id.id != config.id:
             return {'success': False, 'error': 'Order not found'}
 
-        # Mark all lines as done when bumping the whole order
         try:
             done_items = json.loads(order.kds_done_items or '{}')
         except (json.JSONDecodeError, TypeError):
@@ -275,7 +251,6 @@ class PosKitchenDisplay(http.Controller):
             if line.qty > 0:
                 done_items[str(line.id)] = True
 
-        # Also fire all courses
         try:
             fired = json.loads(order.kds_fired_courses or '{}')
         except (json.JSONDecodeError, TypeError):
@@ -291,6 +266,7 @@ class PosKitchenDisplay(http.Controller):
         config._notify('KDS_ORDER_UPDATE', {
             'order_id': order.id,
             'kds_state': 'done',
+            'kds_done_items': json.dumps(done_items),
         })
         return {'success': True}
 
@@ -323,13 +299,13 @@ class PosKitchenDisplay(http.Controller):
         # Block toggling items in held courses
         line = request.env['pos.order.line'].sudo().browse(int(line_id))
         if line.exists():
-            seq = order._get_line_course_sequence(line)
-            if seq > 0:
+            categ_id, _ = order._get_line_hold_fire_category(line)
+            if categ_id > 0:
                 try:
                     fired_courses = json.loads(order.kds_fired_courses or '{}')
                 except (json.JSONDecodeError, TypeError):
                     fired_courses = {}
-                if not fired_courses.get(str(seq), False):
+                if not fired_courses.get(str(categ_id), False):
                     return {'success': False, 'error': 'Course not fired yet'}
 
         try:
@@ -340,7 +316,6 @@ class PosKitchenDisplay(http.Controller):
         key = str(line_id)
         done_items[key] = not done_items.get(key, False)
 
-        # Check if all fired items are done → auto-bump
         all_done, course_completed = self._check_all_fired_done(order, done_items)
 
         vals = {'kds_done_items': json.dumps(done_items)}
@@ -353,6 +328,7 @@ class PosKitchenDisplay(http.Controller):
         notify_data = {
             'order_id': order.id,
             'kds_state': vals.get('kds_state', order.kds_state),
+            'kds_done_items': json.dumps(done_items),
         }
         if course_completed:
             notify_data['course_completed'] = course_completed
@@ -365,10 +341,8 @@ class PosKitchenDisplay(http.Controller):
         config = self._verify_kds_access(config_id, token)
 
         if order_id:
-            # Recall specific order
             order = request.env['pos.order'].sudo().browse(int(order_id))
         else:
-            # Recall last bumped order
             session = config.current_session_id
             if not session:
                 return {'success': False, 'error': 'No active session'}
@@ -380,7 +354,6 @@ class PosKitchenDisplay(http.Controller):
         if not order.exists() or order.config_id.id != config.id:
             return {'success': False, 'error': 'No order to recall'}
 
-        # Preserve kds_fired_courses on recall, only reset done items
         order.write({
             'kds_state': 'new',
             'kds_done_items': '{}',
@@ -388,21 +361,22 @@ class PosKitchenDisplay(http.Controller):
         config._notify('KDS_ORDER_UPDATE', {
             'order_id': order.id,
             'kds_state': 'new',
+            'kds_done_items': '{}',
         })
         return {'success': True, 'order_id': order.id}
 
     @http.route('/pos-kds/fire-course/<int:config_id>', type='json', auth='public')
-    def kds_fire_course(self, config_id, token=None, order_id=None, course_sequence=None, **kwargs):
-        """Fire a specific course group for kitchen preparation."""
+    def kds_fire_course(self, config_id, token=None, order_id=None, category_id=None, **kwargs):
+        """Fire a specific category group for kitchen preparation."""
         config = self._verify_kds_access(config_id, token)
-        if not order_id or course_sequence is None:
-            return {'success': False, 'error': 'Missing order_id or course_sequence'}
+        if not order_id or category_id is None:
+            return {'success': False, 'error': 'Missing order_id or category_id'}
 
         order = request.env['pos.order'].sudo().browse(int(order_id))
         if not order.exists() or order.config_id.id != config.id:
             return {'success': False, 'error': 'Order not found'}
 
-        order.fire_course(int(course_sequence))
+        order.fire_course(int(category_id))
         return {'success': True}
 
     @http.route('/pos-kds/batch-item-done/<int:config_id>', type='json', auth='public')
@@ -441,10 +415,9 @@ class PosKitchenDisplay(http.Controller):
             for line in order.lines:
                 if line.qty <= 0 or line.price_unit < 0:
                     continue
-                # Only mark items in fired courses
-                seq = order._get_line_course_sequence(line)
-                if seq > 0 and not fired_courses.get(str(seq), False):
-                    continue  # skip held course items
+                categ_id, _ = order._get_line_hold_fire_category(line)
+                if categ_id > 0 and not fired_courses.get(str(categ_id), False):
+                    continue
 
                 line_name = line.full_product_name or line.product_id.display_name
                 if line_name == product_name and not done_items.get(str(line.id), False):
@@ -455,7 +428,6 @@ class PosKitchenDisplay(http.Controller):
             if not changed:
                 continue
 
-            # Check if all fired items in order are now done
             all_done, course_completed = self._check_all_fired_done(order, done_items)
 
             vals = {'kds_done_items': json.dumps(done_items)}
@@ -469,6 +441,7 @@ class PosKitchenDisplay(http.Controller):
             config._notify('KDS_ORDER_UPDATE', {
                 'order_id': order.id,
                 'kds_state': vals.get('kds_state', order.kds_state),
+                'kds_done_items': json.dumps(done_items),
             })
 
         return {

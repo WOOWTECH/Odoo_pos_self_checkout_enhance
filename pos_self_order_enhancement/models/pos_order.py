@@ -34,55 +34,60 @@ class PosOrder(models.Model):
     kds_fired_courses = fields.Text(
         string='KDS Fired Courses',
         default='{}',
-        help='JSON dict: {"<sequence>": true/false}. Tracks which course groups are fired.',
+        help='JSON dict: {"<category_id>": true/false}. Tracks which category groups are fired.',
     )
 
     # ── helpers ──────────────────────────────────────────────
 
-    def _get_line_course_sequence(self, line):
-        """Return the KDS course sequence for an order line.
+    def _get_line_hold_fire_category(self, line):
+        """Return (category_id, category_name) if the line's category has Hold & Fire enabled.
 
-        Looks up the first pos.category on the line's product.
-        Returns 0 (always-fired) if no category or sequence is 0.
+        Returns (0, '') if no category or Hold & Fire is disabled (always fired).
         """
         categs = line.product_id.pos_categ_ids
-        if categs:
-            return categs[0].kds_course_sequence or 0
-        return 0
+        if categs and categs[0].kds_hold_fire:
+            return categs[0].id, categs[0].name
+        return 0, ''
 
     def _compute_fired_courses(self):
-        """Build the kds_fired_courses JSON for this order and auto-fire the lowest sequence."""
+        """Build the kds_fired_courses JSON for this order.
+
+        Auto-fires the first hold-fire category (by name alphabetically).
+        """
         self.ensure_one()
-        sequences = set()
+        categories = {}  # {categ_id: categ_name}
         for line in self.lines:
             if line.qty <= 0:
                 continue
-            seq = self._get_line_course_sequence(line)
-            if seq > 0:
-                sequences.add(seq)
+            categ_id, categ_name = self._get_line_hold_fire_category(line)
+            if categ_id > 0:
+                categories[categ_id] = categ_name
 
-        if not sequences:
+        if not categories:
             return '{}'
 
+        # Auto-fire the first category alphabetically
+        sorted_categs = sorted(categories.items(), key=lambda x: x[1])
+        first_id = sorted_categs[0][0]
+
         fired = {}
-        min_seq = min(sequences)
-        for seq in sequences:
-            fired[str(seq)] = (seq == min_seq)  # auto-fire lowest
+        for categ_id in categories:
+            fired[str(categ_id)] = (categ_id == first_id)
         return json.dumps(fired)
 
     # ── course actions ───────────────────────────────────────
 
-    def fire_course(self, course_sequence):
-        """Fire a specific course group for kitchen preparation."""
+    def fire_course(self, category_id):
+        """Fire a specific category group for kitchen preparation."""
         for order in self:
             try:
                 fired = json.loads(order.kds_fired_courses or '{}')
             except (json.JSONDecodeError, TypeError):
                 fired = {}
 
-            key = str(course_sequence)
+            key = str(category_id)
             if key not in fired:
-                continue  # sequence not in this order
+                continue
 
             fired[key] = True
             vals = {'kds_fired_courses': json.dumps(fired)}
@@ -97,16 +102,15 @@ class PosOrder(models.Model):
                     config._notify('KDS_ORDER_UPDATE', {
                         'order_id': order.id,
                         'kds_state': vals.get('kds_state', order.kds_state),
-                        'course_fired': course_sequence,
+                        'course_fired': category_id,
                     })
         return True
 
     # ── existing methods (modified) ──────────────────────────
 
     def mark_sent_to_kitchen(self):
-        """Called by POS frontend when staff clicks 訂單 (Order button)."""
+        """Called by POS frontend when staff clicks Order button."""
         vals = {'kds_sent_to_kitchen': True}
-        # sync_from_ui may skip field defaults, so ensure kds_state is set
         for order in self:
             if not order.kds_state:
                 vals['kds_state'] = 'new'
@@ -148,8 +152,6 @@ class PosOrder(models.Model):
             except (json.JSONDecodeError, TypeError):
                 remake_data = {}
 
-            # When coming from done/served, all items were implicitly done.
-            # Explicitly mark all lines as done first, then unmark remade ones.
             done_items = {}
             if order.kds_state in ('done', 'served'):
                 for line in order.lines:
@@ -161,14 +163,12 @@ class PosOrder(models.Model):
                 except (json.JSONDecodeError, TypeError):
                     done_items = {}
 
-            remake_line_ids = set(str(lid) for lid in line_ids)
             for lid in line_ids:
                 key = str(lid)
                 if key not in remake_data:
                     remake_data[key] = {'count': 0, 'reason': ''}
                 remake_data[key]['count'] += 1
                 remake_data[key]['reason'] = reason
-                # Reset done status only for remade items
                 done_items[key] = False
 
             order.write({
@@ -196,8 +196,6 @@ class PosOrder(models.Model):
                 if kitchen_orders:
                     config._notify('KDS_ORDER_UPDATE', {})
 
-    # Fields managed exclusively by KDS endpoints / mark_sent_to_kitchen —
-    # must never be overwritten by stale POS frontend sync payloads.
     _KDS_PROTECTED_FIELDS = (
         'kds_state', 'kds_sent_to_kitchen', 'kds_done_items',
         'kds_remake_data', 'kds_fired_courses',
@@ -215,7 +213,6 @@ class PosOrder(models.Model):
             if order.get('id') and isinstance(order['id'], int):
                 existing_order_ids.append(order['id'])
 
-        # Capture line IDs before sync
         old_line_ids = {}
         if existing_order_ids:
             for order in self.browse(existing_order_ids).exists():
@@ -223,7 +220,6 @@ class PosOrder(models.Model):
 
         result = super().sync_from_ui(orders)
 
-        # Only reset kds_state if genuinely new lines were added
         if existing_order_ids:
             updated_orders = self.browse(existing_order_ids).exists()
             for order in updated_orders:
@@ -232,7 +228,6 @@ class PosOrder(models.Model):
                     curr_ids = set(order.lines.ids)
                     new_lines = curr_ids - prev_ids
                     if new_lines:
-                        # Add new course sequences as held
                         try:
                             fired = json.loads(order.kds_fired_courses or '{}')
                         except (json.JSONDecodeError, TypeError):
@@ -240,9 +235,9 @@ class PosOrder(models.Model):
 
                         new_line_records = self.env['pos.order.line'].browse(list(new_lines))
                         for line in new_line_records:
-                            seq = order._get_line_course_sequence(line)
-                            if seq > 0 and str(seq) not in fired:
-                                fired[str(seq)] = False  # new course starts held
+                            categ_id, _ = order._get_line_hold_fire_category(line)
+                            if categ_id > 0 and str(categ_id) not in fired:
+                                fired[str(categ_id)] = False
 
                         order.write({
                             'kds_state': 'new',

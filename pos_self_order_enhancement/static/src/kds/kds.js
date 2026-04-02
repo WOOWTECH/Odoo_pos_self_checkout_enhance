@@ -249,10 +249,10 @@
         await fetchOrders();
     }
 
-    async function fireCourse(orderId, courseSequence) {
+    async function fireCourse(orderId, categoryId) {
         await rpc(`${BASE_URL}/pos-kds/fire-course/${CONFIG_ID}`, {
             order_id: orderId,
-            course_sequence: courseSequence,
+            category_id: categoryId,
         });
         await fetchOrders();
     }
@@ -393,22 +393,22 @@
             locationLabel = order.name;
         }
 
-        // Group lines by course sequence
-        const courseGroups = {};  // seq -> {name, is_fired, lines[]}
-        const noCourseLines = []; // seq 0 lines (always active)
+        // Group lines by category (course_id)
+        const courseGroups = {};  // categ_id -> {name, is_fired, lines[]}
+        const noCourseLines = []; // categ_id 0 lines (always active)
         for (const line of order.lines) {
-            const seq = line.course_sequence || 0;
-            if (seq === 0) {
+            const cid = line.course_id || 0;
+            if (cid === 0) {
                 noCourseLines.push(line);
             } else {
-                if (!courseGroups[seq]) {
-                    courseGroups[seq] = {
-                        name: line.course_name || `Course ${seq}`,
+                if (!courseGroups[cid]) {
+                    courseGroups[cid] = {
+                        name: line.course_name || `Category ${cid}`,
                         is_fired: line.is_fired,
                         lines: [],
                     };
                 }
-                courseGroups[seq].lines.push(line);
+                courseGroups[cid].lines.push(line);
             }
         }
 
@@ -438,12 +438,14 @@
             linesHtml += renderLine(line, "");
         }
 
-        // Render course groups sorted by sequence
-        const sortedSeqs = Object.keys(courseGroups).map(Number).sort((a, b) => a - b);
-        const hasCourses = sortedSeqs.length > 0;
+        // Render course groups sorted by name
+        const sortedIds = Object.keys(courseGroups).map(Number).sort((a, b) => {
+            return courseGroups[a].name.localeCompare(courseGroups[b].name);
+        });
+        const hasCourses = sortedIds.length > 0;
 
-        for (const seq of sortedSeqs) {
-            const group = courseGroups[seq];
+        for (const cid of sortedIds) {
+            const group = courseGroups[cid];
             const isFired = group.is_fired;
             const heldClass = isFired ? "" : "course-held";
             const headerClass = isFired ? "course-fired" : "course-held";
@@ -454,7 +456,7 @@
             } else if (isFired) {
                 statusBadge = `<span class="kds-course-badge badge-fired">${escapeHtml(t("fired"))}</span>`;
             } else {
-                statusBadge = `<button class="kds-btn kds-btn-fire" data-action="fire-course" data-order-id="${order.id}" data-course-seq="${seq}">${escapeHtml(t("fire"))}</button>`;
+                statusBadge = `<button class="kds-btn kds-btn-fire" data-action="fire-course" data-order-id="${order.id}" data-course-id="${cid}">${escapeHtml(t("fire"))}</button>`;
             }
 
             linesHtml += `
@@ -505,8 +507,8 @@
         for (const order of orders) {
             for (const line of order.lines) {
                 // Skip items in held courses
-                const seq = line.course_sequence || 0;
-                if (seq > 0 && !line.is_fired) continue;
+                const cid = line.course_id || 0;
+                if (cid > 0 && !line.is_fired) continue;
 
                 const parts = [];
                 if (line.customer_note) parts.push(line.customer_note);
@@ -658,8 +660,8 @@
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const orderId = parseInt(btn.dataset.orderId);
-                const courseSeq = parseInt(btn.dataset.courseSeq);
-                fireCourse(orderId, courseSeq);
+                const categoryId = parseInt(btn.dataset.courseId);
+                fireCourse(orderId, categoryId);
             });
         });
 
