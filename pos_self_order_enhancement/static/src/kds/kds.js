@@ -32,6 +32,7 @@
             completed_orders: "Completed Orders",
             done_progress: "done",
             remake: "REMAKE",
+            tap_to_enable_sound: "Tap anywhere to enable sound notifications",
         },
         zh_TW: {
             kitchen_display: "\u5EDA\u623F\u986F\u793A",
@@ -49,6 +50,7 @@
             completed_orders: "\u5DF2\u5B8C\u6210\u8A02\u55AE",
             done_progress: "\u5B8C\u6210",
             remake: "\u91CD\u505A",
+            tap_to_enable_sound: "\u9EDE\u64CA\u4EFB\u610F\u4F4D\u7F6E\u4EE5\u555F\u7528\u8072\u97F3\u901A\u77E5",
         },
     };
 
@@ -90,43 +92,83 @@
     }
 
     // ── Audio ───────────────────────────────────────────────
-    function playChime() {
+    // Shared AudioContext — created once, resumed on user gesture
+    let audioCtx = null;
+    function initAudio() {
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn("KDS: AudioContext not available", e);
+        }
+    }
+
+    function resumeAudio() {
+        if (!audioCtx) initAudio();
+        if (audioCtx && audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+    }
+
+    // Full-screen overlay — shown when AudioContext is suspended
+    function showSoundOverlay() {
+        if (!audioCtx || audioCtx.state !== "suspended") return;
+        const overlay = document.createElement("div");
+        overlay.className = "kds-sound-overlay";
+        overlay.innerHTML = `
+            <div class="kds-sound-overlay-content">
+                <div class="kds-sound-overlay-icon">\uD83D\uDD14</div>
+                <div class="kds-sound-overlay-text">${escapeHtml(t("tap_to_enable_sound"))}</div>
+            </div>`;
+        overlay.addEventListener("click", () => {
+            resumeAudio();
+            overlay.classList.add("kds-sound-overlay-dismiss");
+            setTimeout(() => overlay.remove(), 300);
+        });
+        document.body.appendChild(overlay);
+    }
+
+    function playChime() {
+        if (!audioCtx || audioCtx.state !== "running") {
+            console.warn("KDS: Sound skipped — AudioContext not running");
+            return;
+        }
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
             osc.connect(gain);
-            gain.connect(ctx.destination);
+            gain.connect(audioCtx.destination);
             osc.frequency.value = 880;
             osc.type = "sine";
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.5);
         } catch (e) {
-            // Audio may not be available
+            console.warn("KDS: playChime failed", e);
         }
     }
 
     function playRemakeChime() {
+        if (!audioCtx || audioCtx.state !== "running") {
+            console.warn("KDS: Sound skipped — AudioContext not running");
+            return;
+        }
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            // Double beep at lower frequency for urgency
             for (let i = 0; i < 2; i++) {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
                 osc.connect(gain);
-                gain.connect(ctx.destination);
+                gain.connect(audioCtx.destination);
                 osc.frequency.value = 660;
                 osc.type = "square";
-                const start = ctx.currentTime + i * 0.3;
+                const start = audioCtx.currentTime + i * 0.3;
                 gain.gain.setValueAtTime(0.3, start);
                 gain.gain.exponentialRampToValueAtTime(0.01, start + 0.2);
                 osc.start(start);
                 osc.stop(start + 0.2);
             }
         } catch (e) {
-            // Audio may not be available
+            console.warn("KDS: playRemakeChime failed", e);
         }
     }
 
@@ -546,7 +588,9 @@
 
     // ── Initialize ──────────────────────────────────────────
     async function init() {
+        initAudio();
         render(); // Show empty state
+        showSoundOverlay();
         await fetchOrders();
         startTimers();
         startPolling();
