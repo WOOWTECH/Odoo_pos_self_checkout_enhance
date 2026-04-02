@@ -174,7 +174,18 @@ class PosKitchenDisplay(http.Controller):
         if not order.exists() or order.config_id.id != config.id:
             return {'success': False, 'error': 'Order not found'}
 
-        order.write({'kds_state': 'done'})
+        # Mark all lines as done when bumping the whole order
+        try:
+            done_items = json.loads(order.kds_done_items or '{}')
+        except (json.JSONDecodeError, TypeError):
+            done_items = {}
+        for line in order.lines:
+            if line.qty > 0:
+                done_items[str(line.id)] = True
+        order.write({
+            'kds_state': 'done',
+            'kds_done_items': json.dumps(done_items),
+        })
         config._notify('KDS_ORDER_UPDATE', {
             'order_id': order.id,
             'kds_state': 'done',
