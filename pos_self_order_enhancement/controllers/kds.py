@@ -102,6 +102,12 @@ class PosKitchenDisplay(http.Controller):
                 if line.qty <= 0 or line.price_unit < 0:
                     continue
 
+                # Combo children are rendered under their combo parent, not as
+                # independent rows. Skip them here so the KDS cannot tick them
+                # done independently.
+                if line.combo_parent_id:
+                    continue
+
                 line_key = str(line.id)
                 line_remake = remake_data.get(line_key, {})
                 is_done = done_items.get(line_key, False)
@@ -112,6 +118,16 @@ class PosKitchenDisplay(http.Controller):
 
                 if line_remake and not is_done:
                     has_active_remake = True
+
+                combo_children = [
+                    {
+                        'name': child.full_product_name or child.product_id.display_name,
+                        'qty': child.qty,
+                        'customer_note': child.note or '',
+                    }
+                    for child in line.combo_line_ids
+                    if child.qty > 0 and child.price_unit >= 0
+                ]
 
                 lines.append({
                     'id': line.id,
@@ -125,6 +141,7 @@ class PosKitchenDisplay(http.Controller):
                     'course_id': categ_id,
                     'course_name': course_name,
                     'is_fired': is_fired,
+                    'combo_children': combo_children,
                 })
 
                 if categ_id > 0:
@@ -310,6 +327,11 @@ class PosKitchenDisplay(http.Controller):
         # Block toggling items in held courses
         line = request.env['pos.order.line'].sudo().browse(int(line_id))
         if line.exists():
+            # Combo children cannot be toggled independently — the KDS does not
+            # expose them as clickable rows, but guard defensively against
+            # crafted requests.
+            if line.combo_parent_id:
+                return {'success': False, 'error': 'Combo children cannot be toggled'}
             categ_id, _ = order._get_line_hold_fire_category(line)
             if categ_id > 0:
                 try:
@@ -326,6 +348,13 @@ class PosKitchenDisplay(http.Controller):
 
         key = str(line_id)
         done_items[key] = not done_items.get(key, False)
+
+        # Cascade the new state to all combo children so the order's bookkeeping
+        # stays consistent (reports, _check_all_fired_done, etc.).
+        if line.exists():
+            new_state = done_items[key]
+            for child in line.combo_line_ids:
+                done_items[str(child.id)] = new_state
 
         all_done, course_completed = self._check_all_fired_done(order, done_items)
 
@@ -426,6 +455,9 @@ class PosKitchenDisplay(http.Controller):
             for line in order.lines:
                 if line.qty <= 0 or line.price_unit < 0:
                     continue
+                # Combo children are handled through their combo parent.
+                if line.combo_parent_id:
+                    continue
                 categ_id, _ = order._get_line_hold_fire_category(line)
                 if categ_id > 0 and not fired_courses.get(str(categ_id), False):
                     continue
@@ -433,6 +465,9 @@ class PosKitchenDisplay(http.Controller):
                 line_name = line.full_product_name or line.product_id.display_name
                 if line_name == product_name and not done_items.get(str(line.id), False):
                     done_items[str(line.id)] = True
+                    # Cascade to combo children so state stays consistent.
+                    for child in line.combo_line_ids:
+                        done_items[str(child.id)] = True
                     changed = True
                     updated_count += 1
 

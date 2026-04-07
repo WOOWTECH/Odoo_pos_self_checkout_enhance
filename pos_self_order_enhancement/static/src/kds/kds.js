@@ -420,12 +420,18 @@
             const remakeReasonHtml = line.remake_reason && !line.is_done
                 ? `<div class="kds-line-remake-reason">${escapeHtml(t("remake"))}: ${escapeHtml(line.remake_reason)}${line.remake_count > 1 ? ` (x${line.remake_count})` : ""}</div>`
                 : "";
+            const comboChildrenHtml = (line.combo_children && line.combo_children.length)
+                ? `<div class="kds-combo-children">${line.combo_children.map(c =>
+                    `<div class="kds-combo-child">- ${c.qty}x ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
+                  ).join("")}</div>`
+                : "";
             return `
             <div class="kds-line ${doneClass} ${heldClass}" data-order-id="${order.id}" data-line-id="${line.id}">
                 <span class="kds-line-check">${line.is_done ? '\u2611' : '\u2610'}</span>
                 <span class="kds-line-qty">${line.qty}x</span>
                 <span class="kds-line-name">${escapeHtml(line.product_name)}</span>
                 ${noteHtml}
+                ${comboChildrenHtml}
                 ${remakeReasonHtml}
             </div>`;
         }
