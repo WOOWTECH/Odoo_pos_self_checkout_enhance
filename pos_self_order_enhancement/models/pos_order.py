@@ -121,11 +121,30 @@ class PosOrder(models.Model):
                 break
         self.write(vals)
 
-        # Initialize course fire state for each order
+        # Initialize / merge course fire state for each order.
+        # Preserve any categories already fired by staff — only add newly
+        # introduced categories as held.
         for order in self:
-            fired_json = order._compute_fired_courses()
-            if fired_json != '{}':
-                order.write({'kds_fired_courses': fired_json})
+            try:
+                existing = json.loads(order.kds_fired_courses or '{}')
+            except (json.JSONDecodeError, TypeError):
+                existing = {}
+
+            current_categories = set()
+            for line in order.lines:
+                if line.qty <= 0:
+                    continue
+                categ_id, _ = order._get_line_hold_fire_category(line)
+                if categ_id > 0:
+                    current_categories.add(str(categ_id))
+
+            merged = dict(existing)
+            for key in current_categories:
+                if key not in merged:
+                    merged[key] = False
+
+            if merged:
+                order.write({'kds_fired_courses': json.dumps(merged)})
 
         for order in self:
             for config in order.config_id:

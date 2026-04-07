@@ -171,9 +171,10 @@ patch(PosStore.prototype, {
     async sendOrderInPreparation(order, cancelled = false) {
         await super.sendOrderInPreparation(order, cancelled);
 
-        if (typeof order.id !== "number") {
-            await this.syncAllOrders({ orders: [order] });
-        }
+        // Always flush pending lines to the backend so the custom KDS
+        // (which reads pos.order.line directly) sees them immediately,
+        // including on second/third Order clicks against the same order.
+        await this.syncAllOrders({ orders: [order] });
 
         if (typeof order.id === "number") {
             try {
