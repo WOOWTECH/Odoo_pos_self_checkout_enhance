@@ -41,6 +41,33 @@ class PosKitchenDisplay(http.Controller):
         is_fired = fired_courses.get(str(categ_id), False)
         return categ_id, categ_name, is_fired
 
+    def _order_has_ready_to_cook_line(self, order):
+        """True if the order has at least one line the kitchen can act on.
+
+        A line is "ready to cook" when:
+        - it has no Hold & Fire category (always ready), or
+        - its Hold & Fire category has been fired by staff.
+
+        Combo children inherit their parent's category, so we evaluate
+        only parent lines and treat them as representative.
+        """
+        try:
+            fired = json.loads(order.kds_fired_courses or '{}')
+        except (json.JSONDecodeError, TypeError):
+            fired = {}
+
+        for line in order.lines:
+            if line.qty <= 0 or line.price_unit < 0:
+                continue
+            if line.combo_parent_id:
+                continue
+            categ_id, _ = order._get_line_hold_fire_category(line)
+            if categ_id == 0:
+                return True
+            if fired.get(str(categ_id), False):
+                return True
+        return False
+
     def _get_active_orders(self, config):
         """Fetch active kitchen orders sent to kitchen by staff."""
         session = config.current_session_id
@@ -53,6 +80,12 @@ class PosKitchenDisplay(http.Controller):
             ('kds_state', 'in', ('new', 'in_progress')),
             ('kds_sent_to_kitchen', '=', True),
         ], order='date_order asc')
+
+        # Hide orders whose every line is still held — kitchen has nothing
+        # to cook on them yet. They reappear automatically when the cashier
+        # fires any of their Hold & Fire categories (fire_course broadcasts
+        # KDS_ORDER_UPDATE which triggers a frontend refetch).
+        orders = orders.filtered(self._order_has_ready_to_cook_line)
 
         return self._serialize_orders(orders)
 
