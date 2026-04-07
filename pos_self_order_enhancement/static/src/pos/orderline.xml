@@ -6,7 +6,8 @@
             <span t-if="line.getKdsStatus() === 'served'" class="ms-1 badge bg-secondary bg-opacity-25 text-muted" style="font-size: 0.65em; padding: 2px 5px;">Served</span>
             <span t-elif="line.getKdsStatus() === 'done'" class="ms-1 badge bg-success" style="font-size: 0.65em; padding: 2px 5px;">Ready</span>
             <span t-elif="line.getKdsStatus() === 'remake'" class="ms-1 badge bg-danger" style="font-size: 0.65em; padding: 2px 5px;">Remake</span>
-            <span t-elif="line.getKdsStatus() === 'pending'" class="ms-1 badge bg-secondary bg-opacity-25 text-muted" style="font-size: 0.65em; padding: 2px 5px;">Not Ready</span>
+            <span t-elif="line.getKdsStatus() === 'hold'" class="ms-1 badge text-white" style="font-size: 0.65em; padding: 2px 5px; background-color: #E67E22;">Hold</span>
+            <span t-elif="line.getKdsStatus() === 'pending'" class="ms-1 badge bg-secondary bg-opacity-25 text-muted" style="font-size: 0.65em; padding: 2px 5px;">Cooking</span>
         </xpath>
     </t>
 </templates>

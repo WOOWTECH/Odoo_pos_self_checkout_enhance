@@ -8,7 +8,7 @@ import { patch } from "@web/core/utils/patch";
  * Handles ORM proxy objects for Many2many fields.
  * Returns {id, name, kds_hold_fire} or null.
  */
-function getHoldFireCategory(line) {
+export function getHoldFireCategory(line) {
     try {
         // Combo children inherit their combo parent's Hold & Fire category,
         // so they follow the parent's held/fired state.
