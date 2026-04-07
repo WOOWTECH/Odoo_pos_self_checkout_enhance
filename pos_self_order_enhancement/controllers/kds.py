@@ -496,6 +496,89 @@ class PosKitchenDisplay(http.Controller):
             'bumped_order_ids': bumped_order_ids,
         }
 
+    @http.route('/pos-kds/batch-lines-done/<int:config_id>', type='json', auth='public')
+    def kds_batch_lines_done(self, config_id, token=None, items=None, **kwargs):
+        """Mark a specific list of order lines done.
+
+        ``items`` is a list of ``{order_id, line_id}`` dicts. Combo parents
+        cascade to their children, so the items aggregator on the KDS can group
+        combos by ``(name, combo_children)`` and bump only the matching parents.
+        """
+        config = self._verify_kds_access(config_id, token)
+        if not items:
+            return {'success': False, 'error': 'Missing items'}
+
+        by_order = {}
+        for it in items:
+            try:
+                oid = int(it.get('order_id') or 0)
+                lid = int(it.get('line_id') or 0)
+            except (TypeError, ValueError):
+                continue
+            if oid and lid:
+                by_order.setdefault(oid, []).append(lid)
+
+        bumped_order_ids = []
+        updated_count = 0
+
+        for order_id, line_ids in by_order.items():
+            order = request.env['pos.order'].sudo().browse(order_id)
+            if not order.exists() or order.config_id.id != config.id:
+                continue
+
+            try:
+                done_items = json.loads(order.kds_done_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                done_items = {}
+
+            try:
+                fired_courses = json.loads(order.kds_fired_courses or '{}')
+            except (json.JSONDecodeError, TypeError):
+                fired_courses = {}
+
+            changed = False
+            for line in request.env['pos.order.line'].sudo().browse(line_ids):
+                if not line.exists() or line.order_id.id != order.id:
+                    continue
+                # Combo children are handled through their parent's cascade.
+                if line.combo_parent_id:
+                    continue
+                categ_id, _ = order._get_line_hold_fire_category(line)
+                if categ_id > 0 and not fired_courses.get(str(categ_id), False):
+                    continue
+                if done_items.get(str(line.id)):
+                    continue
+                done_items[str(line.id)] = True
+                # Cascade parent → children so bookkeeping stays consistent.
+                for child in line.combo_line_ids:
+                    done_items[str(child.id)] = True
+                changed = True
+                updated_count += 1
+
+            if not changed:
+                continue
+
+            all_done, _ = self._check_all_fired_done(order, done_items)
+            vals = {'kds_done_items': json.dumps(done_items)}
+            if all_done:
+                vals['kds_state'] = 'done'
+                bumped_order_ids.append(order.id)
+            elif order.kds_state == 'new':
+                vals['kds_state'] = 'in_progress'
+
+            order.write(vals)
+            config._notify('KDS_ORDER_UPDATE', {
+                'order_id': order.id,
+                'kds_state': vals.get('kds_state', order.kds_state),
+                'kds_done_items': json.dumps(done_items),
+            })
+
+        return {
+            'success': True,
+            'updated_count': updated_count,
+            'bumped_order_ids': bumped_order_ids,
+        }
+
     @http.route('/pos-kds/completed/<int:config_id>', type='json', auth='public')
     def kds_get_completed(self, config_id, token=None, **kwargs):
         """Fetch recently completed orders."""

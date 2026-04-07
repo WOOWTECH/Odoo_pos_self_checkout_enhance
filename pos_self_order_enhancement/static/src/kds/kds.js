@@ -247,6 +247,16 @@
         }
     }
 
+    async function batchMarkLinesDone(refs) {
+        if (!refs || !refs.length) return;
+        const result = await rpc(`${BASE_URL}/pos-kds/batch-lines-done/${CONFIG_ID}`, {
+            items: refs,
+        });
+        if (result && result.success) {
+            await fetchOrders();
+        }
+    }
+
     async function recallOrder(orderId) {
         const params = orderId ? { order_id: orderId } : {};
         await rpc(`${BASE_URL}/pos-kds/recall/${CONFIG_ID}`, params);
@@ -505,7 +515,17 @@
 
     function renderItemsView() {
         // Aggregate item counts across all active orders (only fired course items)
-        // Items with different notes stay as separate lines (industry-standard KDS pattern)
+        // Items with different notes — or, for combos, different combo_children —
+        // stay as separate tiles so the chef knows exactly which choices belong
+        // to each aggregated combo.
+        function comboFingerprint(line) {
+            if (!line.combo_children || !line.combo_children.length) return "";
+            return line.combo_children
+                .map(c => `${c.qty}x${c.name}`)
+                .sort()
+                .join("|");
+        }
+
         const items = {};
         for (const order of orders) {
             for (const line of order.lines) {
@@ -517,12 +537,24 @@
                 if (line.customer_note) parts.push(line.customer_note);
                 if (order.general_note) parts.push(order.general_note);
                 const note = parts.join(" | ");
-                const key = note ? `${line.product_name}||${note}` : line.product_name;
+                const fp = comboFingerprint(line);
+                const keyExtras = [note, fp].filter(Boolean).join("||");
+                const key = keyExtras
+                    ? `${line.product_name}||${keyExtras}`
+                    : line.product_name;
                 if (!items[key]) {
-                    items[key] = { name: line.product_name, note: note, qty: 0, done: 0 };
+                    items[key] = {
+                        name: line.product_name,
+                        note: note,
+                        qty: 0,
+                        done: 0,
+                        combo_children: line.combo_children || [],
+                        refs: [],
+                    };
                 }
                 items[key].qty += line.qty;
                 if (line.is_done) items[key].done += line.qty;
+                items[key].refs.push({ order_id: order.id, line_id: line.id });
             }
         }
 
@@ -553,11 +585,17 @@
             const noteHtml = item.note
                 ? `<div class="kds-line-note">${escapeHtml(item.note)}</div>`
                 : "";
+            const childrenHtml = (item.combo_children && item.combo_children.length)
+                ? `<div class="kds-combo-children">${item.combo_children.map(c =>
+                    `<div class="kds-combo-child">- ${c.qty}x ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
+                  ).join("")}</div>`
+                : "";
+            const refsAttr = escapeHtml(JSON.stringify(item.refs));
             html += `
-            <div class="kds-allday-item ${doneClass}" data-action="batch-done" data-product-name="${escapeHtml(item.name)}">
+            <div class="kds-allday-item ${doneClass}" data-action="batch-lines-done" data-line-refs='${refsAttr}'>
                 <span class="kds-allday-check">${allDone ? '\u2611' : '\u2610'}</span>
                 <span class="kds-allday-qty">${item.qty}</span>
-                <span class="kds-allday-name">${escapeHtml(item.name)}${noteHtml}</span>
+                <span class="kds-allday-name">${escapeHtml(item.name)}${noteHtml}${childrenHtml}</span>
                 ${item.done > 0 ? `<span class="kds-allday-progress">(${item.done}/${item.qty} ${escapeHtml(t("done_progress"))})</span>` : ""}
             </div>`;
         }
@@ -613,12 +651,30 @@
             });
         });
 
-        // Batch mark done in Items view
+        // Batch mark done in Items view (legacy: match by product_name)
         document.querySelectorAll('[data-action="batch-done"]').forEach((el) => {
             el.addEventListener("click", () => {
                 const productName = el.dataset.productName;
                 if (productName && !el.classList.contains("allday-done")) {
                     batchMarkDone(productName);
+                }
+            });
+        });
+
+        // Batch mark done in Items view by explicit (order_id, line_id) refs.
+        // Used for combo aggregation so combos with different children are
+        // bumped independently.
+        document.querySelectorAll('[data-action="batch-lines-done"]').forEach((el) => {
+            el.addEventListener("click", () => {
+                if (el.classList.contains("allday-done")) return;
+                let refs = [];
+                try {
+                    refs = JSON.parse(el.dataset.lineRefs || "[]");
+                } catch (e) {
+                    refs = [];
+                }
+                if (refs.length) {
+                    batchMarkLinesDone(refs);
                 }
             });
         });
