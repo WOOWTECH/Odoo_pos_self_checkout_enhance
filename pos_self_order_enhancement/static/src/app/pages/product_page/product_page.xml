@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.ProductPage"
+       t-inherit="pos_self_order.ProductPage"
+       t-inherit-mode="extension">
+        <xpath expr="//h1[hasclass('text-nowrap')]" position="replace">
+            <h1 class="mb-0 text-nowrap"><strong t-esc="product.name"/></h1>
+        </xpath>
+    </t>
+</templates>
