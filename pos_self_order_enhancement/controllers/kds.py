@@ -237,7 +237,11 @@ class PosKitchenDisplay(http.Controller):
 
     @http.route('/pos-kds/bump/<int:config_id>', type='json', auth='public')
     def kds_bump_order(self, config_id, token=None, order_id=None, **kwargs):
-        """Mark an order as done (bump it off the KDS)."""
+        """Mark all FIRED items as done. Held items are left untouched.
+
+        If there are still held categories (not yet fired), the order stays
+        on the KDS — only items in fired categories get bumped.
+        """
         config = self._verify_kds_access(config_id, token)
         order = request.env['pos.order'].sudo().browse(int(order_id))
         if not order.exists() or order.config_id.id != config.id:
@@ -247,28 +251,35 @@ class PosKitchenDisplay(http.Controller):
             done_items = json.loads(order.kds_done_items or '{}')
         except (json.JSONDecodeError, TypeError):
             done_items = {}
-        for line in order.lines:
-            if line.qty > 0:
-                done_items[str(line.id)] = True
 
         try:
-            fired = json.loads(order.kds_fired_courses or '{}')
+            fired_courses = json.loads(order.kds_fired_courses or '{}')
         except (json.JSONDecodeError, TypeError):
-            fired = {}
-        for key in fired:
-            fired[key] = True
+            fired_courses = {}
+
+        # Mark only items in fired (or non-hold-fire) categories as done
+        for line in order.lines:
+            if line.qty <= 0:
+                continue
+            categ_id, _ = order._get_line_hold_fire_category(line)
+            if categ_id > 0 and not fired_courses.get(str(categ_id), False):
+                continue  # held category — skip
+            done_items[str(line.id)] = True
+
+        # Decide final state: 'done' only if no categories remain held
+        has_held_categories = any(not v for v in fired_courses.values())
+        new_state = 'in_progress' if has_held_categories else 'done'
 
         order.write({
-            'kds_state': 'done',
+            'kds_state': new_state,
             'kds_done_items': json.dumps(done_items),
-            'kds_fired_courses': json.dumps(fired),
         })
         config._notify('KDS_ORDER_UPDATE', {
             'order_id': order.id,
-            'kds_state': 'done',
+            'kds_state': new_state,
             'kds_done_items': json.dumps(done_items),
         })
-        return {'success': True}
+        return {'success': True, 'has_held_categories': has_held_categories}
 
     @http.route('/pos-kds/state/<int:config_id>', type='json', auth='public')
     def kds_change_state(self, config_id, token=None, order_id=None, state=None, **kwargs):

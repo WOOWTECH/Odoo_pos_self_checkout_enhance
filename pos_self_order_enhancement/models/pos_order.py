@@ -58,27 +58,22 @@ class PosOrder(models.Model):
     def _compute_fired_courses(self):
         """Build the kds_fired_courses JSON for this order.
 
-        Auto-fires the first hold-fire category (by name alphabetically).
+        All hold-fire categories start held — staff must manually fire each
+        category from the POS.
         """
         self.ensure_one()
-        categories = {}  # {categ_id: categ_name}
+        categories = set()
         for line in self.lines:
             if line.qty <= 0:
                 continue
-            categ_id, categ_name = self._get_line_hold_fire_category(line)
+            categ_id, _ = self._get_line_hold_fire_category(line)
             if categ_id > 0:
-                categories[categ_id] = categ_name
+                categories.add(categ_id)
 
         if not categories:
             return '{}'
 
-        # Auto-fire the first category alphabetically
-        sorted_categs = sorted(categories.items(), key=lambda x: x[1])
-        first_id = sorted_categs[0][0]
-
-        fired = {}
-        for categ_id in categories:
-            fired[str(categ_id)] = (categ_id == first_id)
+        fired = {str(cid): False for cid in categories}
         return json.dumps(fired)
 
     # ── course actions ───────────────────────────────────────

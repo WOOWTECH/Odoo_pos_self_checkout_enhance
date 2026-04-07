@@ -570,6 +570,11 @@ html, body {
     color: #2ecc71;
 }
 
+.kds-course-badge.badge-held {
+    background: rgba(127, 140, 141, 0.2);
+    color: #95a5a6;
+}
+
 .kds-btn-fire {
     padding: 3px 12px;
     font-size: 12px;

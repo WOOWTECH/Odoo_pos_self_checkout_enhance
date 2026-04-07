@@ -214,10 +214,15 @@
 
     // ── Actions ─────────────────────────────────────────────
     async function bumpOrder(orderId) {
-        await rpc(`${BASE_URL}/pos-kds/bump/${CONFIG_ID}`, { order_id: orderId });
-        // Remove from local state immediately for responsiveness
-        orders = orders.filter((o) => o.id !== orderId);
-        render();
+        const result = await rpc(`${BASE_URL}/pos-kds/bump/${CONFIG_ID}`, { order_id: orderId });
+        if (result && result.has_held_categories) {
+            // Order still has held categories — refresh instead of removing
+            await fetchOrders();
+        } else {
+            // Fully done — remove from local state immediately for responsiveness
+            orders = orders.filter((o) => o.id !== orderId);
+            render();
+        }
     }
 
     async function toggleItemDone(orderId, lineId) {
@@ -246,14 +251,6 @@
         const params = orderId ? { order_id: orderId } : {};
         await rpc(`${BASE_URL}/pos-kds/recall/${CONFIG_ID}`, params);
         currentView = "orders";
-        await fetchOrders();
-    }
-
-    async function fireCourse(orderId, categoryId) {
-        await rpc(`${BASE_URL}/pos-kds/fire-course/${CONFIG_ID}`, {
-            order_id: orderId,
-            category_id: categoryId,
-        });
         await fetchOrders();
     }
 
@@ -456,7 +453,7 @@
             } else if (isFired) {
                 statusBadge = `<span class="kds-course-badge badge-fired">${escapeHtml(t("fired"))}</span>`;
             } else {
-                statusBadge = `<button class="kds-btn kds-btn-fire" data-action="fire-course" data-order-id="${order.id}" data-course-id="${cid}">${escapeHtml(t("fire"))}</button>`;
+                statusBadge = `<span class="kds-course-badge badge-held">${escapeHtml(t("held"))}</span>`;
             }
 
             linesHtml += `
@@ -652,16 +649,6 @@
                 e.stopPropagation();
                 const orderId = parseInt(btn.dataset.orderId);
                 recallOrder(orderId);
-            });
-        });
-
-        // Fire course buttons
-        document.querySelectorAll('[data-action="fire-course"]').forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                const orderId = parseInt(btn.dataset.orderId);
-                const categoryId = parseInt(btn.dataset.courseId);
-                fireCourse(orderId, categoryId);
             });
         });
 

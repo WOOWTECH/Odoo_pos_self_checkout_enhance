@@ -180,19 +180,18 @@ patch(PosStore.prototype, {
                     [[order.id]]
                 );
                 order.kds_sent_to_kitchen = true;
-                const categories = {};
+                // All Hold & Fire categories start held — staff fires manually from POS.
+                const categoryIds = new Set();
                 for (const line of order.lines) {
                     if (line.qty <= 0) continue;
                     const categ = getHoldFireCategory(line);
                     if (!categ) continue;
-                    categories[categ.id] = categ.name || "";
+                    categoryIds.add(categ.id);
                 }
-                if (Object.keys(categories).length > 0) {
-                    const sorted = Object.entries(categories).sort((a, b) => a[1].localeCompare(b[1]));
-                    const firstId = parseInt(sorted[0][0]);
+                if (categoryIds.size > 0) {
                     const fired = {};
-                    for (const [cid] of sorted) {
-                        fired[cid] = (parseInt(cid) === firstId);
+                    for (const cid of categoryIds) {
+                        fired[String(cid)] = false;
                     }
                     order.kds_fired_courses = JSON.stringify(fired);
                 }
