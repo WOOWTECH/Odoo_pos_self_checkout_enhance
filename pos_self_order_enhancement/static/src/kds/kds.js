@@ -432,7 +432,7 @@
                 : "";
             const comboChildrenHtml = (line.combo_children && line.combo_children.length)
                 ? `<div class="kds-combo-children">${line.combo_children.map(c =>
-                    `<div class="kds-combo-child">- ${c.qty}x ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
+                    `<div class="kds-combo-child">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
                   ).join("")}</div>`
                 : "";
             return `
@@ -587,7 +587,7 @@
                 : "";
             const childrenHtml = (item.combo_children && item.combo_children.length)
                 ? `<div class="kds-combo-children">${item.combo_children.map(c =>
-                    `<div class="kds-combo-child">- ${c.qty}x ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
+                    `<div class="kds-combo-child">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
                   ).join("")}</div>`
                 : "";
             const refsAttr = escapeHtml(JSON.stringify(item.refs));

@@ -622,3 +622,10 @@ html, body {
     line-height: 1.4;
     white-space: normal;
 }
+
+/* In the Items tile, combo children render inside .kds-allday-name and
+   should align with the parent product name (no extra left indent). */
+.kds-allday-name .kds-combo-children {
+    margin-left: 0;
+    margin-top: 0.1rem;
+}
