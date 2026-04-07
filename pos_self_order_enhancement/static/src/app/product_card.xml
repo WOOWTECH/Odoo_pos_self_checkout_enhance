@@ -4,5 +4,6 @@
         <xpath expr="//div[hasclass('text-center')]/div[@t-if='!props.product.self_order_available']" position="before">
             <div t-if="props.product.is_sold_out" class="fs-lighter bg-danger text-white rounded p-1">Sold Out</div>
         </xpath>
+        <xpath expr="//div[hasclass('product-information-tag')]" position="replace"/>
     </t>
 </templates>
