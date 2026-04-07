@@ -280,29 +280,37 @@ class PosOrder(models.Model):
 
         result = super().sync_from_ui(orders)
 
+        # When new lines are added to an already-sent order, only merge any
+        # newly introduced Hold & Fire categories into kds_fired_courses.
+        # Do NOT touch kds_done_items / kds_served_items / kds_state — those
+        # are owned by the kitchen workflow and adding new lines must never
+        # un-mark previously done or served items (that would resurrect them
+        # in KDS and confuse staff).
         if existing_order_ids:
             updated_orders = self.browse(existing_order_ids).exists()
             for order in updated_orders:
-                if order.kds_state in ('in_progress', 'done'):
-                    prev_ids = old_line_ids.get(order.id, set())
-                    curr_ids = set(order.lines.ids)
-                    new_lines = curr_ids - prev_ids
-                    if new_lines:
-                        try:
-                            fired = json.loads(order.kds_fired_courses or '{}')
-                        except (json.JSONDecodeError, TypeError):
-                            fired = {}
+                if not order.kds_sent_to_kitchen:
+                    continue
+                prev_ids = old_line_ids.get(order.id, set())
+                curr_ids = set(order.lines.ids)
+                new_lines = curr_ids - prev_ids
+                if not new_lines:
+                    continue
 
-                        new_line_records = self.env['pos.order.line'].browse(list(new_lines))
-                        for line in new_line_records:
-                            categ_id, _ = order._get_line_hold_fire_category(line)
-                            if categ_id > 0 and str(categ_id) not in fired:
-                                fired[str(categ_id)] = False
+                try:
+                    fired = json.loads(order.kds_fired_courses or '{}')
+                except (json.JSONDecodeError, TypeError):
+                    fired = {}
 
-                        order.write({
-                            'kds_state': 'new',
-                            'kds_done_items': '{}',
-                            'kds_fired_courses': json.dumps(fired),
-                        })
+                new_line_records = self.env['pos.order.line'].browse(list(new_lines))
+                changed = False
+                for line in new_line_records:
+                    categ_id, _ = order._get_line_hold_fire_category(line)
+                    if categ_id > 0 and str(categ_id) not in fired:
+                        fired[str(categ_id)] = False
+                        changed = True
+
+                if changed:
+                    order.write({'kds_fired_courses': json.dumps(fired)})
 
         return result
