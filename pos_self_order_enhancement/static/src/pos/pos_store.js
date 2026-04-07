@@ -10,7 +10,10 @@ import { patch } from "@web/core/utils/patch";
  */
 function getHoldFireCategory(line) {
     try {
-        const product = line.product_id;
+        // Combo children inherit their combo parent's Hold & Fire category,
+        // so they follow the parent's held/fired state.
+        const effective = line.combo_parent_id || line;
+        const product = effective.product_id;
         if (!product) return null;
         const categs = product.pos_categ_ids;
         if (!categs) return null;

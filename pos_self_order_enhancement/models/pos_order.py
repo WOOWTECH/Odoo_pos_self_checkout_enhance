@@ -46,11 +46,14 @@ class PosOrder(models.Model):
     # ── helpers ──────────────────────────────────────────────
 
     def _get_line_hold_fire_category(self, line):
-        """Return (category_id, category_name) if the line's category has Hold & Fire enabled.
+        """Return (category_id, category_name) for the line's effective Hold & Fire category.
 
-        Returns (0, '') if no category or Hold & Fire is disabled (always fired).
+        Combo children inherit their combo parent's category so they can never be
+        fired independently of the combo parent. Returns (0, '') if no category
+        or Hold & Fire is disabled on the effective line (always fired).
         """
-        categs = line.product_id.pos_categ_ids
+        effective = line.combo_parent_id or line
+        categs = effective.product_id.pos_categ_ids
         if categs and categs[0].kds_hold_fire:
             return categs[0].id, categs[0].name
         return 0, ''
