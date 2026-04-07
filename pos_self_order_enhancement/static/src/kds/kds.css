@@ -217,6 +217,7 @@ html, body {
     flex-direction: column;
     overflow: hidden;
     animation: fadeIn 0.3s ease;
+    min-width: 0;
 }
 
 .kds-card.state-new {
@@ -325,6 +326,10 @@ html, body {
     font-size: 18px;
     font-weight: 600;
     color: #ecf0f1;
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .kds-line-note {
@@ -380,7 +385,7 @@ html, body {
 
 .kds-allday-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 10px;
 }
 
@@ -394,6 +399,8 @@ html, body {
     border: 1px solid #0f3460;
     cursor: pointer;
     transition: all 0.15s ease;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .kds-allday-item:hover:not(.allday-done) {
@@ -428,7 +435,10 @@ html, body {
 .kds-allday-name {
     font-size: 20px;
     font-weight: 600;
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .kds-allday-name .kds-line-note {
@@ -599,5 +609,16 @@ html, body {
 }
 
 /* Combo children (rendered under combo parent, non-interactive) */
-.kds-combo-children { margin-left: 2.2rem; font-size: 0.9em; opacity: 0.85; margin-top: 0.2rem; }
-.kds-combo-child { line-height: 1.4; }
+.kds-combo-children {
+    margin-left: 2.2rem;
+    font-size: 0.9em;
+    opacity: 0.85;
+    margin-top: 0.2rem;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.kds-combo-child {
+    line-height: 1.4;
+    white-space: normal;
+}
