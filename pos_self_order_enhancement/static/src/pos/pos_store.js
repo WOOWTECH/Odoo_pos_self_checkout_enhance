@@ -130,6 +130,13 @@ patch(PosStore.prototype, {
                 if (order.kds_state === "done") {
                     order.kds_state = "in_progress";
                 }
+
+                // Print the lines that just became eligible. Held lines were
+                // never recorded in last_order_preparation_change (because
+                // _applyHoldFireSkipChange marked them skip_change=true on
+                // the original Order click), so the diff machinery now sees
+                // them as new and prints only the newly fired category.
+                await this.sendOrderInPreparation(order, false);
             } catch (e) {
                 console.warn("KDS fire_course failed:", e);
             }
@@ -168,7 +175,50 @@ patch(PosStore.prototype, {
         }
     },
 
+    /**
+     * Hold & Fire gating for kitchen printing.
+     *
+     * Walks the order's lines and sets `line.skip_change` based on whether
+     * each line's Hold & Fire category is currently fired. Combo children
+     * inherit their parent's category via getHoldFireCategory.
+     *
+     *   - No Hold & Fire category → skip_change=false (always print)
+     *   - Held category            → skip_change=true  (excluded from diff,
+     *                                                    not recorded in
+     *                                                    last_order_preparation_change)
+     *   - Fired category           → skip_change=false (printed normally)
+     *
+     * Upstream's getOrderChanges (utils/order_change.js) gates each line on
+     * `orderline.skip_change === skipped` and updateLastOrderChange skips
+     * lines where `!line.skip_change` is false — together those mean a held
+     * line is invisible to the printer until its category is fired, at
+     * which point fireOrderCourse re-runs sendOrderInPreparation and the
+     * now-eligible lines appear in the diff naturally.
+     */
+    _applyHoldFireSkipChange(order) {
+        let fired = {};
+        try {
+            const raw = order.kds_fired_courses;
+            fired = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
+        } catch (e) { /* ignore */ }
+
+        for (const line of order.lines) {
+            if (line.qty <= 0) continue;
+            const categ = getHoldFireCategory(line);
+            if (!categ) {
+                line.skip_change = false;
+            } else {
+                line.skip_change = !fired[String(categ.id)];
+            }
+        }
+    },
+
     async sendOrderInPreparation(order, cancelled = false) {
+        // Gate held lines out of the print diff. They stay queued until
+        // the cashier fires their category, at which point fireOrderCourse
+        // re-invokes this method.
+        this._applyHoldFireSkipChange(order);
+
         await super.sendOrderInPreparation(order, cancelled);
 
         // Always flush pending lines to the backend so the custom KDS
