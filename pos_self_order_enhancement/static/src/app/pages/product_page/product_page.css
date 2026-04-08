@@ -51,8 +51,20 @@
     line-height: 1;
 }
 .self_order_attribute_selection_option.active {
-    /* Keep highlight, strip the scale transform so the indicator stays centered. */
+    /* Match combo_page row-selected look: light tint + dark text, not the
+       stock text-bg-primary dark fill. */
     transform: none !important;
+    background-color: rgba(111, 66, 193, 0.06) !important;
+    color: inherit !important;
+    border-color: var(--bs-primary, #6f42c1) !important;
+}
+/* Keep the inner name + price on dark text, overriding text-bg-primary. */
+.self_order_attribute_selection_option.active .name,
+.self_order_attribute_selection_option.active .name > span {
+    color: inherit !important;
+}
+.self_order_attribute_selection_option.active .name > span:nth-child(2) {
+    color: #6c757d !important;
 }
 .self_order_attribute_selection_option.active::after {
     content: "\25CF"; /* filled circle */
