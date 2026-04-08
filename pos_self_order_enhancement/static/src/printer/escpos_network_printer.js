@@ -11,8 +11,9 @@ import { _t } from "@web/core/l10n/translation";
  *
  * Instead of communicating directly with the printer (which would
  * require CORS and mixed-content workarounds), this class sends
- * print jobs to the Odoo relay controller (/pos-escpos/print),
- * which forwards them to the local print proxy server.
+ * print jobs to the Odoo controller (/pos-escpos/print), which
+ * prints them in-process via a TCP socket on port 9100. No external
+ * proxy process is required.
  */
 export class EscPosPrinter extends BasePrinter {
     setup({ printer_ip }) {
@@ -40,10 +41,10 @@ export class EscPosPrinter extends BasePrinter {
         return {
             successful: false,
             message: {
-                title: _t("Connection to print proxy failed"),
+                title: _t("Connection to printer failed"),
                 body: _t(
-                    "Please check that the ESC/POS print proxy server is running. " +
-                    "Start it with: python tools/print_proxy.py"
+                    "Could not reach the printer. Check that it is powered on, " +
+                    "connected to the network, and that the IP address is correct."
                 ),
             },
         };
@@ -55,7 +56,7 @@ export class EscPosPrinter extends BasePrinter {
             message: {
                 title: _t("Printing failed"),
                 body: _t(
-                    "The print proxy received the job but could not print. " +
+                    "The printer received the job but could not print. " +
                     "Please check that the printer is powered on, connected to the network, " +
                     "and has paper loaded."
                 ),

@@ -9,6 +9,11 @@
                 <field name="escpos_printer_ip"
                        invisible="printer_type != 'network_escpos'"
                        placeholder="192.168.1.100"/>
+                <button name="action_print_test_page"
+                        type="object"
+                        string="Print test page"
+                        class="btn-secondary"
+                        invisible="printer_type != 'network_escpos'"/>
             </field>
         </field>
     </record>
