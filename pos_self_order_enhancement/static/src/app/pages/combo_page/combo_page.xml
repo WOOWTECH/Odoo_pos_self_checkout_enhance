@@ -4,8 +4,11 @@
        t-inherit="pos_self_order.ComboPage"
        t-inherit-mode="extension">
 
-        <!-- 1. Insert product-details block before the body div. -->
-        <xpath expr="//div[hasclass('overflow-y-auto') and hasclass('flex-grow-1')]" position="before">
+        <!-- 1. Insert product-details block as the first child of the
+                  scrollable body div, so it scrolls together with the combo
+                  steps instead of being frozen above them. Anchored on the
+                  breadcrumb section (body's first stock child). -->
+        <xpath expr="//section[hasclass('pos_self_order_breadcrumb')]" position="before">
             <div class="o-so-product-details d-flex flex-row align-items-start p-3 gap-3 bg-view">
                 <div class="o-so-product-details-image ratio ratio-1x1 w-25 flex-shrink-0">
                     <img
@@ -34,7 +37,6 @@
                 <t t-foreach="comboIds" t-as="combo" t-key="combo.id">
                     <section class="enh-combo-step">
                         <h2 class="attribute_name mb-3">
-                            <small class="text-muted">Choose your</small>
                             <strong t-esc="combo.name"/>
                         </h2>
                         <div class="o-so-products-row">
