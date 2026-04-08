@@ -1,0 +1,12 @@
+.enh-combo-card {
+    transition: outline 0.15s ease;
+    cursor: pointer;
+}
+.enh-combo-card-selected {
+    outline: 3px solid var(--bs-primary, #6f42c1);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+.enh-combo-step + .enh-combo-step {
+    margin-top: 0.5rem;
+}

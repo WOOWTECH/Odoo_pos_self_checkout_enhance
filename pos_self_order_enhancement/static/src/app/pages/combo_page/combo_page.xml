@@ -3,6 +3,8 @@
     <t t-name="pos_self_order_enhancement.ComboPage"
        t-inherit="pos_self_order.ComboPage"
        t-inherit-mode="extension">
+
+        <!-- 1. Insert product-details block before the body div. -->
         <xpath expr="//div[hasclass('overflow-y-auto') and hasclass('flex-grow-1')]" position="before">
             <div class="o-so-product-details d-flex flex-row align-items-start p-3 gap-3 bg-view">
                 <div class="o-so-product-details-image ratio ratio-1x1 w-25 flex-shrink-0">
@@ -20,6 +22,150 @@
                         t-out="props.product.public_description"/>
                     <span class="fs-3" t-esc="selfOrder.formatMonetary(selfOrder.getProductDisplayPrice(props.product))"/>
                 </div>
+            </div>
+        </xpath>
+
+        <!-- 2. Inject the flat-layout grid as the first child of the body
+                  div, gated on state.useFlatLayout. The stock body content
+                  (breadcrumb / ComboSelection / resume list / qty stepper)
+                  remains intact and renders only when useFlatLayout is false. -->
+        <xpath expr="//section[hasclass('pos_self_order_breadcrumb')]" position="before">
+            <div t-if="state.useFlatLayout" class="enh-combo-steps d-flex flex-column gap-4 p-3">
+                <t t-foreach="comboIds" t-as="combo" t-key="combo.id">
+                    <section class="enh-combo-step">
+                        <h2 class="attribute_name mb-3">
+                            <small class="text-muted">Choose your</small>
+                            <strong t-esc="combo.name"/>
+                        </h2>
+                        <div class="o-so-products-row">
+                            <t t-foreach="combo.combo_item_ids" t-as="line" t-key="line.id" t-if="line.product_id">
+                                <t t-set="cardProduct" t-value="line.product_id"/>
+                                <t t-set="isOutOfStock" t-value="!cardProduct.self_order_available"/>
+                                <t t-set="isSelected" t-value="isLineSelected(combo.id, line.id)"/>
+                                <article
+                                    t-on-click="() => this.selectChoice(combo.id, line)"
+                                    class="self_order_product_card d-flex flex-row-reverse flex-md-column align-items-start gap-2 user-select-none enh-combo-card"
+                                    t-att-class="{ 'enh-combo-card-selected': isSelected, 'opacity-50': isOutOfStock }"
+                                    role="button">
+                                    <div class="ratio ratio-1x1 w-25 w-sm-50 w-md-100" t-att-class="{'d-none d-md-block': !cardProduct.image_128}">
+                                        <img class="o_self_order_item_card_image w-100 rounded"
+                                            t-attf-src="/web/image/product.product/{{ cardProduct.id }}/image_512"
+                                            alt="Product image"
+                                            loading="lazy"
+                                            onerror="this.remove()"/>
+                                    </div>
+                                    <div class="product-infos d-flex flex-column justify-content-between text-start flex-grow-1 w-100 lh-1">
+                                        <span t-esc="cardProduct.display_name" class="fs-4 fw-bold mb-1 mb-sm-2"/>
+                                        <div class="d-flex justify-content-between gap-3">
+                                            <span t-if="line.extra_price" class="badge rounded-pill fs-4"
+                                                t-att-class="isOutOfStock ? 'text-bg-secondary' : 'text-bg-primary'">
+                                                + <t t-out="selfOrder.formatMonetary(line.extra_price)"/>
+                                            </span>
+                                            <span t-if="isOutOfStock" class="badge text-bg-danger rounded-pill fs-4">
+                                                Out of stock
+                                            </span>
+                                        </div>
+                                    </div>
+                                </article>
+                            </t>
+                        </div>
+                    </section>
+                </t>
+            </div>
+        </xpath>
+
+        <!-- 3. Gate the breadcrumb on the original !state.showResume AND
+                  the new !state.useFlatLayout, so the stock breadcrumb stays
+                  alive on the fallback path but never renders in flat layout. -->
+        <xpath expr="//section[hasclass('pos_self_order_breadcrumb')]" position="attributes">
+            <attribute name="t-if">!state.useFlatLayout and !state.showResume</attribute>
+        </xpath>
+
+        <!-- 4. Gate the wizard ComboSelection wrapper (line 65 in stock).
+                  Discriminated from the body div by the t-if attribute. -->
+        <xpath expr="//div[@t-if='!state.showResume' and not(hasclass('overflow-y-auto'))]" position="attributes">
+            <attribute name="t-if">!state.useFlatLayout and !state.showResume</attribute>
+        </xpath>
+
+        <!-- 5. Replace the resume "Your Selection" list (line 68 in stock,
+                  uses t-else=""). We replace it with an equivalent block that
+                  uses an explicit t-if so it never renders in flat layout. -->
+        <xpath expr="//div[@t-else='']" position="replace">
+            <div t-if="!state.useFlatLayout and state.showResume"
+                 t-attf-class="o_kiosk-combo d-flex flex-column flex-grow-1 px-3">
+                <h2 class="attribute_name mt-5 mb-3 fw-bold">Your Selection</h2>
+                <ul class="list-group">
+                    <li class="list-group-item d-flex flex-wrap align-items-start gap-3"
+                        t-foreach="state.selectedCombos" t-as="combo" t-key="combo.combo_item_id.id">
+                        <t t-set="product" t-value="combo.product"/>
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="pos_self_order_combo_image ratio ratio-1x1">
+                                <div class="placeholder-glow">
+                                    <div class="placeholder w-100 h-100 bg-300 rounded"/>
+                                </div>
+                                <img
+                                    class="o_self_order_item_card_image w-100 rounded"
+                                    t-attf-src="/web/image/product.product/{{ combo.combo_item_id.product_id.id }}/image_512"
+                                    alt="Product image"
+                                    loading="lazy"
+                                    onerror="this.remove()"/>
+                            </div>
+                            <div>
+                                <span class="fs-4" t-esc="combo.combo_item_id.product_id.display_name"/>
+                                <ul t-if="combo.configuration.attribute_value_ids.length > 0">
+                                    <t t-foreach="this.getGroupedSelectedValues(combo.configuration.attribute_value_ids)" t-as="attrVal" t-key="attrVal.attribute_id.id">
+                                        <li>
+                                            <span t-esc="attrVal.attribute_id.name"/> :
+                                            <t t-foreach="attrVal.values" t-as="value" t-key="value.id">
+                                                <span t-esc="value.name"/>
+                                                <t t-if="!value_last">, </t>
+                                            </t>
+                                        </li>
+                                    </t>
+                                </ul>
+                            </div>
+                        </div>
+                        <button t-if="comboIds.includes(combo.combo_item_id.combo_id.id)"
+                                class="btn btn-secondary ms-auto"
+                                t-on-click="() => this.editCombo(combo.combo_item_id.combo_id.id)">Edit</button>
+                    </li>
+                </ul>
+            </div>
+        </xpath>
+
+        <!-- 6. Gate the resume qty stepper (line 105 in stock). -->
+        <xpath expr="//t[@t-if='state.showResume']" position="attributes">
+            <attribute name="t-if">!state.useFlatLayout and state.showResume</attribute>
+        </xpath>
+
+        <!-- 7. Gate the stock page-buttons so it's hidden in flat layout.
+                  Must run BEFORE the insert below, otherwise the inserted
+                  flat-layout bar (which also uses the page-buttons class)
+                  would be matched too. -->
+        <xpath expr="//div[hasclass('page-buttons')]" position="attributes">
+            <attribute name="t-if">!state.useFlatLayout and (state.showResume or (!state.showResume and showQtyButtons))</attribute>
+        </xpath>
+
+        <!-- 8. Inject our flat-layout bottom bar BEFORE the stock page-buttons. -->
+        <xpath expr="//div[hasclass('page-buttons')]" position="before">
+            <div t-if="state.useFlatLayout"
+                 class="page-buttons d-flex justify-content-end align-items-center gap-3 p-3 border-top bg-view">
+                <div t-if="selfOrder.ordering" class="o_self_order_incr_button btn-group" role="group" aria-label="Quantity select">
+                    <button type="button" t-on-click="() => this.changeQuantity(false)"
+                            class="btn btn-secondary btn-lg">
+                        <span class="fs-2 lh-1 fa-fw d-inline-block">－</span>
+                    </button>
+                    <div class="o-so-tabular-nums d-flex align-items-center px-3 text-bg-200" t-esc="state.qty"/>
+                    <button type="button" t-on-click="() => this.changeQuantity(true)"
+                            class="btn btn-secondary btn-lg">
+                        <span class="fs-2 lh-1 fa-fw d-inline-block">＋</span>
+                    </button>
+                </div>
+                <button t-if="selfOrder.ordering" class="btn btn-primary btn-lg"
+                        t-on-click="addToCart"
+                        t-att-disabled="!isAllSelected">
+                    Add to cart
+                </button>
             </div>
         </xpath>
     </t>
