@@ -106,6 +106,35 @@ class PosOrder(models.Model):
             if order.kds_state == 'done':
                 vals['kds_state'] = 'in_progress'
 
+            # Un-done combo parents that have a child in the just-fired
+            # category, so the KDS card reverts to active state and the
+            # newly-fired child appears at normal brightness.
+            try:
+                done_items = json.loads(order.kds_done_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                done_items = {}
+
+            changed_done = False
+            for line in order.lines:
+                if line.combo_parent_id:
+                    continue
+                has_fired_child = False
+                for child in line.combo_line_ids:
+                    child_categ_id, _ = order._get_line_hold_fire_category(child)
+                    if child_categ_id == category_id:
+                        has_fired_child = True
+                        if done_items.get(str(child.id), False):
+                            done_items[str(child.id)] = False
+                            changed_done = True
+                if has_fired_child and done_items.get(str(line.id), False):
+                    done_items[str(line.id)] = False
+                    changed_done = True
+
+            if changed_done:
+                vals['kds_done_items'] = json.dumps(done_items)
+                if order.kds_state != 'done' and 'kds_state' not in vals:
+                    vals['kds_state'] = 'in_progress'
+
             order.write(vals)
             for config in order.config_id:
                 if config.kds_enabled:

@@ -159,17 +159,16 @@ class PosKitchenDisplay(http.Controller):
                     if child.qty <= 0 or child.price_unit < 0:
                         continue
                     child_categ_id, child_categ_name = order._get_line_hold_fire_category(child)
-                    # A child is "held" if it has its own H&F category that differs
-                    # from the parent's and is not yet fired.
-                    child_held = (
-                        child_categ_id > 0
-                        and child_categ_id != categ_id
-                        and not fired_courses.get(str(child_categ_id), False)
-                    )
+                    # Whether this child has its own H&F category (different from parent)
+                    has_own_hf = child_categ_id > 0 and child_categ_id != categ_id
+                    # A child is "held" if it has its own unfired H&F category.
+                    child_held = has_own_hf and not fired_courses.get(str(child_categ_id), False)
+                    # A child is "fired" if it has its own H&F category that IS fired.
+                    child_is_fired = has_own_hf and fired_courses.get(str(child_categ_id), False)
                     if child_held:
                         has_pending_children = True
                     child_is_done = done_items.get(str(child.id), False)
-                    if child_categ_id > 0 and child_categ_id != categ_id:
+                    if has_own_hf:
                         child_course_categories.append((child_categ_id, child_categ_name, child_is_done))
                     combo_children.append({
                         'name': child.full_product_name or child.product_id.display_name,
@@ -177,6 +176,8 @@ class PosKitchenDisplay(http.Controller):
                         'customer_note': child.note or '',
                         'held': child_held,
                         'held_category': child_categ_name if child_held else '',
+                        'is_fired': child_is_fired,
+                        'has_own_hf': has_own_hf,
                         'is_done': child_is_done,
                     })
 

@@ -294,8 +294,17 @@ html, body {
     border-bottom: none;
 }
 
+/* line-done: opacity on the container, but strikethrough only on direct
+   child spans — NOT on .kds-combo-children, so held combo children are
+   never under a text-decorated ancestor (CSS text-decoration paints on
+   the parent box and cannot be overridden by descendants). */
 .kds-line.line-done {
     opacity: 0.4;
+}
+.kds-line.line-done > .kds-line-check,
+.kds-line.line-done > .kds-line-qty,
+.kds-line.line-done > .kds-line-name,
+.kds-line.line-done > .kds-line-note {
     text-decoration: line-through;
 }
 
@@ -642,11 +651,21 @@ html, body {
     white-space: normal;
 }
 
-/* Held combo children reuse .course-held (opacity 0.25, no pointer events)
-   defined above.  The label suffix shows which category they're waiting on. */
-.kds-held-label {
-    font-size: 0.85em;
-    color: #95a5a6;
+/* Held combo children — dimmed and non-interactive, mirrors .kds-line.course-held.
+   !important on text-decoration overrides inherited line-through from parent .line-done
+   so held children stay visually distinct even after partial-done on the parent. */
+.kds-combo-child.course-held {
+    opacity: 0.25;
+    pointer-events: none;
+    text-decoration: none !important;
+}
+
+/* Badges inside combo children: slightly smaller to fit the indented text */
+.kds-combo-child .kds-course-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    vertical-align: 1px;
 }
 
 /* Done combo children inherit parent's line-done strikethrough */

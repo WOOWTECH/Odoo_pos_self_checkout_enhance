@@ -187,6 +187,23 @@
 
         const oldIds = new Set(orders.map((o) => o.id));
         const oldRemakeIds = new Set(orders.filter((o) => o.is_remake).map((o) => o.id));
+
+        // Detect newly-fired courses on existing orders (for sound notification)
+        const oldOrderMap = new Map(orders.map((o) => [o.id, o]));
+        let courseFired = false;
+        for (const newOrder of (result.orders || [])) {
+            const oldOrder = oldOrderMap.get(newOrder.id);
+            if (!oldOrder) continue;
+            for (const cg of (newOrder.course_groups || [])) {
+                const oldCg = (oldOrder.course_groups || []).find((g) => g.id === cg.id);
+                if (oldCg && !oldCg.is_fired && cg.is_fired) {
+                    courseFired = true;
+                    break;
+                }
+            }
+            if (courseFired) break;
+        }
+
         orders = result.orders || [];
 
         // Check for new orders or new remake orders
@@ -195,6 +212,8 @@
         if (newRemake && oldIds.size > 0) {
             playRemakeChime();
         } else if (hasNew && oldIds.size > 0) {
+            playChime();
+        } else if (courseFired && oldIds.size > 0) {
             playChime();
         }
 
@@ -432,9 +451,19 @@
                 : "";
             const comboChildrenHtml = (line.combo_children && line.combo_children.length)
                 ? `<div class="kds-combo-children">${line.combo_children.map(c => {
-                    const heldClass = c.held ? " course-held" : (c.is_done && line.is_done ? " line-done" : "");
-                    const heldLabel = c.held ? ` <span class="kds-held-label">(\u23f3 ${escapeHtml(c.held_category)})</span>` : "";
-                    return `<div class="kds-combo-child${heldClass}">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}${heldLabel}</div>`;
+                    // Visual class: held → dim, done → strikethrough, else normal
+                    const childClass = c.held ? " course-held" : (c.is_done ? " line-done" : "");
+                    // Status badge: HOLD / FIRED / DONE for every combo child
+                    let badge = "";
+                    if (c.is_done) {
+                        badge = ` <span class="kds-course-badge badge-done">${escapeHtml(t("course_done"))}</span>`;
+                    } else if (c.held) {
+                        badge = ` <span class="kds-course-badge badge-held">${escapeHtml(t("held"))}</span>`;
+                    } else {
+                        // Fired H&F children or non-H&F children (always ready) both show FIRED
+                        badge = ` <span class="kds-course-badge badge-fired">${escapeHtml(t("fired"))}</span>`;
+                    }
+                    return `<div class="kds-combo-child${childClass}">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}${badge}</div>`;
                   }).join("")}</div>`
                 : "";
             return `
@@ -605,9 +634,16 @@
                 : "";
             const childrenHtml = (item.combo_children && item.combo_children.length)
                 ? `<div class="kds-combo-children">${item.combo_children.map(c => {
-                    const heldClass = c.held ? " course-held" : "";
-                    const heldLabel = c.held ? ` <span class="kds-held-label">(\u23f3 ${escapeHtml(c.held_category)})</span>` : "";
-                    return `<div class="kds-combo-child${heldClass}">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}${heldLabel}</div>`;
+                    const childClass = c.held ? " course-held" : (c.is_done ? " line-done" : "");
+                    let badge = "";
+                    if (c.is_done) {
+                        badge = ` <span class="kds-course-badge badge-done">${escapeHtml(t("course_done"))}</span>`;
+                    } else if (c.held) {
+                        badge = ` <span class="kds-course-badge badge-held">${escapeHtml(t("held"))}</span>`;
+                    } else {
+                        badge = ` <span class="kds-course-badge badge-fired">${escapeHtml(t("fired"))}</span>`;
+                    }
+                    return `<div class="kds-combo-child${childClass}">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}${badge}</div>`;
                   }).join("")}</div>`
                 : "";
             const refsAttr = escapeHtml(JSON.stringify(item.refs));

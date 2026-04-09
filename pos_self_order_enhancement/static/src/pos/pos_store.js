@@ -425,6 +425,19 @@ patch(PosStore.prototype, {
                 (c) => !heldUuids.has(c.uuid)
             );
 
+            // Remove combo parents whose ALL children were held — avoids
+            // printing an empty combo ticket with no choices listed.
+            const survivingUuids = new Set(
+                (orderChange.new || []).map((c) => c.uuid)
+            );
+            orderChange.new = (orderChange.new || []).filter((c) => {
+                const children = order.lines.filter(
+                    (l) => l.combo_parent_id && l.combo_parent_id.uuid === c.uuid
+                );
+                if (children.length === 0) return true;
+                return children.some((child) => survivingUuids.has(child.uuid));
+            });
+
             // The standalone "Message" ticket duplicates the order note that
             // already appears in the items ticket header — suppress it
             // unconditionally so each Order click produces exactly one
