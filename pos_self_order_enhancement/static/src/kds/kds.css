@@ -639,8 +639,7 @@ html, body {
 /* Combo children (rendered under combo parent, non-interactive) */
 .kds-combo-children {
     margin-left: 2.2rem;
-    font-size: 0.9em;
-    opacity: 0.85;
+    font-size: 1em;
     margin-top: 0.2rem;
     min-width: 0;
     word-break: break-word;
@@ -660,11 +659,11 @@ html, body {
     text-decoration: none !important;
 }
 
-/* Badges inside combo children: slightly smaller to fit the indented text */
+/* Badges inside combo children */
 .kds-combo-child .kds-course-badge {
-    font-size: 9px;
-    padding: 1px 5px;
-    margin-left: 4px;
+    font-size: 10px;
+    padding: 2px 6px;
+    margin-left: 6px;
     vertical-align: 1px;
 }
 
