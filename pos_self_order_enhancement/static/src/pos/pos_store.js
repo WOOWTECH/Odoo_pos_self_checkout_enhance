@@ -2,6 +2,7 @@
 
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
+import { changesToOrder } from "@point_of_sale/app/models/utils/order_change";
 
 /**
  * Safely get the first pos.category with kds_hold_fire from a product.
@@ -175,55 +176,103 @@ patch(PosStore.prototype, {
         }
     },
 
-    /**
-     * Hold & Fire gating for kitchen printing.
-     *
-     * Walks the order's lines and sets `line.skip_change` based on whether
-     * each line's Hold & Fire category is currently fired. Combo children
-     * inherit their parent's category via getHoldFireCategory.
-     *
-     *   - No Hold & Fire category → skip_change=false (always print)
-     *   - Held category            → skip_change=true  (excluded from diff,
-     *                                                    not recorded in
-     *                                                    last_order_preparation_change)
-     *   - Fired category           → skip_change=false (printed normally)
-     *
-     * Upstream's getOrderChanges (utils/order_change.js) gates each line on
-     * `orderline.skip_change === skipped` and updateLastOrderChange skips
-     * lines where `!line.skip_change` is false — together those mean a held
-     * line is invisible to the printer until its category is fired, at
-     * which point fireOrderCourse re-runs sendOrderInPreparation and the
-     * now-eligible lines appear in the diff naturally.
-     */
-    _applyHoldFireSkipChange(order) {
-        let fired = {};
+    _getFiredCoursesMap(order) {
         try {
             const raw = order.kds_fired_courses;
-            fired = typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
-        } catch (e) { /* ignore */ }
-
-        for (const line of order.lines) {
-            if (line.qty <= 0) continue;
-            const categ = getHoldFireCategory(line);
-            if (!categ) {
-                line.skip_change = false;
-            } else {
-                line.skip_change = !fired[String(categ.id)];
-            }
+            return typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {});
+        } catch (e) {
+            return {};
         }
     },
 
+    /**
+     * Hold & Fire gating for kitchen printing.
+     *
+     * We override sendOrderInPreparation entirely (instead of mutating
+     * `line.skip_change` and delegating to super) because skip_change is a
+     * persisted Boolean field and any sync round-trip can re-hydrate it
+     * from the DB default, silently undoing the gate. Instead we:
+     *
+     *   1. Compute the upstream diff via changesToOrder().
+     *   2. Filter held lines out of every bucket the printer consumes.
+     *   3. Print the filtered diff ourselves.
+     *   4. Update last_order_preparation_change with held lines temporarily
+     *      flagged skip_change=true (restored synchronously in finally),
+     *      so the next sendOrderInPreparation (e.g. after fireOrderCourse)
+     *      naturally sees the now-fired lines as a fresh diff and prints
+     *      them exactly once.
+     *
+     * `kds_fired_courses` is the single source of truth for hold/fire
+     * state, matching what the KDS already does via getHoldFireCategory.
+     */
     async sendOrderInPreparation(order, cancelled = false) {
-        // Gate held lines out of the print diff. They stay queued until
-        // the cashier fires their category, at which point fireOrderCourse
-        // re-invokes this method.
-        this._applyHoldFireSkipChange(order);
+        const fired = this._getFiredCoursesMap(order);
+        const isHeld = (line) => {
+            if (!line || line.qty <= 0) return false;
+            const categ = getHoldFireCategory(line);
+            return !!categ && !fired[String(categ.id)];
+        };
+        const heldUuids = new Set(
+            order.lines.filter(isHeld).map((l) => l.uuid)
+        );
 
-        await super.sendOrderInPreparation(order, cancelled);
+        if (this.printers_category_ids_set && this.printers_category_ids_set.size) {
+            const orderChange = changesToOrder(
+                order,
+                false,
+                this.printers_category_ids_set,
+                cancelled
+            );
 
-        // Always flush pending lines to the backend so the custom KDS
-        // (which reads pos.order.line directly) sees them immediately,
-        // including on second/third Order clicks against the same order.
+            orderChange.new = (orderChange.new || []).filter(
+                (c) => !heldUuids.has(c.uuid)
+            );
+            orderChange.cancelled = (orderChange.cancelled || []).filter(
+                (c) => !heldUuids.has(c.uuid)
+            );
+            orderChange.noteUpdated = (orderChange.noteUpdated || []).filter(
+                (c) => !heldUuids.has(c.uuid)
+            );
+
+            // Suppress the standalone "Message" ticket if there are no real
+            // line changes left after filtering — matches upstream's gate
+            // (printChanges only prints generalNote when anyChangesToPrint).
+            if (
+                !orderChange.new.length &&
+                !orderChange.cancelled.length &&
+                !orderChange.noteUpdated.length
+            ) {
+                orderChange.generalNote = undefined;
+            }
+
+            try {
+                await this.printChanges(order, orderChange);
+            } catch (e) {
+                console.warn("Hold & Fire printChanges failed:", e);
+            }
+        }
+
+        // Update last_order_preparation_change but exclude held lines, so
+        // they appear as new on the next send (after firing). Restore
+        // skip_change synchronously before any sync can persist it.
+        const tempSkip = [];
+        for (const line of order.lines) {
+            if (heldUuids.has(line.uuid)) {
+                tempSkip.push([line, line.skip_change]);
+                line.skip_change = true;
+            }
+        }
+        try {
+            order.updateLastOrderChange();
+        } finally {
+            for (const [line, prev] of tempSkip) {
+                line.skip_change = prev;
+            }
+        }
+
+        // Flush to backend so the custom KDS (which reads pos.order.line
+        // directly) sees the lines immediately, including on subsequent
+        // Order clicks against the same order.
         await this.syncAllOrders({ orders: [order] });
 
         if (typeof order.id === "number") {
@@ -243,11 +292,13 @@ patch(PosStore.prototype, {
                     categoryIds.add(categ.id);
                 }
                 if (categoryIds.size > 0) {
-                    const fired = {};
+                    const existing = this._getFiredCoursesMap(order);
+                    const merged = {};
                     for (const cid of categoryIds) {
-                        fired[String(cid)] = false;
+                        const key = String(cid);
+                        merged[key] = !!existing[key];
                     }
-                    order.kds_fired_courses = JSON.stringify(fired);
+                    order.kds_fired_courses = JSON.stringify(merged);
                 }
             } catch (e) {
                 console.warn("KDS mark_sent_to_kitchen failed:", e);
