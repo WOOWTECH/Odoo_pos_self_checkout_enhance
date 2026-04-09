@@ -504,8 +504,8 @@
                 <div class="kds-timer ${timerClass}">${mins}:${secs}</div>
             </div>
             <div class="kds-card-body">
-                ${linesHtml}
                 ${generalNoteHtml}
+                ${linesHtml}
             </div>
             <div class="kds-card-footer">
                 ${bumpBtn}
