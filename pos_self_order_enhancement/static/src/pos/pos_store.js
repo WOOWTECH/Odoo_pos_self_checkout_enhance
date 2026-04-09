@@ -101,17 +101,67 @@ patch(PosStore.prototype, {
     },
 
     async markOrderRemake(order, lineIds, reason) {
-        if (typeof order.id === "number") {
-            try {
-                await this.data.call("pos.order", "mark_remake", [
-                    [order.id],
-                    lineIds,
-                    reason,
-                ]);
-                order.kds_state = "new";
-            } catch (e) {
-                console.warn("KDS mark_remake failed:", e);
+        if (typeof order.id !== "number") return;
+        try {
+            await this.data.call("pos.order", "mark_remake", [
+                [order.id],
+                lineIds,
+                reason,
+            ]);
+            order.kds_state = "new";
+        } catch (e) {
+            console.warn("KDS mark_remake failed:", e);
+            return;
+        }
+
+        // Print a REMAKE ticket for the affected lines. Drop them from
+        // last_order_preparation_change so the diff sees them as new, then
+        // call sendOrderInPreparation with the remake bypass flag set so
+        // the held-line filter does not suppress them (per product spec:
+        // remake prints immediately regardless of fired/held state).
+        const remakeLines = order.lines.filter(
+            (l) => lineIds.includes(l.id) && l.qty > 0
+        );
+        if (!remakeLines.length) return;
+
+        // Pull combo children of any selected parent into the remake set so
+        // the kitchen ticket shows the full combo, not just the parent.
+        const selectedUuids = new Set(remakeLines.map((l) => l.uuid));
+        for (const line of order.lines) {
+            if (line.qty <= 0) continue;
+            if (selectedUuids.has(line.uuid)) continue;
+            const parent = line.combo_parent_id;
+            if (parent && selectedUuids.has(parent.uuid)) {
+                remakeLines.push(line);
+                selectedUuids.add(line.uuid);
             }
+        }
+
+        const prep = order.last_order_preparation_change?.lines || {};
+        const removed = [];
+        for (const line of remakeLines) {
+            for (const k of Object.keys(prep)) {
+                if (k === line.uuid || k.startsWith(line.uuid + " - ")) {
+                    removed.push([k, prep[k]]);
+                    delete prep[k];
+                }
+            }
+        }
+
+        order._remakeReason = reason;
+        this._remakeBypassHold = true;
+        try {
+            await this.sendOrderInPreparation(order, false);
+        } catch (e) {
+            console.warn("REMAKE print failed:", e);
+            // Restore the prep entries so a future Order click does not
+            // double-print the same lines.
+            for (const [k, v] of removed) {
+                prep[k] = v;
+            }
+        } finally {
+            order._remakeReason = null;
+            this._remakeBypassHold = false;
         }
     },
 
@@ -176,6 +226,91 @@ patch(PosStore.prototype, {
         }
     },
 
+    /**
+     * Build maps for combo parent/child relationships in an order.
+     * Used by _getPrintingCategoriesChanges so combo children pass the
+     * per-printer category filter alongside their parents (the children's
+     * own product categories often differ from the parent's).
+     */
+    _buildComboMaps(order) {
+        const parentUuidByChild = new Map();
+        const childUuidsByParent = new Map();
+        for (const line of order.lines) {
+            if (line.qty <= 0) continue;
+            const parent = line.combo_parent_id;
+            if (!parent || !parent.uuid) continue;
+            parentUuidByChild.set(line.uuid, parent.uuid);
+            if (!childUuidsByParent.has(parent.uuid)) {
+                childUuidsByParent.set(parent.uuid, new Set());
+            }
+            childUuidsByParent.get(parent.uuid).add(line.uuid);
+        }
+        return { parentUuidByChild, childUuidsByParent };
+    },
+
+    /**
+     * Patch upstream's per-printer category filter so that any combo child
+     * whose parent passes is also admitted, regardless of the child's own
+     * pos_categ_ids. Without this, combo "choices" silently disappear from
+     * kitchen tickets when their products live in non-printer categories.
+     */
+    _getPrintingCategoriesChanges(categories, currentOrderChange) {
+        const base = super._getPrintingCategoriesChanges(categories, currentOrderChange);
+        const maps = this._comboMaps;
+        if (!maps || !maps.childUuidsByParent.size) return base;
+
+        // Collect uuids of parents that survived the standard filter in any bucket.
+        const passingParentUuids = new Set();
+        for (const bucket of [base.new, base.cancelled, base.noteUpdated]) {
+            for (const c of bucket) {
+                if (maps.childUuidsByParent.has(c.uuid)) {
+                    passingParentUuids.add(c.uuid);
+                }
+            }
+        }
+        if (!passingParentUuids.size) return base;
+
+        const augment = (filteredBucket, sourceBucket) => {
+            const out = [...filteredBucket];
+            const present = new Set(out.map((c) => c.uuid));
+            for (const change of sourceBucket || []) {
+                if (present.has(change.uuid)) continue;
+                const parentUuid = maps.parentUuidByChild.get(change.uuid);
+                if (parentUuid && passingParentUuids.has(parentUuid)) {
+                    out.push(change);
+                    present.add(change.uuid);
+                }
+            }
+            return out;
+        };
+
+        return {
+            new: augment(base.new, currentOrderChange.new),
+            cancelled: augment(base.cancelled, currentOrderChange.cancelled),
+            noteUpdated: augment(base.noteUpdated, currentOrderChange.noteUpdated),
+        };
+    },
+
+    /**
+     * Substitute the kitchen-ticket title when we're inside a REMAKE flow,
+     * so the printed paper is clearly distinguishable from a normal Order
+     * ticket. Falls through to upstream behavior otherwise.
+     */
+    async printReceipts(order, printer, title, lines, fullReceipt = false, diningModeUpdate) {
+        let effectiveTitle = title;
+        if (order && order._remakeReason && title === "New") {
+            effectiveTitle = "REMAKE (" + order._remakeReason + ")";
+        }
+        return super.printReceipts(
+            order,
+            printer,
+            effectiveTitle,
+            lines,
+            fullReceipt,
+            diningModeUpdate
+        );
+    },
+
     _getFiredCoursesMap(order) {
         try {
             const raw = order.kds_fired_courses;
@@ -207,7 +342,9 @@ patch(PosStore.prototype, {
      */
     async sendOrderInPreparation(order, cancelled = false) {
         const fired = this._getFiredCoursesMap(order);
+        const bypassHold = !!this._remakeBypassHold;
         const isHeld = (line) => {
+            if (bypassHold) return false;
             if (!line || line.qty <= 0) return false;
             const categ = getHoldFireCategory(line);
             return !!categ && !fired[String(categ.id)];
@@ -234,21 +371,19 @@ patch(PosStore.prototype, {
                 (c) => !heldUuids.has(c.uuid)
             );
 
-            // Suppress the standalone "Message" ticket if there are no real
-            // line changes left after filtering — matches upstream's gate
-            // (printChanges only prints generalNote when anyChangesToPrint).
-            if (
-                !orderChange.new.length &&
-                !orderChange.cancelled.length &&
-                !orderChange.noteUpdated.length
-            ) {
-                orderChange.generalNote = undefined;
-            }
+            // The standalone "Message" ticket duplicates the order note that
+            // already appears in the items ticket header — suppress it
+            // unconditionally so each Order click produces exactly one
+            // physical ticket per printer.
+            orderChange.generalNote = undefined;
 
+            this._comboMaps = this._buildComboMaps(order);
             try {
                 await this.printChanges(order, orderChange);
             } catch (e) {
                 console.warn("Hold & Fire printChanges failed:", e);
+            } finally {
+                this._comboMaps = null;
             }
         }
 
