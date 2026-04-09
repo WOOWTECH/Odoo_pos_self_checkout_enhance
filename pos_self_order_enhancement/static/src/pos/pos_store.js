@@ -318,14 +318,43 @@ patch(PosStore.prototype, {
     },
 
     /**
-     * Substitute the kitchen-ticket title when we're inside a REMAKE flow,
-     * so the printed paper is clearly distinguishable from a normal Order
-     * ticket. Falls through to upstream behavior otherwise.
+     * Bilingual labels for the four send-back reasons defined in
+     * send_back_popup.js — duplicated here so the printer can render the
+     * full friendly label rather than the raw internal id.
+     */
+    _remakeReasonLabel(reasonId) {
+        const labels = {
+            remake: "Remake / 重做",
+            wrong_item: "Wrong Item / 出錯",
+            undercooked: "Undercooked / 未熟",
+            changed_mind: "Customer Changed Mind / 客人改變主意",
+        };
+        return labels[reasonId] || reasonId;
+    },
+
+    /**
+     * Surface the remake reason + bilingual label to the kitchen receipt
+     * template so the override XML can render a prominent SEND BACK banner.
+     */
+    getPrintingChanges(order, diningModeUpdate) {
+        const base = super.getPrintingChanges(order, diningModeUpdate);
+        if (order && order._remakeReason) {
+            base.remake_reason = order._remakeReason;
+            base.remake_label = this._remakeReasonLabel(order._remakeReason);
+        }
+        return base;
+    },
+
+    /**
+     * Substitute the kitchen-ticket subtitle when we're inside a REMAKE
+     * flow, so the small line at the top of the body agrees with the
+     * boxed SEND BACK banner that follows. Falls through to upstream
+     * behavior outside of remake.
      */
     async printReceipts(order, printer, title, lines, fullReceipt = false, diningModeUpdate) {
         let effectiveTitle = title;
         if (order && order._remakeReason && title === "New") {
-            effectiveTitle = "REMAKE (" + order._remakeReason + ")";
+            effectiveTitle = "SEND BACK · " + this._remakeReasonLabel(order._remakeReason);
         }
         return super.printReceipts(
             order,
