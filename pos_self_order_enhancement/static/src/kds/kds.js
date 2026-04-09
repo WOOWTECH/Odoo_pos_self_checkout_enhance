@@ -431,9 +431,11 @@
                 ? `<div class="kds-line-remake-reason">${escapeHtml(t("remake"))}: ${escapeHtml(line.remake_reason)}${line.remake_count > 1 ? ` (x${line.remake_count})` : ""}</div>`
                 : "";
             const comboChildrenHtml = (line.combo_children && line.combo_children.length)
-                ? `<div class="kds-combo-children">${line.combo_children.map(c =>
-                    `<div class="kds-combo-child">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
-                  ).join("")}</div>`
+                ? `<div class="kds-combo-children">${line.combo_children.map(c => {
+                    const heldClass = c.held ? " course-held" : (c.is_done && line.is_done ? " line-done" : "");
+                    const heldLabel = c.held ? ` <span class="kds-held-label">(\u23f3 ${escapeHtml(c.held_category)})</span>` : "";
+                    return `<div class="kds-combo-child${heldClass}">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}${heldLabel}</div>`;
+                  }).join("")}</div>`
                 : "";
             return `
             <div class="kds-line ${doneClass} ${heldClass}" data-order-id="${order.id}" data-line-id="${line.id}">
@@ -489,6 +491,21 @@
             generalNoteHtml = `<div class="kds-general-note">${escapeHtml(order.general_note)}</div>`;
         }
 
+        // Check for pending held combo children (partial-done state)
+        const pendingCategories = new Set();
+        for (const line of order.lines) {
+            if (line.combo_children) {
+                for (const cc of line.combo_children) {
+                    if (cc.held && cc.held_category) {
+                        pendingCategories.add(cc.held_category);
+                    }
+                }
+            }
+        }
+        const waitingHtml = pendingCategories.size > 0
+            ? `<div class="kds-waiting-hint">${escapeHtml(t("held"))}: ${[...pendingCategories].map(escapeHtml).join(", ")}</div>`
+            : "";
+
         const bumpBtn = isCompleted
             ? `<button class="kds-btn kds-btn-recall" data-action="recall-order" data-order-id="${order.id}">\u21A9\uFE0F ${escapeHtml(t("recall"))}</button>`
             : `<button class="kds-btn kds-btn-bump" data-action="bump" data-order-id="${order.id}">${escapeHtml(t("bump"))}</button>`;
@@ -508,6 +525,7 @@
                 ${linesHtml}
             </div>
             <div class="kds-card-footer">
+                ${waitingHtml}
                 ${bumpBtn}
             </div>
         </div>`;
@@ -586,9 +604,11 @@
                 ? `<div class="kds-line-note">${escapeHtml(item.note)}</div>`
                 : "";
             const childrenHtml = (item.combo_children && item.combo_children.length)
-                ? `<div class="kds-combo-children">${item.combo_children.map(c =>
-                    `<div class="kds-combo-child">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}</div>`
-                  ).join("")}</div>`
+                ? `<div class="kds-combo-children">${item.combo_children.map(c => {
+                    const heldClass = c.held ? " course-held" : "";
+                    const heldLabel = c.held ? ` <span class="kds-held-label">(\u23f3 ${escapeHtml(c.held_category)})</span>` : "";
+                    return `<div class="kds-combo-child${heldClass}">- ${escapeHtml(c.name)}${c.customer_note ? ` <em>(${escapeHtml(c.customer_note)})</em>` : ""}${heldLabel}</div>`;
+                  }).join("")}</div>`
                 : "";
             const refsAttr = escapeHtml(JSON.stringify(item.refs));
             html += `

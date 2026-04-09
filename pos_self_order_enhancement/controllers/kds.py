@@ -152,15 +152,33 @@ class PosKitchenDisplay(http.Controller):
                 if line_remake and not is_done:
                     has_active_remake = True
 
-                combo_children = [
-                    {
+                combo_children = []
+                has_pending_children = False
+                child_course_categories = []  # (categ_id, categ_name, is_done)
+                for child in line.combo_line_ids:
+                    if child.qty <= 0 or child.price_unit < 0:
+                        continue
+                    child_categ_id, child_categ_name = order._get_line_hold_fire_category(child)
+                    # A child is "held" if it has its own H&F category that differs
+                    # from the parent's and is not yet fired.
+                    child_held = (
+                        child_categ_id > 0
+                        and child_categ_id != categ_id
+                        and not fired_courses.get(str(child_categ_id), False)
+                    )
+                    if child_held:
+                        has_pending_children = True
+                    child_is_done = done_items.get(str(child.id), False)
+                    if child_categ_id > 0 and child_categ_id != categ_id:
+                        child_course_categories.append((child_categ_id, child_categ_name, child_is_done))
+                    combo_children.append({
                         'name': child.full_product_name or child.product_id.display_name,
                         'qty': child.qty,
                         'customer_note': child.note or '',
-                    }
-                    for child in line.combo_line_ids
-                    if child.qty > 0 and child.price_unit >= 0
-                ]
+                        'held': child_held,
+                        'held_category': child_categ_name if child_held else '',
+                        'is_done': child_is_done,
+                    })
 
                 lines.append({
                     'id': line.id,
@@ -175,6 +193,7 @@ class PosKitchenDisplay(http.Controller):
                     'course_name': course_name,
                     'is_fired': is_fired,
                     'combo_children': combo_children,
+                    'has_pending_children': has_pending_children,
                 })
 
                 if categ_id > 0:
@@ -187,6 +206,20 @@ class PosKitchenDisplay(http.Controller):
                         }
                     if not is_done:
                         course_groups_map[categ_id]['all_items_done'] = False
+
+                # Register combo children's own H&F categories so fire
+                # buttons appear on KDS for held child categories.
+                for cc_categ_id, cc_categ_name, cc_is_done in child_course_categories:
+                    if cc_categ_id not in course_groups_map:
+                        cc_is_fired = fired_courses.get(str(cc_categ_id), False)
+                        course_groups_map[cc_categ_id] = {
+                            'id': cc_categ_id,
+                            'name': cc_categ_name,
+                            'is_fired': cc_is_fired,
+                            'all_items_done': True,
+                        }
+                    if not cc_is_done:
+                        course_groups_map[cc_categ_id]['all_items_done'] = False
 
             course_groups = sorted(
                 course_groups_map.values(), key=lambda g: g['name']
@@ -221,7 +254,13 @@ class PosKitchenDisplay(http.Controller):
         return result
 
     def _check_all_fired_done(self, order, done_items):
-        """Check if all items in fired courses are done."""
+        """Check if all items in fired courses are done.
+
+        Returns (all_done, course_completed) where all_done is True only when
+        every line is either done or belongs to a fired course and is done.
+        Lines in unfired H&F categories block all_done — the order stays
+        active on KDS until every course is fired and its items are done.
+        """
         try:
             fired_courses = json.loads(order.kds_fired_courses or '{}')
         except (json.JSONDecodeError, TypeError):
@@ -243,6 +282,9 @@ class PosKitchenDisplay(http.Controller):
                 if not is_done:
                     all_fired_done = False
                 course_items.setdefault(categ_id, []).append(is_done)
+            else:
+                # Unfired H&F category — line is still pending; block all_done
+                all_fired_done = False
 
         course_completed = None
         for cid, statuses in course_items.items():
@@ -382,11 +424,22 @@ class PosKitchenDisplay(http.Controller):
         key = str(line_id)
         done_items[key] = not done_items.get(key, False)
 
-        # Cascade the new state to all combo children so the order's bookkeeping
-        # stays consistent (reports, _check_all_fired_done, etc.).
+        # Cascade the new state to combo children, but skip children whose
+        # own H&F category is not yet fired (partial-done for mixed combos).
         if line.exists():
             new_state = done_items[key]
+            try:
+                fired_courses_for_cascade = json.loads(order.kds_fired_courses or '{}')
+            except (json.JSONDecodeError, TypeError):
+                fired_courses_for_cascade = {}
+            parent_categ_id, _ = order._get_line_hold_fire_category(line)
             for child in line.combo_line_ids:
+                child_categ_id, _ = order._get_line_hold_fire_category(child)
+                # Skip held children: they have their own unfired H&F category
+                if (child_categ_id > 0
+                        and child_categ_id != parent_categ_id
+                        and not fired_courses_for_cascade.get(str(child_categ_id), False)):
+                    continue
                 done_items[str(child.id)] = new_state
 
         all_done, course_completed = self._check_all_fired_done(order, done_items)

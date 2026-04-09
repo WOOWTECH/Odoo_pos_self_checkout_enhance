@@ -642,6 +642,28 @@ html, body {
     white-space: normal;
 }
 
+/* Held combo children reuse .course-held (opacity 0.25, no pointer events)
+   defined above.  The label suffix shows which category they're waiting on. */
+.kds-held-label {
+    font-size: 0.85em;
+    color: #95a5a6;
+}
+
+/* Done combo children inherit parent's line-done strikethrough */
+.kds-combo-child.line-done {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+/* "Waiting: Desserts" hint above the bump button in partial-done state */
+.kds-waiting-hint {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f39c12;
+    padding: 4px 8px;
+}
+
 /* In the Items tile, combo children render inside .kds-allday-name and
    should align with the parent product name (no extra left indent). */
 .kds-allday-name .kds-combo-children {

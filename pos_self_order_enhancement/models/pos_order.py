@@ -48,14 +48,20 @@ class PosOrder(models.Model):
     def _get_line_hold_fire_category(self, line):
         """Return (category_id, category_name) for the line's effective Hold & Fire category.
 
-        Combo children inherit their combo parent's category so they can never be
-        fired independently of the combo parent. Returns (0, '') if no category
-        or Hold & Fire is disabled on the effective line (always fired).
+        Checks the line's own product category first; falls back to the combo
+        parent only if the child has no H&F category of its own.  This lets
+        combo choices declare their own Hold & Fire course (e.g. a dessert
+        choice inside a non-H&F lunch set combo).
+
+        Returns (0, '') if no H&F category found (always fired).
         """
-        effective = line.combo_parent_id or line
-        categs = effective.product_id.pos_categ_ids
-        if categs and categs[0].kds_hold_fire:
-            return categs[0].id, categs[0].name
+        candidates = [line]
+        if line.combo_parent_id:
+            candidates.append(line.combo_parent_id)
+        for candidate in candidates:
+            categs = candidate.product_id.pos_categ_ids
+            if categs and categs[0].kds_hold_fire:
+                return categs[0].id, categs[0].name
         return 0, ''
 
     def _compute_fired_courses(self):

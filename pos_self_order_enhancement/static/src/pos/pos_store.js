@@ -11,25 +11,26 @@ import { changesToOrder } from "@point_of_sale/app/models/utils/order_change";
  */
 export function getHoldFireCategory(line) {
     try {
-        // Combo children inherit their combo parent's Hold & Fire category,
-        // so they follow the parent's held/fired state.
-        const effective = line.combo_parent_id || line;
-        const product = effective.product_id;
-        if (!product) return null;
-        const categs = product.pos_categ_ids;
-        if (!categs) return null;
-        // Handle both array and ORM proxy
-        let first = null;
-        if (typeof categs[Symbol.iterator] === "function") {
-            for (const c of categs) {
-                first = c;
-                break;
+        // Check the line's own product category first; only fall back to
+        // combo parent if the child has no H&F category of its own.
+        // This lets combo choices declare their own Hold & Fire course
+        // (e.g. a dessert choice inside a non-H&F lunch set combo).
+        const candidates = [line];
+        if (line.combo_parent_id) candidates.push(line.combo_parent_id);
+        for (const candidate of candidates) {
+            const product = candidate.product_id;
+            if (!product) continue;
+            const categs = product.pos_categ_ids;
+            if (!categs) continue;
+            if (typeof categs[Symbol.iterator] === "function") {
+                for (const c of categs) {
+                    if (c && c.kds_hold_fire) return c;
+                }
+            } else if (categs[0] && categs[0].kds_hold_fire) {
+                return categs[0];
             }
-        } else if (categs[0]) {
-            first = categs[0];
         }
-        if (!first || !first.kds_hold_fire) return null;
-        return first;
+        return null;
     } catch (e) {
         return null;
     }
