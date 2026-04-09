@@ -114,54 +114,80 @@ patch(PosStore.prototype, {
             return;
         }
 
-        // Print a REMAKE ticket for the affected lines. Drop them from
-        // last_order_preparation_change so the diff sees them as new, then
-        // call sendOrderInPreparation with the remake bypass flag set so
-        // the held-line filter does not suppress them (per product spec:
-        // remake prints immediately regardless of fired/held state).
+        // Resolve the explicitly-selected lines.
         const remakeLines = order.lines.filter(
             (l) => lineIds.includes(l.id) && l.qty > 0
         );
         if (!remakeLines.length) return;
 
-        // Pull combo children of any selected parent into the remake set so
-        // the kitchen ticket shows the full combo, not just the parent.
-        const selectedUuids = new Set(remakeLines.map((l) => l.uuid));
+        // Auto-pull combo children of any selected parent into the remake
+        // set so the kitchen ticket shows the full combo, not just the
+        // parent slot. (parent → children only, never child → siblings.)
+        const remakeUuids = new Set(remakeLines.map((l) => l.uuid));
         for (const line of order.lines) {
             if (line.qty <= 0) continue;
-            if (selectedUuids.has(line.uuid)) continue;
+            if (remakeUuids.has(line.uuid)) continue;
             const parent = line.combo_parent_id;
-            if (parent && selectedUuids.has(parent.uuid)) {
+            if (parent && remakeUuids.has(parent.uuid)) {
                 remakeLines.push(line);
-                selectedUuids.add(line.uuid);
+                remakeUuids.add(line.uuid);
             }
         }
 
-        const prep = order.last_order_preparation_change?.lines || {};
-        const removed = [];
-        for (const line of remakeLines) {
-            for (const k of Object.keys(prep)) {
-                if (k === line.uuid || k.startsWith(line.uuid + " - ")) {
-                    removed.push([k, prep[k]]);
-                    delete prep[k];
-                }
-            }
-        }
+        // Build a synthetic orderChange directly from the explicit remake
+        // lines, bypassing the changesToOrder diff (which would otherwise
+        // include held-and-not-yet-fired siblings as "new" because they
+        // were intentionally excluded from last_order_preparation_change).
+        // The lineDetails shape mirrors upstream getOrderChanges
+        // (utils/order_change.js:70-82) so the receipt template renders
+        // the same as a normal kitchen ticket.
+        const buildLineDetails = (line) => {
+            const product = line.product_id;
+            const categs = product.pos_categ_ids || [];
+            const firstCateg = categs[0] && categs[0].id ? categs[0] : null;
+            return {
+                uuid: line.uuid,
+                name:
+                    typeof line.get_full_product_name === "function"
+                        ? line.get_full_product_name()
+                        : product.display_name,
+                basic_name: product.name,
+                isCombo: line.combo_item_id?.id,
+                product_id: product.id,
+                attribute_value_ids: line.attribute_value_ids,
+                quantity: line.qty,
+                note:
+                    typeof line.getNote === "function"
+                        ? line.getNote()
+                        : line.note ?? "",
+                pos_categ_id: firstCateg?.id ?? 0,
+                pos_categ_sequence: firstCateg?.sequence ?? 0,
+                display_name: product.display_name,
+            };
+        };
 
+        const orderChange = {
+            new: remakeLines.map(buildLineDetails),
+            cancelled: [],
+            noteUpdated: [],
+            generalNote: undefined,
+            modeUpdate: false,
+        };
+
+        // _remakeReason makes printReceipts swap the title to
+        // "REMAKE (<reason>)". _comboMaps lets _getPrintingCategoriesChanges
+        // keep combo children with their parents through the per-printer
+        // category filter. last_order_preparation_change is intentionally
+        // NOT touched, so the next Order click sees an unchanged baseline.
         order._remakeReason = reason;
-        this._remakeBypassHold = true;
+        this._comboMaps = this._buildComboMaps(order);
         try {
-            await this.sendOrderInPreparation(order, false);
+            await this.printChanges(order, orderChange);
         } catch (e) {
             console.warn("REMAKE print failed:", e);
-            // Restore the prep entries so a future Order click does not
-            // double-print the same lines.
-            for (const [k, v] of removed) {
-                prep[k] = v;
-            }
         } finally {
             order._remakeReason = null;
-            this._remakeBypassHold = false;
+            this._comboMaps = null;
         }
     },
 
@@ -342,9 +368,7 @@ patch(PosStore.prototype, {
      */
     async sendOrderInPreparation(order, cancelled = false) {
         const fired = this._getFiredCoursesMap(order);
-        const bypassHold = !!this._remakeBypassHold;
         const isHeld = (line) => {
-            if (bypassHold) return false;
             if (!line || line.qty <= 0) return false;
             const categ = getHoldFireCategory(line);
             return !!categ && !fired[String(categ.id)];
