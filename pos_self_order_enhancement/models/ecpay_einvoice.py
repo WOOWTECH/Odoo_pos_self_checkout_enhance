@@ -95,7 +95,7 @@ def call_einvoice_api(endpoint, json_data, merchant_id, hash_key, hash_iv,
 
         decrypted = _decrypt(response_json["Data"], cipher)
         result = json.loads(urllib.parse.unquote(decrypted))
-        _logger.info("ECPay e-invoice ← RtnCode=%s", result.get("RtnCode"))
+        _logger.info("ECPay e-invoice ← RtnCode=%s RtnMsg=%s", result.get("RtnCode"), result.get("RtnMsg"))
         return result
 
     except ValueError as e:
@@ -166,10 +166,12 @@ def issue_b2c(config, order, carrier_type, carrier_num='', love_code=''):
     is_donation = carrier_type == 'donation'
     print_flag = "1" if carrier_type == 'print' else "0"
 
-    # Build relate number from pos_reference, ensuring max 30 chars
-    relate_number = (order.pos_reference or order.name or '')[:30]
-    # ECPay requires alphanumeric + some special chars; strip spaces
-    relate_number = relate_number.replace(' ', '')
+    # Build unique relate number: use order ID + timestamp to ensure uniqueness
+    # ECPay requires alphanumeric, max 30 chars, must be unique per merchant
+    import re
+    base = re.sub(r'[^A-Za-z0-9]', '', order.pos_reference or order.name or '')
+    ts = str(int(datetime.datetime.now().timestamp()))[-8:]
+    relate_number = (base[:21] + ts)[:30]
 
     items = [_build_item(i, line) for i, line in enumerate(order.lines, 1)]
     if not items:
@@ -179,10 +181,10 @@ def issue_b2c(config, order, carrier_type, carrier_num='', love_code=''):
         "MerchantID": merchant_id,
         "RelateNumber": relate_number,
         "CustomerIdentifier": "",
-        "CustomerName": (partner.name if partner else "")[:60],
-        "CustomerAddr": (partner.contact_address_complete if partner else "")[:200],
-        "CustomerEmail": (partner.email if partner else "")[:200],
-        "CustomerPhone": "",
+        "CustomerName": (partner.name if partner else "顧客")[:60],
+        "CustomerAddr": (partner.contact_address_complete if partner else "N/A")[:200],
+        "CustomerEmail": (partner.email if partner else "noreply@pos.local")[:200],
+        "CustomerPhone": (partner.phone or partner.mobile if partner else "")[:20],
         "ClearanceMark": "",
         "Print": print_flag,
         "Donation": "1" if is_donation else "0",
@@ -211,7 +213,10 @@ def issue_b2b(config, order, buyer_tax_id):
     merchant_id, hash_key, hash_iv, is_staging = _get_creds(config)
     partner = order.partner_id
 
-    relate_number = (order.pos_reference or order.name or '')[:30].replace(' ', '')
+    import re
+    base = re.sub(r'[^A-Za-z0-9]', '', order.pos_reference or order.name or '')
+    ts = str(int(datetime.datetime.now().timestamp()))[-8:]
+    relate_number = (base[:21] + ts)[:30]
 
     # B2C endpoint with CustomerIdentifier set (ECPay treats it as B2B-style)
     items = [_build_item(i, line) for i, line in enumerate(order.lines, 1)]
@@ -222,10 +227,10 @@ def issue_b2b(config, order, buyer_tax_id):
         "MerchantID": merchant_id,
         "RelateNumber": relate_number,
         "CustomerIdentifier": buyer_tax_id[:8],
-        "CustomerName": (partner.name if partner else "")[:60],
-        "CustomerAddr": (partner.contact_address_complete if partner else "")[:200],
-        "CustomerEmail": (partner.email if partner else "")[:200],
-        "CustomerPhone": "",
+        "CustomerName": (partner.name if partner else "顧客")[:60],
+        "CustomerAddr": (partner.contact_address_complete if partner else "N/A")[:200],
+        "CustomerEmail": (partner.email if partner else "noreply@pos.local")[:200],
+        "CustomerPhone": (partner.phone or partner.mobile if partner else "")[:20],
         "ClearanceMark": "",
         "Print": "1",
         "Donation": "0",

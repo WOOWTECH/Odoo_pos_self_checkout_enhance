@@ -26,7 +26,7 @@ patch(PaymentScreen.prototype, {
 
     _getEinvCarrierData() {
         return {
-            carrier_type: this.state?.einvCarrierType || "print",
+            carrier_type: this.einvState?.einvCarrierType || "print",
             carrier_num: this.einvState?.einvCarrierNum || "",
             love_code: this.einvState?.einvLoveCode || "",
             buyer_tax_id: this.einvState?.einvBuyerTaxId || "",
