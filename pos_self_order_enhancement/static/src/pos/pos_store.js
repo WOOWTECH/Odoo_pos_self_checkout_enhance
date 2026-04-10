@@ -408,10 +408,13 @@ patch(PosStore.prototype, {
         );
 
         if (this.printers_category_ids_set && this.printers_category_ids_set.size) {
+            // Pass empty Set so ALL products (including uncategorized ones)
+            // pass through getOrderChanges().  Per-printer routing still
+            // happens in _getPrintingCategoriesChanges which we also patch.
             const orderChange = changesToOrder(
                 order,
                 false,
-                this.printers_category_ids_set,
+                new Set(),
                 cancelled
             );
 
@@ -506,5 +509,25 @@ patch(PosStore.prototype, {
                 console.warn("KDS mark_sent_to_kitchen failed:", e);
             }
         }
+    },
+
+    /**
+     * Override: products WITHOUT a POS category are sent to ALL printers
+     * (inclusive default).  Products WITH categories still follow normal
+     * routing to matching printers only.
+     */
+    _getPrintingCategoriesChanges(categories, currentOrderChange) {
+        const filterFn = (change) => {
+            const product = this.models["product.product"].get(change["product_id"]);
+            const categoryIds = product?.parentPosCategIds;
+            // No category = belongs to every printer (inclusive default)
+            if (!categoryIds || categoryIds.length === 0) return true;
+            return categoryIds.some((id) => categories.includes(id));
+        };
+        return {
+            new: currentOrderChange["new"].filter(filterFn),
+            cancelled: currentOrderChange["cancelled"].filter(filterFn),
+            noteUpdated: currentOrderChange["noteUpdated"].filter(filterFn),
+        };
     },
 });
