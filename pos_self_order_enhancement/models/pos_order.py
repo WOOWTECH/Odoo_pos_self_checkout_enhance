@@ -43,6 +43,27 @@ class PosOrder(models.Model):
         help='JSON dict: {"<line_id>": true}. Tracks which items have been served to the table.',
     )
 
+    # ── E-Invoice (電子發票) ─────────────────────────────────
+    tw_invoice_number = fields.Char('Invoice Number (發票號碼)')
+    tw_invoice_random_code = fields.Char('Random Code (隨機碼)')
+    tw_carrier_type = fields.Selection([
+        ('print', 'Print (列印)'),
+        ('mobile', 'Mobile Barcode (手機條碼)'),
+        ('donation', 'Donation (捐贈)'),
+        ('b2b', 'B2B (統編)'),
+    ], string='Carrier Type (載具類型)')
+    tw_carrier_num = fields.Char('Carrier Number (載具號碼)')
+    tw_love_code = fields.Char('Love Code (愛心碼)')
+    tw_buyer_tax_id = fields.Char('Buyer Tax ID (買方統編)')
+    tw_invoice_status = fields.Selection([
+        ('none', 'None'),
+        ('issued', 'Issued (已開立)'),
+        ('voided', 'Voided (已作廢)'),
+    ], string='Invoice Status', default='none')
+    tw_qrcode_left = fields.Text('QR Code Left')
+    tw_qrcode_right = fields.Text('QR Code Right')
+    tw_pos_barcode = fields.Text('POS Barcode')
+
     # ── helpers ──────────────────────────────────────────────
 
     def _get_line_hold_fire_category(self, line):
@@ -296,11 +317,29 @@ class PosOrder(models.Model):
         'kds_remake_data', 'kds_fired_courses', 'kds_served_items',
     )
 
+    _EINVOICE_PROTECTED_FIELDS = (
+        'tw_invoice_number', 'tw_invoice_random_code', 'tw_invoice_status',
+        'tw_qrcode_left', 'tw_qrcode_right', 'tw_pos_barcode',
+    )
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        result = super()._load_pos_data_fields(config_id)
+        result += [
+            'tw_invoice_number', 'tw_invoice_random_code',
+            'tw_carrier_type', 'tw_carrier_num', 'tw_love_code',
+            'tw_buyer_tax_id', 'tw_invoice_status',
+            'tw_qrcode_left', 'tw_qrcode_right', 'tw_pos_barcode',
+        ]
+        return result
+
     @api.model
     def sync_from_ui(self, orders):
-        """Protect KDS fields from frontend overwrite; reset kds_state on new lines."""
+        """Protect KDS and e-invoice fields from frontend overwrite."""
         for order in orders:
             for field in self._KDS_PROTECTED_FIELDS:
+                order.pop(field, None)
+            for field in self._EINVOICE_PROTECTED_FIELDS:
                 order.pop(field, None)
 
         existing_order_ids = []
@@ -349,3 +388,63 @@ class PosOrder(models.Model):
                     order.write({'kds_fired_courses': json.dumps(fired)})
 
         return result
+
+    # ── E-Invoice RPC methods ─────────────────────────────
+
+    def action_issue_einvoice(self, carrier_data):
+        """Issue e-invoice via ECPay API. Called from POS frontend after payment."""
+        self.ensure_one()
+        config = self.config_id
+        if not config.ecpay_einvoice_enabled:
+            return {'success': False, 'error': 'E-Invoice not enabled'}
+
+        carrier_type = carrier_data.get('carrier_type', 'print')
+        carrier_num = carrier_data.get('carrier_num', '')
+        love_code = carrier_data.get('love_code', '')
+        buyer_tax_id = carrier_data.get('buyer_tax_id', '')
+
+        from .ecpay_einvoice import issue_b2c, issue_b2b
+
+        if carrier_type == 'b2b' and buyer_tax_id:
+            result = issue_b2b(config, self, buyer_tax_id)
+        else:
+            result = issue_b2c(config, self, carrier_type, carrier_num, love_code)
+
+        if result.get('RtnCode') == 1:
+            self.write({
+                'tw_invoice_number': result.get('InvoiceNo', ''),
+                'tw_invoice_random_code': result.get('RandomNumber', ''),
+                'tw_carrier_type': carrier_type,
+                'tw_carrier_num': carrier_num,
+                'tw_love_code': love_code,
+                'tw_buyer_tax_id': buyer_tax_id,
+                'tw_invoice_status': 'issued',
+                'tw_qrcode_left': result.get('QRCode_Left', ''),
+                'tw_qrcode_right': result.get('QRCode_Right', ''),
+                'tw_pos_barcode': result.get('PosBarCode', ''),
+            })
+            return {
+                'success': True,
+                'invoice_no': result.get('InvoiceNo', ''),
+                'random_code': result.get('RandomNumber', ''),
+                'qrcode_left': result.get('QRCode_Left', ''),
+                'qrcode_right': result.get('QRCode_Right', ''),
+                'pos_barcode': result.get('PosBarCode', ''),
+            }
+        return {'success': False, 'error': result.get('RtnMsg', 'Unknown error')}
+
+    def action_void_einvoice(self, reason=''):
+        """Void a previously issued e-invoice."""
+        self.ensure_one()
+        if self.tw_invoice_status != 'issued':
+            return {'success': False, 'error': 'No issued invoice to void'}
+
+        from .ecpay_einvoice import void_invoice
+
+        invoice_date = self.date_order.strftime('%Y-%m-%d %H:%M:%S') if self.date_order else ''
+        result = void_invoice(self.config_id, self.tw_invoice_number, invoice_date, reason)
+
+        if result.get('RtnCode') == 1:
+            self.write({'tw_invoice_status': 'voided'})
+            return {'success': True}
+        return {'success': False, 'error': result.get('RtnMsg', 'Unknown error')}

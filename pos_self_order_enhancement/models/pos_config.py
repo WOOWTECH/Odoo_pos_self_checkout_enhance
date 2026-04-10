@@ -27,6 +27,23 @@ class PosConfig(models.Model):
         self.ensure_one()
         self.kds_access_token = uuid.uuid4().hex[:16]
 
+    # ── E-Invoice (電子發票) ────────────────────────────────
+    ecpay_einvoice_enabled = fields.Boolean('E-Invoice (電子發票)', default=False)
+    ecpay_einvoice_env = fields.Selection([
+        ('stage', 'Staging (測試)'),
+        ('prod', 'Production (正式)'),
+    ], string='ECPay Environment', default='stage')
+    ecpay_einvoice_merchant_id = fields.Char('ECPay Merchant ID (特店編號)')
+    ecpay_einvoice_hash_key = fields.Char('ECPay HashKey')
+    ecpay_einvoice_hash_iv = fields.Char('ECPay HashIV')
+    ecpay_seller_tax_id = fields.Char('Seller Tax ID (賣方統編)')
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        result = super()._load_pos_data_fields(config_id)
+        result += ['ecpay_einvoice_enabled', 'ecpay_einvoice_env', 'ecpay_seller_tax_id']
+        return result
+
     def _compute_selection_pay_after(self):
         """
         Override to remove Enterprise version restriction from 'each' option.
