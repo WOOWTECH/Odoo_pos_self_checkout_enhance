@@ -2,25 +2,23 @@
 
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { patch } from "@web/core/utils/patch";
-import { useRef } from "@odoo/owl";
+import { useState, useRef } from "@odoo/owl";
 import { EscPosPrinter } from "@pos_self_order_enhancement/printer/escpos_network_printer";
 
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup(...arguments);
-        if (this.pos.config.ecpay_einvoice_enabled) {
-            Object.assign(this.state, {
-                einvCarrierType: "print",
-                einvCarrierNum: "",
-                einvLoveCode: "",
-                einvBuyerTaxId: "",
-            });
-            this.einvCarrierInput = useRef("einvCarrierInput");
-        }
+        this.einvState = useState({
+            einvCarrierType: "print",
+            einvCarrierNum: "",
+            einvLoveCode: "",
+            einvBuyerTaxId: "",
+        });
+        this.einvCarrierInput = useRef("einvCarrierInput");
     },
 
     setEinvCarrierType(type) {
-        this.state.einvCarrierType = type;
+        this.einvState.einvCarrierType = type;
         if (type === "mobile") {
             setTimeout(() => this.einvCarrierInput?.el?.focus(), 50);
         }
@@ -28,10 +26,10 @@ patch(PaymentScreen.prototype, {
 
     _getEinvCarrierData() {
         return {
-            carrier_type: this.state.einvCarrierType,
-            carrier_num: this.state.einvCarrierNum,
-            love_code: this.state.einvLoveCode,
-            buyer_tax_id: this.state.einvBuyerTaxId,
+            carrier_type: this.state?.einvCarrierType || "print",
+            carrier_num: this.einvState?.einvCarrierNum || "",
+            love_code: this.einvState?.einvLoveCode || "",
+            buyer_tax_id: this.einvState?.einvBuyerTaxId || "",
         };
     },
 

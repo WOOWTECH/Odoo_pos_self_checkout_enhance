@@ -38,12 +38,6 @@ class PosConfig(models.Model):
     ecpay_einvoice_hash_iv = fields.Char('ECPay HashIV')
     ecpay_seller_tax_id = fields.Char('Seller Tax ID (賣方統編)')
 
-    @api.model
-    def _load_pos_data_fields(self, config_id):
-        result = super()._load_pos_data_fields(config_id)
-        result += ['ecpay_einvoice_enabled', 'ecpay_einvoice_env', 'ecpay_seller_tax_id']
-        return result
-
     def _compute_selection_pay_after(self):
         """
         Override to remove Enterprise version restriction from 'each' option.

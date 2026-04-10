@@ -323,17 +323,6 @@ class PosOrder(models.Model):
     )
 
     @api.model
-    def _load_pos_data_fields(self, config_id):
-        result = super()._load_pos_data_fields(config_id)
-        result += [
-            'tw_invoice_number', 'tw_invoice_random_code',
-            'tw_carrier_type', 'tw_carrier_num', 'tw_love_code',
-            'tw_buyer_tax_id', 'tw_invoice_status',
-            'tw_qrcode_left', 'tw_qrcode_right', 'tw_pos_barcode',
-        ]
-        return result
-
-    @api.model
     def sync_from_ui(self, orders):
         """Protect KDS and e-invoice fields from frontend overwrite."""
         for order in orders:

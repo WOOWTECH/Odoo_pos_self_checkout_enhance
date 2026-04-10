@@ -9,42 +9,42 @@
                 <div class="fw-bold mb-1 small text-muted">電子發票 E-Invoice</div>
                 <div class="d-flex gap-1 mb-2 flex-wrap">
                     <button class="btn btn-sm"
-                        t-att-class="{'btn-primary': state.einvCarrierType === 'mobile', 'btn-outline-secondary': state.einvCarrierType !== 'mobile'}"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'mobile', 'btn-outline-secondary': einvState.einvCarrierType !== 'mobile'}"
                         t-on-click="() => this.setEinvCarrierType('mobile')">
                         手機條碼
                     </button>
                     <button class="btn btn-sm"
-                        t-att-class="{'btn-primary': state.einvCarrierType === 'donation', 'btn-outline-secondary': state.einvCarrierType !== 'donation'}"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'donation', 'btn-outline-secondary': einvState.einvCarrierType !== 'donation'}"
                         t-on-click="() => this.setEinvCarrierType('donation')">
                         捐贈
                     </button>
                     <button class="btn btn-sm"
-                        t-att-class="{'btn-primary': state.einvCarrierType === 'print', 'btn-outline-secondary': state.einvCarrierType !== 'print'}"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'print', 'btn-outline-secondary': einvState.einvCarrierType !== 'print'}"
                         t-on-click="() => this.setEinvCarrierType('print')">
                         列印
                     </button>
                     <button class="btn btn-sm"
-                        t-att-class="{'btn-primary': state.einvCarrierType === 'b2b', 'btn-outline-secondary': state.einvCarrierType !== 'b2b'}"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'b2b', 'btn-outline-secondary': einvState.einvCarrierType !== 'b2b'}"
                         t-on-click="() => this.setEinvCarrierType('b2b')">
                         統編
                     </button>
                 </div>
-                <input t-if="state.einvCarrierType === 'mobile'"
+                <input t-if="einvState.einvCarrierType === 'mobile'"
                     class="form-control form-control-sm"
                     placeholder="/XXXXXXX (手機條碼)"
                     t-ref="einvCarrierInput"
-                    t-on-change="(ev) => this.state.einvCarrierNum = ev.target.value"
-                    t-att-value="state.einvCarrierNum"/>
-                <input t-if="state.einvCarrierType === 'donation'"
+                    t-on-change="(ev) => this.einvState.einvCarrierNum = ev.target.value"
+                    t-att-value="einvState.einvCarrierNum"/>
+                <input t-if="einvState.einvCarrierType === 'donation'"
                     class="form-control form-control-sm"
                     placeholder="愛心碼 Love Code (e.g. 168001)"
-                    t-on-change="(ev) => this.state.einvLoveCode = ev.target.value"
-                    t-att-value="state.einvLoveCode"/>
-                <input t-if="state.einvCarrierType === 'b2b'"
+                    t-on-change="(ev) => this.einvState.einvLoveCode = ev.target.value"
+                    t-att-value="einvState.einvLoveCode"/>
+                <input t-if="einvState.einvCarrierType === 'b2b'"
                     class="form-control form-control-sm"
                     placeholder="統一編號 Tax ID (8 digits)"
-                    t-on-change="(ev) => this.state.einvBuyerTaxId = ev.target.value"
-                    t-att-value="state.einvBuyerTaxId"
+                    t-on-change="(ev) => this.einvState.einvBuyerTaxId = ev.target.value"
+                    t-att-value="einvState.einvBuyerTaxId"
                     maxlength="8"/>
             </div>
         </xpath>
