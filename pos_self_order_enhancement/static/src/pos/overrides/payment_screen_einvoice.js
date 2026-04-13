@@ -3,6 +3,11 @@
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { patch } from "@web/core/utils/patch";
 import { useState, useRef } from "@odoo/owl";
+import { useService } from "@web/core/utils/hooks";
+import { loadAllImages } from "@point_of_sale/utils";
+import { EscPosPrinter } from "@pos_self_order_enhancement/printer/escpos_network_printer";
+import { TwInvoiceReceipt } from "@pos_self_order_enhancement/pos/overrides/tw_invoice_receipt";
+
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup(...arguments);
@@ -13,6 +18,7 @@ patch(PaymentScreen.prototype, {
             einvBuyerTaxId: "",
         });
         this.einvCarrierInput = useRef("einvCarrierInput");
+        this.renderer = useService("renderer");
     },
 
     setEinvCarrierType(type) {
@@ -88,16 +94,34 @@ patch(PaymentScreen.prototype, {
     },
 
     async _printTwInvoiceReceipt(invoiceResult) {
-        // Print Taiwan invoice receipt via standard POS printer
+        // Print Taiwan invoice receipt to ESC/POS preparation printer.
+        // We bypass the receipt printer service (this.printer) because it
+        // targets the POS receipt printer (browser/IoT/ePos), not the
+        // ESC/POS network preparation printer.
+        const escposPrinter = this.pos?.unwatched?.printers?.find(
+            (p) => p instanceof EscPosPrinter
+        );
+        if (!escposPrinter) {
+            console.warn("No ESC/POS printer found for invoice printing");
+            return;
+        }
+
         try {
-            const { TwInvoiceReceipt } = await import(
-                "@pos_self_order_enhancement/pos/overrides/tw_invoice_receipt"
-            );
-            await this.printer.print(TwInvoiceReceipt, {
+            // Render the component to an HTML element via the renderer service
+            const el = await this.renderer.toHtml(TwInvoiceReceipt, {
                 order: this.currentOrder,
                 invoiceData: invoiceResult,
                 sellerTaxId: this.pos.config.ecpay_seller_tax_id || "",
             });
+            await loadAllImages(el);
+            // BasePrinter.printReceipt takes HTML, converts to canvas, sends to printer
+            const result = await escposPrinter.printReceipt(el);
+            if (!result?.successful) {
+                this.notification.add(
+                    `發票列印失敗 Print error: ${result?.message?.body || "Unknown"}`,
+                    { type: "warning" }
+                );
+            }
         } catch (e) {
             // Non-blocking: e-invoice is already issued via ECPay
             console.warn("Taiwan invoice print failed:", e);
