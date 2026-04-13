@@ -3,8 +3,6 @@
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { patch } from "@web/core/utils/patch";
 import { useState, useRef } from "@odoo/owl";
-import { EscPosPrinter } from "@pos_self_order_enhancement/printer/escpos_network_printer";
-
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup(...arguments);
@@ -37,9 +35,10 @@ patch(PaymentScreen.prototype, {
         const result = await super._finalizeValidation(...arguments);
 
         // Issue e-invoice after order is synced to server
+        // State can be "paid" (no invoice toggle) or "invoiced" (invoice toggle ON)
         if (
             this.pos.config.ecpay_einvoice_enabled &&
-            this.currentOrder.state === "paid"
+            ["paid", "invoiced", "done"].includes(this.currentOrder.state)
         ) {
             await this._issueEinvoice();
         }
@@ -89,19 +88,7 @@ patch(PaymentScreen.prototype, {
     },
 
     async _printTwInvoiceReceipt(invoiceResult) {
-        // Find first ESC/POS network printer
-        const escposPrinter = this.pos?.unwatched?.printers?.find(
-            (p) => p instanceof EscPosPrinter
-        );
-        if (!escposPrinter) {
-            this.notification.add(
-                "No ESC/POS printer found for invoice printing",
-                { type: "warning" }
-            );
-            return;
-        }
-
-        // Use the TwInvoiceReceipt component (Phase B)
+        // Print Taiwan invoice receipt via standard POS printer
         try {
             const { TwInvoiceReceipt } = await import(
                 "@pos_self_order_enhancement/pos/overrides/tw_invoice_receipt"
@@ -112,10 +99,8 @@ patch(PaymentScreen.prototype, {
                 sellerTaxId: this.pos.config.ecpay_seller_tax_id || "",
             });
         } catch (e) {
-            this.notification.add(
-                `發票列印失敗 Print error: ${e.message || e}`,
-                { type: "warning" }
-            );
+            // Non-blocking: e-invoice is already issued via ECPay
+            console.warn("Taiwan invoice print failed:", e);
         }
     },
 });

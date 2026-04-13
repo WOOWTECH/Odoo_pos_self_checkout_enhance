@@ -494,6 +494,17 @@ class PosOrder(models.Model):
         if not config.ecpay_einvoice_enabled:
             return {'success': False, 'error': 'E-Invoice not enabled'}
 
+        # Skip if already issued (e.g. via account.move auto-invoice flow)
+        if self.ecpay_invoice_id or self.tw_invoice_status == 'issued':
+            return {
+                'success': True,
+                'invoice_no': self.tw_invoice_number or '',
+                'random_code': self.tw_invoice_random_code or '',
+                'qrcode_left': self.tw_qrcode_left or '',
+                'qrcode_right': self.tw_qrcode_right or '',
+                'pos_barcode': self.tw_pos_barcode or '',
+            }
+
         company = self.env.company
         if not company.ecpay_MerchantID or not company.ecpay_HashKey or not company.ecpay_HashIV:
             return {'success': False, 'error': '綠界電子發票連線設定不完整 ECPay credentials not configured'}
@@ -557,7 +568,7 @@ class PosOrder(models.Model):
         invoice_sdk.Send['RelateNumber'] = ui_record.related_number
         invoice_sdk.Send['CustomerIdentifier'] = buyer_tax_id[:8] if is_b2b else ''
         invoice_sdk.Send['CustomerName'] = (partner.name if partner else '顧客')[:60]
-        invoice_sdk.Send['CustomerAddr'] = (partner.contact_address_complete if partner else 'N/A')[:200]
+        invoice_sdk.Send['CustomerAddr'] = (partner.contact_address if partner else 'N/A')[:200]
         invoice_sdk.Send['CustomerEmail'] = (partner.email if partner else 'noreply@pos.local')[:200]
         invoice_sdk.Send['CustomerPhone'] = ((partner.phone or partner.mobile) if partner else '')[:20]
         invoice_sdk.Send['Print'] = print_flag
