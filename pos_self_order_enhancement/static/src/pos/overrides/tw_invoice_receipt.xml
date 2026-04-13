@@ -2,91 +2,104 @@
 <templates id="template" xml:space="preserve">
 
     <t t-name="pos_self_order_enhancement.TwInvoiceReceipt">
-        <div class="tw-invoice-receipt" style="width:280px; font-family:monospace; font-size:12px; padding:4px;">
+        <!-- 57mm thermal paper = 455px at 203 DPI -->
+        <div class="tw-invoice-receipt" style="width:455px; font-family:monospace; font-size:14px; padding:8px; background:#fff; color:#000;">
 
-            <!-- Title -->
-            <div style="text-align:center; font-size:16px; font-weight:bold; margin-bottom:4px;">
-                電 子 發 票 證 明 聯
+            <!-- Title 電子發票證明聯 -->
+            <div style="text-align:center; font-size:22px; font-weight:bold; margin-bottom:4px; letter-spacing:4px;">
+                電子發票證明聯
             </div>
 
             <!-- Invoice period (ROC calendar) -->
-            <div style="text-align:center; font-size:14px; margin-bottom:2px;">
+            <div style="text-align:center; font-size:18px; margin-bottom:4px;">
                 <t t-esc="invoicePeriod"/>
             </div>
 
             <!-- Invoice number -->
-            <div style="text-align:center; font-size:18px; font-weight:bold; letter-spacing:2px; margin-bottom:6px;">
+            <div style="text-align:center; font-size:24px; font-weight:bold; letter-spacing:3px; margin-bottom:8px;">
                 <t t-esc="formattedInvoiceNo"/>
             </div>
 
-            <!-- Date, random code, seller -->
-            <div style="font-size:11px; margin-bottom:2px;">
+            <!-- Date + Time -->
+            <div style="font-size:14px; margin-bottom:2px;">
                 <t t-esc="rocDateTime"/>
             </div>
-            <div style="font-size:11px; margin-bottom:2px;">
-                隨機碼: <t t-esc="props.invoiceData.random_code"/>
-                <span style="margin-left:12px;">賣方: <t t-esc="props.sellerTaxId"/></span>
+
+            <!-- Random code + Seller tax ID -->
+            <div style="font-size:14px; margin-bottom:2px;">
+                隨機碼:<t t-esc="props.invoiceData.random_code"/>
+                <span style="margin-left:16px;">賣方:<t t-esc="props.sellerTaxId"/></span>
+            </div>
+
+            <!-- Buyer tax ID (B2B only, shown near top per MOF format) -->
+            <div t-if="props.order.tw_buyer_tax_id" style="font-size:14px; margin-bottom:2px;">
+                買方:<t t-esc="props.order.tw_buyer_tax_id"/>
             </div>
 
             <!-- QR codes side by side -->
-            <div t-if="props.invoiceData.qrcode_left" style="display:flex; justify-content:center; gap:8px; margin:6px 0;">
-                <img t-att-src="qrLeftUrl" style="width:120px; height:120px;"/>
-                <img t-if="props.invoiceData.qrcode_right" t-att-src="qrRightUrl" style="width:120px; height:120px;"/>
+            <div t-if="props.invoiceData.qrcode_left" style="display:flex; justify-content:center; gap:12px; margin:8px 0;">
+                <img t-att-src="qrLeftUrl" style="width:180px; height:180px;"/>
+                <img t-if="props.invoiceData.qrcode_right" t-att-src="qrRightUrl" style="width:180px; height:180px;"/>
             </div>
 
-            <!-- Barcode -->
-            <div t-if="props.invoiceData.pos_barcode" style="text-align:center; margin:4px 0;">
-                <img t-att-src="barcodeUrl" style="width:260px; height:40px;"/>
+            <!-- Barcode (Code 39) -->
+            <div t-if="props.invoiceData.pos_barcode" style="text-align:center; margin:6px 0;">
+                <img t-att-src="barcodeUrl" style="width:420px; height:60px;"/>
             </div>
 
             <!-- Separator -->
-            <div style="border-top:1px dashed #000; margin:6px 0;"/>
+            <div style="border-top:1px dashed #000; margin:8px 0;"/>
 
-            <!-- Items header -->
-            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold;">
+            <!-- Items header: 品名 / 數量 / 單價 / 金額 -->
+            <div style="display:flex; font-size:13px; font-weight:bold; margin-bottom:2px;">
                 <span style="flex:3;">品名</span>
                 <span style="flex:1; text-align:right;">數量</span>
-                <span style="flex:1.5; text-align:right;">金額</span>
+                <span style="flex:1.2; text-align:right;">單價</span>
+                <span style="flex:1.2; text-align:right;">金額</span>
             </div>
             <div style="border-top:1px solid #000; margin:2px 0;"/>
 
             <!-- Items -->
-            <t t-foreach="orderLines" t-as="line" t-key="line.id">
-                <div style="display:flex; justify-content:space-between; font-size:11px;">
+            <t t-foreach="formattedLines" t-as="item" t-key="item_index">
+                <div style="display:flex; font-size:13px;">
                     <span style="flex:3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                        <t t-esc="line.full_product_name || line.product_id?.display_name || 'Item'"/>
+                        <t t-esc="item.name"/>
                     </span>
                     <span style="flex:1; text-align:right;">
-                        <t t-esc="line.qty"/>
+                        <t t-esc="item.qty"/>
                     </span>
-                    <span style="flex:1.5; text-align:right;">
-                        $<t t-esc="Math.round(line.price_subtotal_incl)"/>
+                    <span style="flex:1.2; text-align:right;">
+                        <t t-esc="item.unitPrice"/>
+                    </span>
+                    <span style="flex:1.2; text-align:right;">
+                        <t t-esc="item.amount"/>
                     </span>
                 </div>
             </t>
 
             <!-- Totals -->
-            <div style="border-top:1px solid #000; margin:4px 0;"/>
-            <div style="display:flex; justify-content:space-between; font-size:12px;">
-                <span>銷售額 Sales:</span>
+            <div style="border-top:1px solid #000; margin:6px 0;"/>
+            <div style="display:flex; justify-content:space-between; font-size:14px;">
+                <span>銷售額</span>
                 <span>$<t t-esc="salesAmount"/></span>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:12px;">
-                <span>稅額 Tax:</span>
+            <div style="display:flex; justify-content:space-between; font-size:14px;">
+                <span>稅　額</span>
                 <span>$<t t-esc="taxAmount"/></span>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold;">
-                <span>總計 Total:</span>
+            <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:bold; margin-top:2px;">
+                <span>總　計</span>
                 <span>$<t t-esc="totalAmount"/></span>
             </div>
 
-            <!-- Buyer tax ID if B2B -->
-            <div t-if="props.order.tw_buyer_tax_id" style="margin-top:4px; font-size:11px;">
-                買方統編: <t t-esc="props.order.tw_buyer_tax_id"/>
+            <!-- Footer -->
+            <div style="border-top:1px dashed #000; margin:8px 0;"/>
+            <div style="text-align:center; font-size:12px;">
+                退貨時請攜帶本證明聯正本
             </div>
 
             <!-- Bottom margin for paper cut -->
-            <div style="height:20px;"/>
+            <div style="height:24px;"/>
         </div>
     </t>
 

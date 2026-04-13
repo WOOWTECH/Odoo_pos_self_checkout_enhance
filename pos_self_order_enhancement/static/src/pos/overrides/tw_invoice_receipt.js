@@ -55,6 +55,15 @@ export class TwInvoiceReceipt extends Component {
         return order.lines || order.orderlines || [];
     }
 
+    get formattedLines() {
+        return this.orderLines.map((line) => ({
+            name: line.full_product_name || line.product_id?.display_name || "Item",
+            qty: line.qty,
+            unitPrice: Math.round(line.price_unit),
+            amount: Math.round(line.price_subtotal_incl),
+        }));
+    }
+
     get totalAmount() {
         return Math.round(this.props.order.amount_total || 0);
     }
