@@ -7,7 +7,8 @@
         <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@groups='base.group_system']" position="before">
-                <setting string="Taiwan E-Invoice (電子發票)" help="Issue 統一發票 via ECPay at point of sale / 在銷售點透過綠界開立統一發票">
+                <setting string="Taiwan E-Invoice (電子發票)"
+                         help="Issue 統一發票 via ECPay at point of sale / 在銷售點透過綠界開立統一發票">
                     <div class="content-group">
                         <div class="row">
                             <div class="col-lg-5 o_light_label">
@@ -17,47 +18,12 @@
                                 <field name="ecpay_einvoice_enabled"/>
                             </div>
                         </div>
-                        <div invisible="not ecpay_einvoice_enabled">
-                            <div class="row mt-2">
-                                <div class="col-lg-5 o_light_label">
-                                    <label string="Environment / 環境" for="ecpay_einvoice_env"/>
-                                </div>
-                                <div class="col-lg-7">
-                                    <field name="ecpay_einvoice_env"/>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-5 o_light_label">
-                                    <label string="Merchant ID / 特店編號" for="ecpay_einvoice_merchant_id"/>
-                                </div>
-                                <div class="col-lg-7">
-                                    <field name="ecpay_einvoice_merchant_id" placeholder="2000132 (staging default)"/>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-5 o_light_label">
-                                    <label string="HashKey" for="ecpay_einvoice_hash_key"/>
-                                </div>
-                                <div class="col-lg-7">
-                                    <field name="ecpay_einvoice_hash_key" password="True" placeholder="Staging default if empty"/>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-5 o_light_label">
-                                    <label string="HashIV" for="ecpay_einvoice_hash_iv"/>
-                                </div>
-                                <div class="col-lg-7">
-                                    <field name="ecpay_einvoice_hash_iv" password="True" placeholder="Staging default if empty"/>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-5 o_light_label">
-                                    <label string="Seller Tax ID / 賣方統編" for="ecpay_seller_tax_id"/>
-                                </div>
-                                <div class="col-lg-7">
-                                    <field name="ecpay_seller_tax_id" placeholder="e.g. 12345678"/>
-                                </div>
-                            </div>
+                        <div invisible="not ecpay_einvoice_enabled" class="text-muted small mt-2">
+                            ECPay credentials (MerchantID, HashKey, HashIV) are configured at the company level.
+                            <br/>
+                            綠界電子發票連線設定（特店編號、HashKey、HashIV）請至公司設定中設定。
+                            <br/>
+                            Path / 路徑: Settings &gt; Accounting &gt; ECPay 電子發票設定
                         </div>
                     </div>
                 </setting>

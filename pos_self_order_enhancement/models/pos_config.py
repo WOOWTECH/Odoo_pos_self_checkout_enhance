@@ -29,14 +29,11 @@ class PosConfig(models.Model):
 
     # ── E-Invoice (電子發票) ────────────────────────────────
     ecpay_einvoice_enabled = fields.Boolean('E-Invoice (電子發票)', default=False)
-    ecpay_einvoice_env = fields.Selection([
-        ('stage', 'Staging (測試)'),
-        ('prod', 'Production (正式)'),
-    ], string='ECPay Environment', default='stage')
-    ecpay_einvoice_merchant_id = fields.Char('ECPay Merchant ID (特店編號)')
-    ecpay_einvoice_hash_key = fields.Char('ECPay HashKey')
-    ecpay_einvoice_hash_iv = fields.Char('ECPay HashIV')
-    ecpay_seller_tax_id = fields.Char('Seller Tax ID (賣方統編)')
+    ecpay_seller_tax_id = fields.Char(
+        related='company_id.seller_Identifier',
+        string='Seller Tax ID (賣方統編)',
+        readonly=True,
+    )
 
     def _compute_selection_pay_after(self):
         """
