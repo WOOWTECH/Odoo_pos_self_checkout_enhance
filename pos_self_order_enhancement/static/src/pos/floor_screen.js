@@ -12,6 +12,13 @@ function parseJson(raw) {
 }
 
 patch(FloorScreen.prototype, {
+    getCounterPayCount(table) {
+        return this.pos.models["pos.order"].filter((o) => {
+            if (o.table_id?.id !== table.id || o.finalized) return false;
+            return o.self_order_payment_status === "pending_counter";
+        }).length;
+    },
+
     getKdsReadyCount(table) {
         return this.pos.models["pos.order"].filter((o) => {
             if (o.table_id?.id !== table.id || o.finalized) return false;

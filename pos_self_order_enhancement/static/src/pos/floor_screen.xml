@@ -2,9 +2,20 @@
 <templates xml:space="preserve">
     <t t-name="pos_self_order_enhancement.FloorScreen" t-inherit="pos_restaurant.FloorScreen" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('info')]" position="after">
+            <t t-set="counterPay" t-value="getCounterPayCount(table)"/>
             <t t-set="kdsReady" t-value="getKdsReadyCount(table)"/>
             <t t-set="kdsHold" t-value="getKdsHoldCount(table)"/>
-            <t t-if="kdsReady > 0">
+            <t t-if="counterPay > 0">
+                <div class="position-absolute d-flex align-items-center justify-content-center rounded-circle fw-bolder z-2"
+                     style="width: 2rem; height: 2rem; top: 0; left: 0; transform: translate(-30%, -30%); background: #f39c12; color: white; font-size: 0.85rem;">
+                    <i class="fa fa-dollar" style="color: white;"/>
+                </div>
+                <div class="position-absolute bottom-0 start-0 w-100 text-center fw-bold z-2"
+                     style="background: rgba(243, 156, 18, 0.85); color: white; font-size: 0.7rem; padding: 2px 0; border-radius: 0 0 3px 3px;">
+                    Counter Pay
+                </div>
+            </t>
+            <t t-elif="kdsReady > 0">
                 <div class="position-absolute d-flex align-items-center justify-content-center rounded-circle fw-bolder z-2"
                      style="width: 2rem; height: 2rem; top: 0; left: 0; transform: translate(-30%, -30%); background: #28a745; color: white; font-size: 0.85rem;">
                     <i class="fa fa-check" style="color: white;"/>
