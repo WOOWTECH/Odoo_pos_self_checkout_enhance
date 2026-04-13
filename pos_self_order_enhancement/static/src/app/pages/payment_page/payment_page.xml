@@ -64,6 +64,27 @@
                         </div>
                     </t>
 
+                    <!-- Counter Payment Confirmed -->
+                    <t t-elif="state.counterPaymentConfirmed">
+                        <div class="d-flex flex-column justify-content-center align-items-center h-100 text-center p-4">
+                            <i class="fa fa-check-circle fa-4x text-success mb-4"></i>
+                            <h4 class="fw-bold mb-3">Order Received!</h4>
+                            <p class="text-muted fs-5 mb-2">
+                                Please go to the counter to pay.
+                            </p>
+                            <p class="fw-bold fs-4 text-primary mb-4">
+                                Total: <t t-esc="formatCurrency(totalAmount)"/>
+                            </p>
+                            <p class="text-muted mb-4">
+                                Order: <t t-esc="orderReference"/>
+                            </p>
+                            <button class="btn btn-primary btn-lg w-100 py-3" t-on-click="goToHome">
+                                <i class="fa fa-home me-2"></i>
+                                Back to Home
+                            </button>
+                        </div>
+                    </t>
+
                     <!-- Error State -->
                     <t t-elif="state.error">
                         <div class="alert alert-danger" role="alert">
@@ -143,15 +164,15 @@
                                 Select Payment Method
                             </h6>
                             <div class="d-flex flex-column gap-2">
-                                <!-- Counter Payment Option - Display only -->
-                                <div class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
-                                     style="cursor: default; pointer-events: none;">
+                                <!-- Counter Payment Option -->
+                                <button class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
+                                        t-on-click="selectCounterPayment">
                                     <i class="fa fa-money me-3 fs-4 text-success"></i>
                                     <div class="text-start">
                                         <span class="fw-bold text-success">Pay at Counter</span>
                                         <small class="d-block text-muted">Pay at the cashier</small>
                                     </div>
-                                </div>
+                                </button>
 
                                 <!-- Online Payment Options -->
                                 <t t-if="hasOnlinePayment">

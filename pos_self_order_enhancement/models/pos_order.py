@@ -1,6 +1,7 @@
 import json
 
 from odoo import models, fields, api
+from odoo.osv.expression import AND
 
 
 class PosOrder(models.Model):
@@ -42,6 +43,15 @@ class PosOrder(models.Model):
         default='{}',
         help='JSON dict: {"<line_id>": true}. Tracks which items have been served to the table.',
     )
+
+    # ── Payment Gate (pay-per-order) ──────────────────────────
+    self_order_payment_status = fields.Selection([
+        ('none', 'No Payment Gate'),
+        ('pending_online', 'Pending Online Payment'),
+        ('pending_counter', 'Pending Counter Payment'),
+        ('paid', 'Payment Confirmed'),
+    ], string='Self-Order Payment Status', default='none',
+       help='Controls when POS/KDS is notified about self-order orders in pay-per-order mode.')
 
     # ── E-Invoice (電子發票) ─────────────────────────────────
     tw_invoice_number = fields.Char('Invoice Number (發票號碼)')
@@ -303,8 +313,21 @@ class PosOrder(models.Model):
         return True
 
     def _send_notification(self, order_ids):
-        """Extend to also notify KDS screens (only for kitchen-confirmed orders)."""
-        super()._send_notification(order_ids)
+        """Extend to also notify KDS screens (only for kitchen-confirmed orders).
+
+        In pay-per-order mode, notifications are suppressed entirely via context
+        flag during order creation. The controller handles notification later
+        (after payment is confirmed or customer selects counter payment).
+        """
+        if self.env.context.get('suppress_self_order_notification'):
+            return
+
+        notifiable = order_ids.filtered(
+            lambda o: o.self_order_payment_status != 'pending_online'
+        )
+        if notifiable:
+            super()._send_notification(notifiable)
+
         config_ids = order_ids.config_id
         for config in config_ids:
             if config.kds_enabled:
@@ -315,12 +338,23 @@ class PosOrder(models.Model):
     _KDS_PROTECTED_FIELDS = (
         'kds_state', 'kds_sent_to_kitchen', 'kds_done_items',
         'kds_remake_data', 'kds_fired_courses', 'kds_served_items',
+        'self_order_payment_status',
     )
 
     _EINVOICE_PROTECTED_FIELDS = (
         'tw_invoice_number', 'tw_invoice_random_code', 'tw_invoice_status',
         'tw_qrcode_left', 'tw_qrcode_right', 'tw_pos_barcode',
     )
+
+    @api.model
+    def _load_pos_data_domain(self, data):
+        """Exclude payment-gated orders from POS data loading.
+
+        Without this, refreshing POS would show pending_online orders
+        even though real-time notifications were suppressed.
+        """
+        domain = super()._load_pos_data_domain(data)
+        return AND([domain, [('self_order_payment_status', '!=', 'pending_online')]])
 
     @api.model
     def sync_from_ui(self, orders):
@@ -377,6 +411,36 @@ class PosOrder(models.Model):
                     order.write({'kds_fired_courses': json.dumps(fired)})
 
         return result
+
+    # ── Payment Gate: detect payment completion ───────────
+
+    def write(self, vals):
+        """Detect when payment-pending orders become paid and fire suppressed notifications."""
+        completing = self.env['pos.order']
+        if vals.get('state') in ('paid', 'done', 'invoiced'):
+            completing = self.filtered(
+                lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
+            )
+
+        res = super().write(vals)
+
+        if completing:
+            # Update payment status without re-triggering this override
+            super(PosOrder, completing).write({'self_order_payment_status': 'paid'})
+            # Fire the notifications that were suppressed during order creation.
+            # notify_synchronisation triggers POS to actually sync/load order data;
+            # ORDER_STATE_CHANGED alone is not enough (POS has no local copy yet).
+            for config in completing.config_id:
+                config.notify_synchronisation(
+                    config.current_session_id.id,
+                    self.env.context.get('login_number', 0)
+                )
+                config._notify('ORDER_STATE_CHANGED', {})
+            tables = completing.mapped('table_id')
+            if tables:
+                completing.send_table_count_notification(tables)
+
+        return res
 
     # ── E-Invoice RPC methods ─────────────────────────────
 

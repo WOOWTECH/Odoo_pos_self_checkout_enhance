@@ -22,6 +22,7 @@ export class PaymentPage extends Component {
         this.state = useState({
             loading: false,
             error: null,
+            counterPaymentConfirmed: false,
             // Kiosk mode state
             kioskSelection: true,
             kioskPaymentMethodId: null,
@@ -237,10 +238,41 @@ export class PaymentPage extends Component {
     }
 
     /**
-     * Counter payment - display only, no action needed.
+     * Counter payment - notify POS so cashier can see and process the order.
+     * In pay-per-order mode, this makes the order visible to the cashier.
      */
-    selectCounterPayment() {
-        // No action - customer pays at counter
+    async selectCounterPayment() {
+        const order = this.currentOrder;
+        if (!order?.id) {
+            return;
+        }
+
+        this.state.loading = true;
+        this.state.error = null;
+
+        try {
+            // Ensure order is on the server
+            if (!order.access_token) {
+                await this.selfOrder.sendDraftOrderToServer();
+            }
+
+            // Notify POS that customer will pay at counter
+            await rpc('/pos-self-order/select-counter-payment', {
+                access_token: this.selfOrder.access_token,
+                order_id: order.id,
+                order_access_token: order.access_token,
+            });
+
+            // Show success screen on payment page (don't navigate away —
+            // in "each" mode the selectedOrderUuid is already null so
+            // confirmation page can't find the order and redirects to landing)
+            this.state.loading = false;
+            this.state.counterPaymentConfirmed = true;
+        } catch (error) {
+            console.error("Counter payment error:", error);
+            this.state.error = _t("Failed to process. Please try again.");
+            this.state.loading = false;
+        }
     }
 
     /**
