@@ -1,6 +1,7 @@
 import uuid
 
 from odoo import models, fields, api, _
+from odoo.osv.expression import OR
 
 
 class PosConfig(models.Model):
@@ -44,3 +45,19 @@ class PosConfig(models.Model):
             ('meal', _('Meal')),
             ('each', _('Each Order')),
         ]
+
+    def read_config_open_orders(self, domain, record_ids=[]):
+        """Include paid payment-gated orders in POS sync.
+
+        POS JS only requests state='draft' orders. Payment-gated orders
+        transition draft→paid before POS sees them. We inject paid gated
+        orders into the domain so POS discovers them during sync.
+        """
+        if 'pos.order' in domain:
+            paid_gated = [
+                ('state', 'in', ['paid', 'done', 'invoiced']),
+                ('self_order_payment_status', '=', 'paid'),
+                ('session_id', '=', self.current_session_id.id),
+            ]
+            domain['pos.order'] = OR([domain['pos.order'], paid_gated])
+        return super().read_config_open_orders(domain, record_ids)

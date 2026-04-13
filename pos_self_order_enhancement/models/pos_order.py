@@ -1,7 +1,7 @@
 import json
 
 from odoo import models, fields, api
-from odoo.osv.expression import AND
+from odoo.osv.expression import AND, OR
 
 
 class PosOrder(models.Model):
@@ -350,13 +350,16 @@ class PosOrder(models.Model):
 
     @api.model
     def _load_pos_data_domain(self, data):
-        """Exclude payment-gated orders from POS data loading.
-
-        Without this, refreshing POS would show pending_online orders
-        even though real-time notifications were suppressed.
-        """
+        """Hide pending_online orders but include paid payment-gated orders."""
         domain = super()._load_pos_data_domain(data)
-        return AND([domain, [('self_order_payment_status', '!=', 'pending_online')]])
+        draft_domain = AND([domain, [('self_order_payment_status', '!=', 'pending_online')]])
+        session_id = data['pos.session']['data'][0]['id']
+        paid_gated = [
+            ('state', 'in', ['paid', 'done', 'invoiced']),
+            ('self_order_payment_status', '=', 'paid'),
+            ('session_id', '=', session_id),
+        ]
+        return OR([draft_domain, paid_gated])
 
     @api.model
     def sync_from_ui(self, orders):
@@ -416,8 +419,37 @@ class PosOrder(models.Model):
 
     # ── Payment Gate: detect payment completion ───────────
 
+    def _process_saved_order(self, draft):
+        """Sync payment-gated orders to POS BEFORE state changes to 'paid'.
+
+        POS can only load 'draft' orders (JS-hardcoded domain in sync).
+        We sync while still draft, then super() changes state to 'paid'.
+        read_config_open_orders override ensures paid gated orders are
+        also found during the async POS sync that follows.
+        """
+        gated = self.filtered(
+            lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
+        )
+        if gated:
+            super(PosOrder, gated).write({'self_order_payment_status': 'paid'})
+            for config in gated.config_id:
+                config.notify_synchronisation(
+                    config.current_session_id.id,
+                    self.env.context.get('login_number', 0)
+                )
+                config._notify('ORDER_STATE_CHANGED', {})
+            tables = gated.mapped('table_id')
+            if tables:
+                gated.send_table_count_notification(tables)
+        return super()._process_saved_order(draft)
+
     def write(self, vals):
-        """Detect when payment-pending orders become paid and fire suppressed notifications."""
+        """Update payment status when payment-gated orders become paid.
+
+        Notifications are handled by _process_saved_order() (before state
+        transition).  This override just ensures the status field is updated
+        for any remaining code paths (e.g. counter payment via POS cashier).
+        """
         completing = self.env['pos.order']
         if vals.get('state') in ('paid', 'done', 'invoiced'):
             completing = self.filtered(
@@ -427,20 +459,21 @@ class PosOrder(models.Model):
         res = super().write(vals)
 
         if completing:
-            # Update payment status without re-triggering this override
-            super(PosOrder, completing).write({'self_order_payment_status': 'paid'})
-            # Fire the notifications that were suppressed during order creation.
-            # notify_synchronisation triggers POS to actually sync/load order data;
-            # ORDER_STATE_CHANGED alone is not enough (POS has no local copy yet).
-            for config in completing.config_id:
-                config.notify_synchronisation(
-                    config.current_session_id.id,
-                    self.env.context.get('login_number', 0)
-                )
-                config._notify('ORDER_STATE_CHANGED', {})
-            tables = completing.mapped('table_id')
-            if tables:
-                completing.send_table_count_notification(tables)
+            # Update payment status for orders not already handled by _process_saved_order
+            still_pending = completing.filtered(
+                lambda o: o.self_order_payment_status != 'paid'
+            )
+            if still_pending:
+                super(PosOrder, still_pending).write({'self_order_payment_status': 'paid'})
+                for config in still_pending.config_id:
+                    config.notify_synchronisation(
+                        config.current_session_id.id,
+                        self.env.context.get('login_number', 0)
+                    )
+                    config._notify('ORDER_STATE_CHANGED', {})
+                tables = still_pending.mapped('table_id')
+                if tables:
+                    still_pending.send_table_count_notification(tables)
 
         return res
 
