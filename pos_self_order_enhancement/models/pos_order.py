@@ -711,3 +711,45 @@ class PosOrder(models.Model):
                 pass
             return {'success': True}
         return {'success': False, 'error': result.get('RtnMsg', 'Unknown error')}
+
+    def get_einvoice_print_html(self):
+        """Render the ecpay_invoice_tw invoice report as HTML for ESC/POS printing.
+
+        Reuses the official ecpay_invoice_tw.invoice QWeb template to ensure
+        the printed receipt matches the government-compliant format exactly.
+        """
+        self.ensure_one()
+        if not self.ecpay_invoice_id:
+            return {'html': ''}
+
+        try:
+            html = self.env['ir.qweb']._render('ecpay_invoice_tw.invoice', {
+                'docs': self.ecpay_invoice_id,
+                'doc': self.ecpay_invoice_id,
+                'user': self.env.user,
+                'company': self.env.company,
+            })
+            if isinstance(html, bytes):
+                html = html.decode('utf-8')
+            # Inject CSS inline — ESC/POS printer won't load external stylesheets
+            css = """<style>
+.invoiceContainer { font-family: monospace; }
+.invoiceContainer .invoice_inner { width: 5.7cm; font-size: 14px; background: white; display: inline-block; }
+.invoiceContainer .invoice_inner .invoice { width: 5.7cm; text-align: center; }
+.invoice h1 { font-size: 19px; line-height: 1.2; max-height: 68px; overflow: hidden; font-weight: bold; margin: 0; }
+.invoice h2 { font-size: 21px; font-weight: bold; line-height: 1; margin: 5px 0 4px; }
+.invoice h3 { font-size: 24px; margin: 0 0 2px 0; line-height: 1; font-weight: bold; }
+.invoice ul, .invoice_details ul { margin: 0; overflow: hidden; padding: 0; }
+.invoice ul li, .invoice_details ul li { color: #333; margin: 0 0 3px 0; line-height: 18px; font-size: 14px; overflow: hidden; list-style: none; width: 100%; text-align: left; }
+.invoice li span.left { float: left; }
+.invoice li span.right { float: right; text-align: right; }
+.invoiceContainer .invoice_inner .invoice_details { width: 5.7cm; padding: 5px; text-align: center; background: white; }
+.invoice_details h2 { margin: 5px 0 10px 0; font-size: 22px; font-weight: bold; }
+.invoice_details ul { border-bottom: 1px dashed #333; margin-bottom: 10px; }
+.invoice_details h4 { text-align: left; margin: 0; font-size: 14px; font-weight: bold; }
+</style>"""
+            return {'html': css + html}
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to render einvoice HTML: %s", e)
+            return {'html': ''}
