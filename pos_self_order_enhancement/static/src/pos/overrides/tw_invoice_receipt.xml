@@ -1,89 +1,116 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
 
+    <!--
+        Taiwan 電子發票證明聯 (格式一, 57mm thermal paper)
+        Per 財政部「電子發票實施作業要點」附件一 (112年修正)
+        Layout follows 圖1-1 (B2C) / 圖1-2 (B2B)
+    -->
     <t t-name="pos_self_order_enhancement.TwInvoiceReceipt">
         <!-- 57mm thermal paper = 455px at 203 DPI -->
-        <div class="tw-invoice-receipt" style="width:455px; font-family:monospace; font-size:14px; padding:8px; background:#fff; color:#000;">
+        <div class="tw-invoice-receipt" style="width:455px; font-family:monospace; font-size:15px; padding:8px; background:#fff; color:#000;">
 
-            <!-- Title 電子發票證明聯 -->
+            <!-- ═══ HEADER AREA (9cm fixed, fields cannot be reordered) ═══ -->
+
+            <!-- 1. 營業人識別標章 (MOF §三(三)1) -->
+            <div style="text-align:center; font-size:15px; margin-bottom:2px;">
+                <t t-esc="companyName"/>
+            </div>
+
+            <!-- 2. 電子發票證明聯 (MOF §三(三)2, bold, ≥0.5cm) -->
             <div style="text-align:center; font-size:22px; font-weight:bold; margin-bottom:4px; letter-spacing:4px;">
                 電子發票證明聯
             </div>
 
-            <!-- Invoice period (ROC calendar) -->
-            <div style="text-align:center; font-size:18px; margin-bottom:4px;">
+            <!-- 3. 年期別 (MOF §三(三)3, bold, ≥0.5cm) -->
+            <div style="text-align:center; font-size:18px; font-weight:bold; margin-bottom:4px;">
                 <t t-esc="invoicePeriod"/>
             </div>
 
-            <!-- Invoice number -->
+            <!-- 4. 統一發票字軌號碼 (MOF §三(三)4, bold, ≥0.5cm) -->
             <div style="text-align:center; font-size:24px; font-weight:bold; letter-spacing:3px; margin-bottom:8px;">
                 <t t-esc="formattedInvoiceNo"/>
             </div>
 
-            <!-- Date + Time -->
-            <div style="font-size:14px; margin-bottom:2px;">
-                <t t-esc="rocDateTime"/>
+            <!-- 5. 交易日期時間 (MOF §三(三)5: 西元年-月份-日期) -->
+            <div style="font-size:15px; margin-bottom:2px;">
+                <t t-esc="westernDateTime"/>
             </div>
 
-            <!-- Random code + Seller tax ID -->
-            <div style="font-size:14px; margin-bottom:2px;">
+            <!-- 6+7. 隨機碼 + 總計 (MOF §三(三)6+7, same line) -->
+            <div style="font-size:15px; margin-bottom:2px;">
                 隨機碼:<t t-esc="props.invoiceData.random_code"/>
-                <span style="margin-left:16px;">賣方:<t t-esc="props.sellerTaxId"/></span>
+                <span style="margin-left:16px;">總計:<t t-esc="totalAmount"/></span>
             </div>
 
-            <!-- Buyer tax ID (B2B only, shown near top per MOF format) -->
-            <div t-if="props.order.tw_buyer_tax_id" style="font-size:14px; margin-bottom:2px;">
-                買方:<t t-esc="props.order.tw_buyer_tax_id"/>
+            <!-- 8. 賣方統一編號 (MOF §三(三)8) -->
+            <div style="font-size:15px; margin-bottom:2px;">
+                賣方:<t t-esc="props.sellerTaxId"/>
+                <!-- 9. 買方統一編號 (MOF §三(三)9, B2B only) -->
+                <span t-if="isB2B" style="margin-left:16px;">
+                    買方:<t t-esc="props.order.tw_buyer_tax_id"/>
+                </span>
             </div>
 
-            <!-- QR codes side by side -->
-            <div t-if="props.invoiceData.qrcode_left" style="display:flex; justify-content:center; gap:12px; margin:8px 0;">
-                <img t-att-src="qrLeftUrl" style="width:180px; height:180px;"/>
-                <img t-if="props.invoiceData.qrcode_right" t-att-src="qrRightUrl" style="width:180px; height:180px;"/>
+            <!-- 10. B2B 格式代號 (MOF §三(三)10, B2B only) -->
+            <div t-if="isB2B" style="font-size:15px; margin-bottom:2px;">
+                格式:25
             </div>
 
-            <!-- Barcode (Code 39) -->
+            <!-- 11. 一維條碼 Code39 ABOVE QR codes (MOF §三(三)11, height ≥0.5cm) -->
             <div t-if="props.invoiceData.pos_barcode" style="text-align:center; margin:6px 0;">
                 <img t-att-src="barcodeUrl" style="width:420px; height:60px;"/>
             </div>
 
-            <!-- Separator -->
+            <!-- 12. 二維條碼 QR codes, side by side (MOF §三(三)12, min 1.4cm×1.4cm) -->
+            <div t-if="props.invoiceData.qrcode_left" style="display:flex; justify-content:center; gap:12px; margin:6px 0;">
+                <img t-att-src="qrLeftUrl" style="width:180px; height:180px;"/>
+                <img t-if="props.invoiceData.qrcode_right" t-att-src="qrRightUrl" style="width:180px; height:180px;"/>
+            </div>
+
+            <!-- ═══ TRANSACTION DETAILS (unlimited length) ═══ -->
+
+            <!-- Separator between header and details -->
             <div style="border-top:1px dashed #000; margin:8px 0;"/>
 
-            <!-- Items header: 品名 / 數量 / 單價 / 金額 -->
-            <div style="display:flex; font-size:13px; font-weight:bold; margin-bottom:2px;">
+            <!-- Items header: 品名 / 數量 / 單價 / 金額 / 課稅別 (MOF §四1-6) -->
+            <div style="display:flex; font-size:14px; font-weight:bold; margin-bottom:2px;">
                 <span style="flex:3;">品名</span>
-                <span style="flex:1; text-align:right;">數量</span>
-                <span style="flex:1.2; text-align:right;">單價</span>
-                <span style="flex:1.2; text-align:right;">金額</span>
+                <span style="flex:0.8; text-align:right;">數量</span>
+                <span style="flex:1; text-align:right;">單價</span>
+                <span style="flex:1; text-align:right;">金額</span>
+                <span style="flex:0.6; text-align:right;">課稅</span>
             </div>
             <div style="border-top:1px solid #000; margin:2px 0;"/>
 
-            <!-- Items -->
+            <!-- Items (MOF §四1-6) -->
             <t t-foreach="formattedLines" t-as="item" t-key="item_index">
-                <div style="display:flex; font-size:13px;">
+                <div style="display:flex; font-size:14px;">
                     <span style="flex:3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                         <t t-esc="item.name"/>
                     </span>
-                    <span style="flex:1; text-align:right;">
+                    <span style="flex:0.8; text-align:right;">
                         <t t-esc="item.qty"/>
                     </span>
-                    <span style="flex:1.2; text-align:right;">
+                    <span style="flex:1; text-align:right;">
                         <t t-esc="item.unitPrice"/>
                     </span>
-                    <span style="flex:1.2; text-align:right;">
+                    <span style="flex:1; text-align:right;">
                         <t t-esc="item.amount"/>
+                    </span>
+                    <span style="flex:0.6; text-align:right;">
+                        <t t-esc="item.taxType"/>
                     </span>
                 </div>
             </t>
 
-            <!-- Totals -->
+            <!-- Totals (MOF §四5,7) -->
             <div style="border-top:1px solid #000; margin:6px 0;"/>
-            <div style="display:flex; justify-content:space-between; font-size:14px;">
-                <span>銷售額</span>
+            <div style="display:flex; justify-content:space-between; font-size:15px;">
+                <span>銷售額(應稅)</span>
                 <span>$<t t-esc="salesAmount"/></span>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:14px;">
+            <div style="display:flex; justify-content:space-between; font-size:15px;">
                 <span>稅　額</span>
                 <span>$<t t-esc="taxAmount"/></span>
             </div>
@@ -92,10 +119,20 @@
                 <span>$<t t-esc="totalAmount"/></span>
             </div>
 
-            <!-- Footer -->
+            <!-- ═══ FOOTER (back-side content for single-sided thermal) ═══ -->
+
             <div style="border-top:1px dashed #000; margin:8px 0;"/>
-            <div style="text-align:center; font-size:12px;">
+
+            <!-- Return notice -->
+            <div style="text-align:center; font-size:13px; margin-bottom:4px;">
                 退貨時請攜帶本證明聯正本
+            </div>
+
+            <!-- Prize redemption info (MOF §五, normally on back side) -->
+            <div style="font-size:11px; text-align:center; line-height:1.4;">
+                兌獎若有疑義，請洽客服專線：
+                <br/>(手機請加02)4128282
+                <br/>或請至 https://invoice.etax.nat.gov.tw/ 查詢
             </div>
 
             <!-- Bottom margin for paper cut -->

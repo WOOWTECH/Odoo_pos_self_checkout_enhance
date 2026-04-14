@@ -1,7 +1,8 @@
 # Taiwan Electronic Invoice (電子發票證明聯) Format Requirements
 # 台灣電子發票證明聯格式規範
 
-Reference: 財政部「電子發票實施作業要點」/ MOF "Electronic Invoice Implementation Guidelines"
+Reference: 財政部「電子發票實施作業要點」附件一 (112年7月5日台財資字第1120002305號令修正發布)
+MOF "Electronic Invoice Implementation Guidelines" Attachment 1
 
 ---
 
@@ -27,7 +28,7 @@ Top-to-bottom order as required by MOF:
 | 1 | **Title / 標題** | `電子發票證明聯` centered, large bold | 電子發票證明聯 |
 | 2 | **Invoice Period / 發票期別** | ROC year + bimonthly period | 115年03-04月 |
 | 3 | **Invoice Number / 發票號碼** | 2 letters + 8 digits, formatted `XX-XXXXXXXX` | ZF-91471261 |
-| 4 | **Date & Time / 日期時間** | ROC calendar: `YYY/MM/DD HH:MM:SS` | 115/04/13 16:56:00 |
+| 4 | **Date & Time / 日期時間** | **Western year** (西元年): `YYYY-MM-DD HH:MM:SS` | 2026-04-13 16:56:00 |
 | 5 | **Random Code / 隨機碼** | 4-digit random number | 0930 |
 | 6 | **Seller Tax ID / 賣方統編** | 8-digit unified business number | 53538851 |
 | 7 | **Buyer Tax ID / 買方統編** | 8-digit (B2B only, omit for B2C) | 12345678 |

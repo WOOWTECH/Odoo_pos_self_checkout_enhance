@@ -5,8 +5,8 @@ import { Component } from "@odoo/owl";
 /**
  * Taiwan E-Invoice receipt component for ESC/POS thermal printing.
  *
- * Renders a MOF-compliant 統一發票 with QR codes, barcode, ROC date,
- * items table, and tax breakdown.
+ * Renders a MOF-compliant 電子發票證明聯 (格式一, 57mm thermal paper)
+ * per 財政部「電子發票實施作業要點」附件一.
  *
  * Props:
  *   order       - pos.order record
@@ -27,8 +27,7 @@ export class TwInvoiceReceipt extends Component {
 
     get invoicePeriod() {
         const now = new Date();
-        const month = now.getMonth() + 1; // 1-12
-        // Taiwan invoice periods are bimonthly: 01-02, 03-04, 05-06, etc.
+        const month = now.getMonth() + 1;
         const startMonth = month % 2 === 0 ? month - 1 : month;
         const endMonth = startMonth + 1;
         const pad = (n) => String(n).padStart(2, "0");
@@ -37,17 +36,25 @@ export class TwInvoiceReceipt extends Component {
 
     get formattedInvoiceNo() {
         const no = this.props.invoiceData.invoice_no || "";
-        // Format: AB-12345678
         if (no.length === 10) {
             return `${no.slice(0, 2)}-${no.slice(2)}`;
         }
         return no;
     }
 
-    get rocDateTime() {
+    /** MOF §三(三)5: date must use Western year (西元年), not ROC year */
+    get westernDateTime() {
         const now = new Date();
         const pad = (n) => String(n).padStart(2, "0");
-        return `${this.rocYear}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    }
+
+    get companyName() {
+        return this.props.order.company?.name || this.props.order.pos?.company?.name || "";
+    }
+
+    get isB2B() {
+        return !!this.props.order.tw_buyer_tax_id;
     }
 
     get orderLines() {
@@ -61,6 +68,7 @@ export class TwInvoiceReceipt extends Component {
             qty: line.qty,
             unitPrice: Math.round(line.price_unit),
             amount: Math.round(line.price_subtotal_incl),
+            taxType: "TX", // 應稅 (standard 5% VAT for most POS items)
         }));
     }
 
