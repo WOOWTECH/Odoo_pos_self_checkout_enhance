@@ -2,6 +2,7 @@
 
 import { Component, useState } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
+import { _t } from "@web/core/l10n/translation";
 
 export class SendBackPopup extends Component {
     static template = "pos_self_order_enhancement.SendBackPopup";
@@ -15,10 +16,10 @@ export class SendBackPopup extends Component {
 
     setup() {
         this.reasons = [
-            { id: "remake", label: "Remake / 重做" },
-            { id: "wrong_item", label: "Wrong Item / 出錯" },
-            { id: "undercooked", label: "Undercooked / 未熟" },
-            { id: "changed_mind", label: "Customer Changed Mind / 客人改變主意" },
+            { id: "remake", label: _t("Remake") },
+            { id: "wrong_item", label: _t("Wrong Item") },
+            { id: "undercooked", label: _t("Undercooked") },
+            { id: "changed_mind", label: _t("Customer Changed Mind") },
         ];
         this.state = useState({
             selectedLines: Object.fromEntries(

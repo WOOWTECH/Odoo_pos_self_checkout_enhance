@@ -3,10 +3,9 @@
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { patch } from "@web/core/utils/patch";
 import { useState, useRef } from "@odoo/owl";
-import { useService } from "@web/core/utils/hooks";
 import { loadAllImages } from "@point_of_sale/utils";
+import { _t } from "@web/core/l10n/translation";
 import { EscPosPrinter } from "@pos_self_order_enhancement/printer/escpos_network_printer";
-import { TwInvoiceReceipt } from "@pos_self_order_enhancement/pos/overrides/tw_invoice_receipt";
 
 patch(PaymentScreen.prototype, {
     setup() {
@@ -18,7 +17,6 @@ patch(PaymentScreen.prototype, {
             einvBuyerTaxId: "",
         });
         this.einvCarrierInput = useRef("einvCarrierInput");
-        this.renderer = useService("renderer");
     },
 
     setEinvCarrierType(type) {
@@ -71,33 +69,32 @@ patch(PaymentScreen.prototype, {
                 this.currentOrder.tw_pos_barcode = res.pos_barcode;
 
                 this.notification.add(
-                    `發票開立成功 Invoice issued: ${res.invoice_no}`,
+                    _t("Invoice issued: %s", res.invoice_no),
                     { type: "success" }
                 );
 
-                // Phase B: print Taiwan invoice receipt if carrier_type is 'print'
+                // Print Taiwan invoice receipt if carrier_type is 'print'
                 if (carrierData.carrier_type === "print") {
-                    await this._printTwInvoiceReceipt(res);
+                    await this._printTwInvoiceReceipt();
                 }
             } else {
                 this.notification.add(
-                    `發票開立失敗 Invoice error: ${res?.error || "Unknown"}`,
+                    _t("Invoice error: %s", res?.error || "Unknown"),
                     { type: "danger" }
                 );
             }
         } catch (e) {
             this.notification.add(
-                `發票開立錯誤 Invoice error: ${e.message || e}`,
+                _t("Invoice error: %s", e.message || e),
                 { type: "danger" }
             );
         }
     },
 
-    async _printTwInvoiceReceipt(invoiceResult) {
+    async _printTwInvoiceReceipt() {
         // Print Taiwan invoice receipt to ESC/POS preparation printer.
-        // We bypass the receipt printer service (this.printer) because it
-        // targets the POS receipt printer (browser/IoT/ePos), not the
-        // ESC/POS network preparation printer.
+        // Uses the ecpay_invoice_tw QWeb report template (server-side rendered)
+        // to ensure the format matches the official government-compliant format.
         const escposPrinter = this.pos?.unwatched?.printers?.find(
             (p) => p instanceof EscPosPrinter
         );
@@ -107,18 +104,30 @@ patch(PaymentScreen.prototype, {
         }
 
         try {
-            // Render the component to an HTML element via the renderer service
-            const el = await this.renderer.toHtml(TwInvoiceReceipt, {
-                order: this.currentOrder,
-                invoiceData: invoiceResult,
-                sellerTaxId: this.pos.config.ecpay_seller_tax_id || "",
-            });
+            const orderId = this.currentOrder.id;
+            const res = await this.pos.data.call(
+                "pos.order",
+                "get_einvoice_print_html",
+                [[orderId]]
+            );
+            if (!res?.html) return;
+
+            // Create DOM element from server-rendered HTML
+            const container = document.createElement("div");
+            container.innerHTML = res.html;
+            container.style.position = "fixed";
+            container.style.left = "-9999px";
+            document.body.appendChild(container);
+
+            const el = container.querySelector(".invoiceContainer") || container.firstElementChild;
             await loadAllImages(el);
-            // BasePrinter.printReceipt takes HTML, converts to canvas, sends to printer
+
             const result = await escposPrinter.printReceipt(el);
+            container.remove();
+
             if (!result?.successful) {
                 this.notification.add(
-                    `發票列印失敗 Print error: ${result?.message?.body || "Unknown"}`,
+                    _t("Invoice print error: %s", result?.message?.body || "Unknown"),
                     { type: "warning" }
                 );
             }
