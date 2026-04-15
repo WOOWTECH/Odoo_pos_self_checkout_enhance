@@ -60,7 +60,6 @@ class PaymentTransaction(models.Model):
             'love_code': order.tw_love_code or '',
             'buyer_tax_id': order.tw_buyer_tax_id or '',
             'buyer_name': order.tw_buyer_name or '',
-            'b2b_print': order.tw_b2b_print,
         }
         try:
             result = order.action_issue_einvoice(carrier_data)

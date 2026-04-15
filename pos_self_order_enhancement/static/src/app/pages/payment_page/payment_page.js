@@ -35,7 +35,6 @@ export class PaymentPage extends Component {
             loveCode: "",
             buyerTaxId: "",
             buyerName: "",
-            b2bPrint: true,
             lookingUp: false,
             validationError: null,
         });
@@ -260,7 +259,6 @@ export class PaymentPage extends Component {
         this.invoiceState.loveCode = "";
         this.invoiceState.buyerTaxId = "";
         this.invoiceState.buyerName = "";
-        this.invoiceState.b2bPrint = true;
         this.invoiceState.validationError = null;
     }
 
@@ -336,7 +334,6 @@ export class PaymentPage extends Component {
                 love_code: this.invoiceState.loveCode,
                 buyer_tax_id: this.invoiceState.buyerTaxId,
                 buyer_name: this.invoiceState.buyerName,
-                b2b_print: this.invoiceState.b2bPrint,
             });
             if (result && !result.success) {
                 this.invoiceState.validationError = result.error;

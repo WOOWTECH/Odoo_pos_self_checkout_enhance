@@ -582,7 +582,6 @@ class PosOrder(models.Model):
         love_code = carrier_data.get('love_code', '')
         buyer_tax_id = carrier_data.get('buyer_tax_id', '')
         buyer_name = carrier_data.get('buyer_name', '')
-        b2b_print = carrier_data.get('b2b_print', True)
 
         from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
 
@@ -631,7 +630,7 @@ class PosOrder(models.Model):
         # Determine flags
         is_donation = carrier_type == 'donation'
         is_b2b = carrier_type == 'b2b' and buyer_tax_id
-        print_flag = '1' if carrier_type == 'print' or (is_b2b and b2b_print) else '0'
+        print_flag = '1' if (carrier_type == 'print' or is_b2b) else '0'
         ecpay_carrier_type = '3' if carrier_type == 'mobile' else ''
 
         partner = self.partner_id
@@ -691,7 +690,6 @@ class PosOrder(models.Model):
             'tw_love_code': love_code,
             'tw_buyer_tax_id': buyer_tax_id,
             'tw_buyer_name': buyer_name if carrier_type == 'b2b' else '',
-            'tw_b2b_print': b2b_print if carrier_type == 'b2b' else True,
             'tw_invoice_status': 'issued',
             'tw_qrcode_left': result.get('QRCode_Left', ''),
             'tw_qrcode_right': result.get('QRCode_Right', ''),
