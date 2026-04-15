@@ -123,3 +123,42 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         order.send_table_count_notification(order.mapped('table_id'))
 
         return {'success': True}
+
+    @http.route('/pos-self-order/save-einvoice-data', auth='public', type='json', website=True)
+    def save_einvoice_data(self, access_token, order_id, order_access_token,
+                           carrier_type='cloud', carrier_num='', love_code='', buyer_tax_id=''):
+        """Save customer's e-invoice carrier preferences before payment.
+
+        Called from the self-order payment page so the auto-issuance trigger
+        (in payment_transaction.py) knows which carrier type to use.
+        """
+        pos_config = self._verify_pos_config(access_token)
+        order = pos_config.env['pos.order'].sudo().browse(order_id)
+
+        if not order.exists() or not consteq(order.access_token, order_access_token):
+            raise MissingError(_("Order not found"))
+
+        # Validate carrier_type
+        allowed_types = ('cloud', 'print', 'mobile', 'donation', 'b2b')
+        if carrier_type not in allowed_types:
+            carrier_type = 'cloud'
+
+        # Validate conditional fields
+        if carrier_type == 'mobile' and carrier_num:
+            if not re.match(r'^/[0-9A-Z+\-.]{7}$', carrier_num):
+                return {'success': False, 'error': '手機條碼格式錯誤 (格式: / + 7碼英數字)'}
+        if carrier_type == 'donation' and love_code:
+            if not re.match(r'^([xX][0-9]{2,6}|[0-9]{3,7})$', love_code):
+                return {'success': False, 'error': '愛心碼格式錯誤 (3~7碼數字)'}
+        if carrier_type == 'b2b' and buyer_tax_id:
+            if not re.match(r'^[0-9]{8}$', buyer_tax_id):
+                return {'success': False, 'error': '統一編號格式錯誤 (8碼數字)'}
+
+        order.write({
+            'tw_carrier_type': carrier_type,
+            'tw_carrier_num': carrier_num if carrier_type == 'mobile' else '',
+            'tw_love_code': love_code if carrier_type == 'donation' else '',
+            'tw_buyer_tax_id': buyer_tax_id if carrier_type == 'b2b' else '',
+        })
+
+        return {'success': True}

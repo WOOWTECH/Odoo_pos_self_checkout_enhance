@@ -36,6 +36,12 @@ class PosConfig(models.Model):
         readonly=True,
     )
 
+    @api.model
+    def _load_pos_self_data_fields(self, config_id):
+        params = super()._load_pos_self_data_fields(config_id)
+        params.append('ecpay_einvoice_enabled')
+        return params
+
     def _compute_selection_pay_after(self):
         """
         Override to remove Enterprise version restriction from 'each' option.

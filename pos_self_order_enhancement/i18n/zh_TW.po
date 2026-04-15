@@ -588,3 +588,45 @@ msgstr "啟用電子發票"
 #: code:addons/pos_self_order_enhancement/controllers/orders.py:0
 msgid "Order not found"
 msgstr "找不到訂單"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Please enter mobile barcode"
+msgstr "請輸入手機條碼"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Invalid mobile barcode format (e.g. /ABC+123)"
+msgstr "手機條碼格式錯誤 (例: /ABC+123)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Please enter love code"
+msgstr "請輸入愛心碼"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Invalid love code format (3-7 digits)"
+msgstr "愛心碼格式錯誤 (3~7碼數字)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Please enter tax ID"
+msgstr "請輸入統一編號"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Invalid tax ID format (8 digits)"
+msgstr "統一編號格式錯誤 (8碼數字)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Failed to save invoice data. Please try again."
+msgstr "儲存發票資料失敗，請重試。"

@@ -58,6 +58,7 @@ class PosOrder(models.Model):
     tw_invoice_number = fields.Char('Invoice Number (發票號碼)')
     tw_invoice_random_code = fields.Char('Random Code (隨機碼)')
     tw_carrier_type = fields.Selection([
+        ('cloud', 'Cloud Invoice (雲端發票)'),
         ('print', 'Print (列印)'),
         ('mobile', 'Mobile Barcode (手機條碼)'),
         ('donation', 'Donation (捐贈)'),
@@ -592,8 +593,14 @@ class PosOrder(models.Model):
         # Determine flags
         is_donation = carrier_type == 'donation'
         is_b2b = carrier_type == 'b2b' and buyer_tax_id
+        is_cloud = carrier_type == 'cloud'
         print_flag = '1' if (carrier_type == 'print' or is_b2b) else '0'
-        ecpay_carrier_type = '3' if carrier_type == 'mobile' else ''
+        ecpay_carrier_type = ''
+        if carrier_type == 'mobile':
+            ecpay_carrier_type = '3'
+        elif is_cloud:
+            # Cloud invoice: no print, no carrier — stored in ECPay cloud
+            ecpay_carrier_type = ''
 
         partner = self.partner_id
         invoice_sdk.Send['RelateNumber'] = ui_record.related_number

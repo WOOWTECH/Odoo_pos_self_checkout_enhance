@@ -85,16 +85,14 @@
                         </div>
                     </t>
 
-                    <!-- Error State -->
-                    <t t-elif="state.error">
-                        <div class="alert alert-danger" role="alert">
+                    <!-- Payment Options -->
+                    <t t-if="!state.loading and !state.counterPaymentConfirmed">
+                        <!-- Error State (dismissable, shown above payment options) -->
+                        <div t-if="state.error" class="alert alert-danger alert-dismissible" role="alert">
                             <i class="fa fa-exclamation-circle me-2"></i>
                             <t t-esc="state.error"/>
+                            <button type="button" class="btn-close" t-on-click="() => this.state.error = null"></button>
                         </div>
-                    </t>
-
-                    <!-- Payment Options -->
-                    <t t-else="">
                         <!-- Order Summary - Grouped by ordering session -->
                         <div class="order-summary bg-white rounded-3 shadow-sm p-3 mb-3">
                             <h6 class="fw-bold mb-3 text-muted">
@@ -154,6 +152,69 @@
                                         <t t-esc="formatCurrency(totalAmount)"/>
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- E-Invoice Settings -->
+                        <div class="einvoice-settings bg-white rounded-3 shadow-sm p-3 mb-3"
+                             t-if="showEinvoiceForm">
+                            <h6 class="fw-bold mb-3 text-muted">
+                                <i class="fa fa-file-text-o me-2"></i>
+                                Invoice / 電子發票
+                            </h6>
+
+                            <div class="d-flex flex-column gap-2 mb-2">
+                                <div class="form-check" t-on-click="() => this.setCarrierType('cloud')">
+                                    <input type="radio" name="carrier_type" value="cloud"
+                                           t-att-checked="invoiceState.carrierType === 'cloud'" class="form-check-input"/>
+                                    <label class="form-check-label">Cloud Invoice / 雲端發票</label>
+                                </div>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('mobile')">
+                                    <input type="radio" name="carrier_type" value="mobile"
+                                           t-att-checked="invoiceState.carrierType === 'mobile'" class="form-check-input"/>
+                                    <label class="form-check-label">Mobile Barcode / 手機條碼</label>
+                                </div>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('donation')">
+                                    <input type="radio" name="carrier_type" value="donation"
+                                           t-att-checked="invoiceState.carrierType === 'donation'" class="form-check-input"/>
+                                    <label class="form-check-label">Donation / 捐贈</label>
+                                </div>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('b2b')">
+                                    <input type="radio" name="carrier_type" value="b2b"
+                                           t-att-checked="invoiceState.carrierType === 'b2b'" class="form-check-input"/>
+                                    <label class="form-check-label">Tax ID / 統一編號</label>
+                                </div>
+                            </div>
+
+                            <!-- Conditional Inputs -->
+                            <div t-if="invoiceState.carrierType === 'mobile'" class="mt-2">
+                                <input type="text" class="form-control"
+                                       placeholder="/ABC+123"
+                                       t-att-value="invoiceState.carrierNum"
+                                       t-on-input="(ev) => this.invoiceState.carrierNum = ev.target.value.toUpperCase()"
+                                       maxlength="8" inputmode="text" autocapitalize="characters"/>
+                                <small class="text-muted">/ + 7 chars (e.g. /ABC+123)</small>
+                            </div>
+                            <div t-if="invoiceState.carrierType === 'donation'" class="mt-2">
+                                <input type="text" class="form-control"
+                                       placeholder="Love Code / 愛心碼"
+                                       t-att-value="invoiceState.loveCode"
+                                       t-on-input="(ev) => this.invoiceState.loveCode = ev.target.value"
+                                       maxlength="7" inputmode="numeric"/>
+                                <small class="text-muted">3~7 digits</small>
+                            </div>
+                            <div t-if="invoiceState.carrierType === 'b2b'" class="mt-2">
+                                <input type="text" class="form-control"
+                                       placeholder="Tax ID / 統一編號"
+                                       t-att-value="invoiceState.buyerTaxId"
+                                       t-on-input="(ev) => this.invoiceState.buyerTaxId = ev.target.value"
+                                       maxlength="8" inputmode="numeric"/>
+                                <small class="text-muted">8 digits</small>
+                            </div>
+
+                            <!-- Validation Error -->
+                            <div t-if="invoiceState.validationError" class="alert alert-danger mt-2 mb-0 py-2">
+                                <small><t t-esc="invoiceState.validationError"/></small>
                             </div>
                         </div>
 
