@@ -36,7 +36,10 @@ class PosKitchenDisplay(http.Controller):
         """Get category-based course info for an order line."""
         categ_id, categ_name = order._get_line_hold_fire_category(line)
         if categ_id == 0:
-            return 0, '', True  # always fired
+            # Use product's POS category as display label (not H&F gated)
+            pos_categ = line.product_id.pos_categ_ids[:1]
+            display_name = pos_categ.name if pos_categ else ''
+            return 0, display_name, True  # always fired
 
         is_fired = fired_courses.get(str(categ_id), False)
         return categ_id, categ_name, is_fired
@@ -207,6 +210,19 @@ class PosKitchenDisplay(http.Controller):
                         }
                     if not is_done:
                         course_groups_map[categ_id]['all_items_done'] = False
+                elif course_name:
+                    # Non-H&F display group — use negative key to avoid
+                    # collision with real H&F category IDs.
+                    display_key = -(abs(hash(course_name)) % 100000)
+                    if display_key not in course_groups_map:
+                        course_groups_map[display_key] = {
+                            'id': 0,
+                            'name': course_name,
+                            'is_fired': True,
+                            'all_items_done': True,
+                        }
+                    if not is_done:
+                        course_groups_map[display_key]['all_items_done'] = False
 
                 # Register combo children's own H&F categories so fire
                 # buttons appear on KDS for held child categories.

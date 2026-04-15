@@ -441,6 +441,37 @@ class PosOrder(models.Model):
             tables = gated.mapped('table_id')
             if tables:
                 gated.send_table_count_notification(tables)
+
+            # Auto-fire paid orders to kitchen (industry standard).
+            # In pay-per-order mode, kitchen starts immediately after
+            # payment — no manual cashier "fire" step needed.
+            to_fire = gated.filtered(
+                lambda o: not o.kds_sent_to_kitchen and o.config_id.kds_enabled
+            )
+            if to_fire:
+                to_fire.mark_sent_to_kitchen()
+                # Pre-fire ALL Hold & Fire categories — in pay-per-order
+                # mode there is no cashier to sequence courses, so
+                # everything must be immediately visible to the kitchen.
+                for order in to_fire:
+                    try:
+                        fired = json.loads(order.kds_fired_courses or '{}')
+                    except (json.JSONDecodeError, TypeError):
+                        fired = {}
+                    if fired and not all(fired.values()):
+                        for key in fired:
+                            fired[key] = True
+                        order.write({'kds_fired_courses': json.dumps(fired)})
+
+                # Notify POS frontend to print kitchen ticket.
+                # Kitchen printing is frontend-controlled (sendOrderInPreparation),
+                # so we signal via bus for the POS to trigger printing.
+                for order in to_fire:
+                    for config in order.config_id:
+                        config._notify('AUTO_FIRE_PRINT', {
+                            'order_id': order.id,
+                        })
+
         return super()._process_saved_order(draft)
 
     def write(self, vals):

@@ -39,10 +39,31 @@ export function getHoldFireCategory(line) {
 patch(PosStore.prototype, {
     async initServerData() {
         const result = await super.initServerData(...arguments);
+        this._autoFiredPrintedOrders = new Set();
         this.data.connectWebSocket("KDS_ORDER_UPDATE", (data) => {
             this._onKdsOrderUpdate(data);
         });
+        this.data.connectWebSocket("AUTO_FIRE_PRINT", async (data) => {
+            await this._onAutoFirePrint(data);
+        });
         return result;
+    },
+
+    async _onAutoFirePrint(data) {
+        if (!data.order_id) return;
+        // Dedup: skip if already printed by a previous notification
+        if (this._autoFiredPrintedOrders.has(data.order_id)) return;
+        this._autoFiredPrintedOrders.add(data.order_id);
+        // Fetch the order from server so it's in our local store
+        try {
+            await this.data.read("pos.order", [data.order_id]);
+        } catch (e) { /* may already be loaded */ }
+        const order = this.models["pos.order"].find(
+            (o) => o.id === data.order_id
+        );
+        if (order && order.kds_sent_to_kitchen) {
+            await this.sendOrderInPreparation(order, false);
+        }
     },
 
     _onKdsOrderUpdate(data) {

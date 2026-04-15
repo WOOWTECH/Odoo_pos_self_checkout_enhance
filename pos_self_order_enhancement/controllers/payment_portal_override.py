@@ -4,17 +4,23 @@ from odoo.addons.pos_online_payment_self_order.controllers.payment_portal import
 
 
 class PaymentPortalSelfOrderEnh(PaymentPortalSelfOrder):
-    """Suppress online payment 'progress' notifications for payment-gated orders.
+    """Suppress payment notifications for payment-gated orders.
 
-    The base pos_online_payment_self_order module sends a 'progress' notification
-    (including notify_synchronisation) as soon as the /pos/pay/ page loads — before
-    the customer has actually paid.  For pay-per-order mode this leaks the order
-    to POS prematurely.  We suppress 'progress' and 'fail' for pending_online
-    orders and only let 'success' through.
+    Two suppression rules:
+    1. 'progress'/'fail' for pending_online orders — prevents leaking order
+       to POS before customer pays.
+    2. 'success' for already-paid orders — _process_saved_order() already
+       sent notifications + AUTO_FIRE_PRINT; a second notify_synchronisation
+       from pos_order_pay_confirmation would cause duplicate kitchen prints.
     """
 
     def _send_notification_payment_status(self, pos_order_id, status):
         pos_order = request.env['pos.order'].sudo().browse(pos_order_id)
+        # Suppress progress/fail for pending orders
         if pos_order.self_order_payment_status == 'pending_online' and status != 'success':
+            return
+        # Suppress duplicate success notification — _process_saved_order
+        # already handled notifications and kitchen printing
+        if pos_order.self_order_payment_status == 'paid' and status == 'success':
             return
         return super()._send_notification_payment_status(pos_order_id, status)

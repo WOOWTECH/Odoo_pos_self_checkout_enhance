@@ -419,22 +419,23 @@
             locationLabel = order.name;
         }
 
-        // Group lines by category (course_id)
-        const courseGroups = {};  // categ_id -> {name, is_fired, lines[]}
-        const noCourseLines = []; // categ_id 0 lines (always active)
+        // Group lines by category name (supports both H&F and non-H&F)
+        const courseGroups = {};  // groupKey -> {name, is_fired, course_id, lines[]}
+        const noCourseLines = []; // truly uncategorized lines
         for (const line of order.lines) {
-            const cid = line.course_id || 0;
-            if (cid === 0) {
+            const groupKey = line.course_name || "";
+            if (!groupKey) {
                 noCourseLines.push(line);
             } else {
-                if (!courseGroups[cid]) {
-                    courseGroups[cid] = {
-                        name: line.course_name || `Category ${cid}`,
+                if (!courseGroups[groupKey]) {
+                    courseGroups[groupKey] = {
+                        name: line.course_name,
                         is_fired: line.is_fired,
+                        course_id: line.course_id || 0,
                         lines: [],
                     };
                 }
-                courseGroups[cid].lines.push(line);
+                courseGroups[groupKey].lines.push(line);
             }
         }
 
@@ -483,13 +484,13 @@
         }
 
         // Render course groups sorted by name
-        const sortedIds = Object.keys(courseGroups).map(Number).sort((a, b) => {
+        const sortedKeys = Object.keys(courseGroups).sort((a, b) => {
             return courseGroups[a].name.localeCompare(courseGroups[b].name);
         });
-        const hasCourses = sortedIds.length > 0;
+        const hasCourses = sortedKeys.length > 0;
 
-        for (const cid of sortedIds) {
-            const group = courseGroups[cid];
+        for (const key of sortedKeys) {
+            const group = courseGroups[key];
             const isFired = group.is_fired;
             const heldClass = isFired ? "" : "course-held";
             const headerClass = isFired ? "course-fired" : "course-held";
