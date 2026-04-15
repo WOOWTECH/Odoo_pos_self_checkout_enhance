@@ -127,7 +127,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
     @http.route('/pos-self-order/save-einvoice-data', auth='public', type='json', website=True)
     def save_einvoice_data(self, access_token, order_id, order_access_token,
                            carrier_type='print', carrier_num='', love_code='', buyer_tax_id='',
-                           b2b_print=True):
+                           buyer_name='', b2b_print=True):
         """Save customer's e-invoice carrier preferences before payment.
 
         Called from the self-order payment page so the auto-issuance trigger
@@ -160,7 +160,15 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             'tw_carrier_num': carrier_num if carrier_type == 'mobile' else '',
             'tw_love_code': love_code if carrier_type == 'donation' else '',
             'tw_buyer_tax_id': buyer_tax_id if carrier_type == 'b2b' else '',
+            'tw_buyer_name': buyer_name if carrier_type == 'b2b' else '',
             'tw_b2b_print': bool(b2b_print) if carrier_type == 'b2b' else True,
         })
 
         return {'success': True}
+
+    @http.route('/pos-self-order/lookup-tax-id', auth='public', type='json', website=True)
+    def lookup_tax_id(self, access_token, tax_id=''):
+        """Proxy Taiwan GCIS open data API to look up company name by 統一編號."""
+        self._verify_pos_config(access_token)
+        PosOrder = request.env['pos.order'].sudo()
+        return PosOrder.action_lookup_tax_id(tax_id)

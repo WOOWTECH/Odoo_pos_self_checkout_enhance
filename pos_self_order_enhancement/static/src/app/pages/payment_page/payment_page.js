@@ -34,7 +34,9 @@ export class PaymentPage extends Component {
             carrierNum: "",
             loveCode: "",
             buyerTaxId: "",
+            buyerName: "",
             b2bPrint: true,
+            lookingUp: false,
             validationError: null,
         });
 
@@ -257,6 +259,7 @@ export class PaymentPage extends Component {
         this.invoiceState.carrierNum = "";
         this.invoiceState.loveCode = "";
         this.invoiceState.buyerTaxId = "";
+        this.invoiceState.buyerName = "";
         this.invoiceState.b2bPrint = true;
         this.invoiceState.validationError = null;
     }
@@ -298,6 +301,26 @@ export class PaymentPage extends Component {
         return true;
     }
 
+    async onTaxIdInput(ev) {
+        const val = ev.target.value.replace(/\D/g, "");
+        this.invoiceState.buyerTaxId = val;
+        if (val.length === 8) {
+            this.invoiceState.lookingUp = true;
+            try {
+                const res = await rpc("/pos-self-order/lookup-tax-id", {
+                    access_token: this.selfOrder.access_token,
+                    tax_id: val,
+                });
+                if (res?.success && res.name) {
+                    this.invoiceState.buyerName = res.name;
+                }
+            } catch (e) {
+                console.warn("Tax ID lookup failed:", e);
+            }
+            this.invoiceState.lookingUp = false;
+        }
+    }
+
     async saveInvoiceData() {
         const order = this.currentOrder;
         if (!order?.id || !order.access_token) {
@@ -312,6 +335,7 @@ export class PaymentPage extends Component {
                 carrier_num: this.invoiceState.carrierNum,
                 love_code: this.invoiceState.loveCode,
                 buyer_tax_id: this.invoiceState.buyerTaxId,
+                buyer_name: this.invoiceState.buyerName,
                 b2b_print: this.invoiceState.b2bPrint,
             });
             if (result && !result.success) {

@@ -1,7 +1,11 @@
 import json
+import logging
+import requests
 
 from odoo import models, fields, api
 from odoo.osv.expression import AND, OR
+
+_logger = logging.getLogger(__name__)
 
 
 class PosOrder(models.Model):
@@ -66,6 +70,7 @@ class PosOrder(models.Model):
     tw_carrier_num = fields.Char('Carrier Number (載具號碼)')
     tw_love_code = fields.Char('Love Code (愛心碼)')
     tw_buyer_tax_id = fields.Char('Buyer Tax ID (買方統編)')
+    tw_buyer_name = fields.Char('Buyer Name (買方名稱)')
     tw_b2b_print = fields.Boolean('B2B Print Paper', default=True,
         help='When carrier type is B2B, whether to print a paper invoice')
     tw_invoice_status = fields.Selection([
@@ -78,6 +83,36 @@ class PosOrder(models.Model):
     tw_pos_barcode = fields.Text('POS Barcode')
 
     # ── helpers ──────────────────────────────────────────────
+
+    @api.model
+    def action_lookup_tax_id(self, tax_id):
+        """Look up company name from Taiwan GCIS open data by 統一編號.
+
+        Tries the company registry first, then the business registry.
+        Returns {'success': True, 'name': '...'} or {'success': False}.
+        """
+        if not tax_id or not isinstance(tax_id, str) or len(tax_id) != 8 or not tax_id.isdigit():
+            return {'success': False, 'error': 'Invalid tax ID format'}
+
+        # Company registry (公司登記)
+        company_url = (
+            'https://data.gcis.nat.gov.tw/od/data/api/'
+            '236EE382-4942-41A9-BD03-CA0709025E7C'
+            '?$format=json&$filter=Business_Accounting_NO eq ' + tax_id
+            + '&$skip=0&$top=1'
+        )
+
+        for url, name_key in [(company_url, 'Company_Name')]:
+            try:
+                resp = requests.get(url, timeout=3)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data and isinstance(data, list) and data[0].get(name_key):
+                        return {'success': True, 'name': data[0][name_key]}
+            except Exception:
+                _logger.debug("GCIS lookup failed for %s", tax_id, exc_info=True)
+
+        return {'success': False, 'error': 'Company not found'}
 
     def _get_line_hold_fire_category(self, line):
         """Return (category_id, category_name) for the line's effective Hold & Fire category.
@@ -546,6 +581,7 @@ class PosOrder(models.Model):
         carrier_num = carrier_data.get('carrier_num', '')
         love_code = carrier_data.get('love_code', '')
         buyer_tax_id = carrier_data.get('buyer_tax_id', '')
+        buyer_name = carrier_data.get('buyer_name', '')
         b2b_print = carrier_data.get('b2b_print', True)
 
         from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
@@ -599,9 +635,15 @@ class PosOrder(models.Model):
         ecpay_carrier_type = '3' if carrier_type == 'mobile' else ''
 
         partner = self.partner_id
+        if is_b2b and buyer_name:
+            customer_name = buyer_name
+        elif partner:
+            customer_name = partner.name
+        else:
+            customer_name = '顧客'
         invoice_sdk.Send['RelateNumber'] = ui_record.related_number
         invoice_sdk.Send['CustomerIdentifier'] = buyer_tax_id[:8] if is_b2b else ''
-        invoice_sdk.Send['CustomerName'] = (partner.name if partner else '顧客')[:60]
+        invoice_sdk.Send['CustomerName'] = customer_name[:60]
         invoice_sdk.Send['CustomerAddr'] = (partner.contact_address if partner else 'N/A')[:200]
         invoice_sdk.Send['CustomerEmail'] = (partner.email if partner else 'noreply@pos.local')[:200]
         invoice_sdk.Send['CustomerPhone'] = ((partner.phone or partner.mobile) if partner else '')[:20]
@@ -648,6 +690,7 @@ class PosOrder(models.Model):
             'tw_carrier_num': carrier_num,
             'tw_love_code': love_code,
             'tw_buyer_tax_id': buyer_tax_id,
+            'tw_buyer_name': buyer_name if carrier_type == 'b2b' else '',
             'tw_b2b_print': b2b_print if carrier_type == 'b2b' else True,
             'tw_invoice_status': 'issued',
             'tw_qrcode_left': result.get('QRCode_Left', ''),

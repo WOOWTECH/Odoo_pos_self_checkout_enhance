@@ -219,9 +219,16 @@
                                 <input type="text" class="form-control"
                                        placeholder="Tax ID / 統一編號"
                                        t-att-value="invoiceState.buyerTaxId"
-                                       t-on-input="(ev) => this.invoiceState.buyerTaxId = ev.target.value"
+                                       t-on-input="onTaxIdInput"
                                        maxlength="8" inputmode="numeric"/>
                                 <small class="text-muted">8 digits</small>
+                                <div t-if="invoiceState.lookingUp" class="text-muted small mt-1">
+                                    查詢中... Looking up...
+                                </div>
+                                <input type="text" class="form-control mt-2"
+                                       placeholder="Company Name / 公司名稱"
+                                       t-att-value="invoiceState.buyerName"
+                                       t-on-input="(ev) => this.invoiceState.buyerName = ev.target.value"/>
                             </div>
 
                             <!-- Validation Error -->

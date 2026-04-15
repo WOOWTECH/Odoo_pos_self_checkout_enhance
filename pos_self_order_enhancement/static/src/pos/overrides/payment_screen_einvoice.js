@@ -15,7 +15,9 @@ patch(PaymentScreen.prototype, {
             einvCarrierNum: "",
             einvLoveCode: "",
             einvBuyerTaxId: "",
+            einvBuyerName: "",
             einvB2bPrint: true,
+            einvLookingUp: false,
         });
         this.einvCarrierInput = useRef("einvCarrierInput");
     },
@@ -34,8 +36,30 @@ patch(PaymentScreen.prototype, {
             carrier_num: this.einvState?.einvCarrierNum || "",
             love_code: this.einvState?.einvLoveCode || "",
             buyer_tax_id: this.einvState?.einvBuyerTaxId || "",
+            buyer_name: this.einvState?.einvBuyerName || "",
             b2b_print: this.einvState?.einvB2bPrint ?? true,
         };
+    },
+
+    async _onTaxIdInput(ev) {
+        const val = ev.target.value.replace(/\D/g, "");
+        this.einvState.einvBuyerTaxId = val;
+        if (val.length === 8) {
+            this.einvState.einvLookingUp = true;
+            try {
+                const res = await this.pos.data.call(
+                    "pos.order",
+                    "action_lookup_tax_id",
+                    [val]
+                );
+                if (res?.success && res.name) {
+                    this.einvState.einvBuyerName = res.name;
+                }
+            } catch (e) {
+                console.warn("Tax ID lookup failed:", e);
+            }
+            this.einvState.einvLookingUp = false;
+        }
     },
 
     async _finalizeValidation() {
