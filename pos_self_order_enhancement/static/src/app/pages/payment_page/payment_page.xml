@@ -164,10 +164,10 @@
                             </h6>
 
                             <div class="d-flex flex-column gap-2 mb-2">
-                                <div class="form-check" t-on-click="() => this.setCarrierType('cloud')">
-                                    <input type="radio" name="carrier_type" value="cloud"
-                                           t-att-checked="invoiceState.carrierType === 'cloud'" class="form-check-input"/>
-                                    <label class="form-check-label">Cloud Invoice / 雲端發票</label>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('print')">
+                                    <input type="radio" name="carrier_type" value="print"
+                                           t-att-checked="invoiceState.carrierType === 'print'" class="form-check-input"/>
+                                    <label class="form-check-label">列印 / Print</label>
                                 </div>
                                 <div class="form-check" t-on-click="() => this.setCarrierType('mobile')">
                                     <input type="radio" name="carrier_type" value="mobile"
@@ -204,6 +204,18 @@
                                 <small class="text-muted">3~7 digits</small>
                             </div>
                             <div t-if="invoiceState.carrierType === 'b2b'" class="mt-2">
+                                <div class="d-flex gap-3 mb-2">
+                                    <div class="form-check" t-on-click="() => this.invoiceState.b2bPrint = true">
+                                        <input type="radio" name="b2b_print" value="1"
+                                               t-att-checked="invoiceState.b2bPrint" class="form-check-input"/>
+                                        <label class="form-check-label">列印</label>
+                                    </div>
+                                    <div class="form-check" t-on-click="() => this.invoiceState.b2bPrint = false">
+                                        <input type="radio" name="b2b_print" value="0"
+                                               t-att-checked="!invoiceState.b2bPrint" class="form-check-input"/>
+                                        <label class="form-check-label">不列印</label>
+                                    </div>
+                                </div>
                                 <input type="text" class="form-control"
                                        placeholder="Tax ID / 統一編號"
                                        t-att-value="invoiceState.buyerTaxId"

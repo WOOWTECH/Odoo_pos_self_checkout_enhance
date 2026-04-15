@@ -126,7 +126,8 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
 
     @http.route('/pos-self-order/save-einvoice-data', auth='public', type='json', website=True)
     def save_einvoice_data(self, access_token, order_id, order_access_token,
-                           carrier_type='cloud', carrier_num='', love_code='', buyer_tax_id=''):
+                           carrier_type='print', carrier_num='', love_code='', buyer_tax_id='',
+                           b2b_print=True):
         """Save customer's e-invoice carrier preferences before payment.
 
         Called from the self-order payment page so the auto-issuance trigger
@@ -159,6 +160,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             'tw_carrier_num': carrier_num if carrier_type == 'mobile' else '',
             'tw_love_code': love_code if carrier_type == 'donation' else '',
             'tw_buyer_tax_id': buyer_tax_id if carrier_type == 'b2b' else '',
+            'tw_b2b_print': bool(b2b_print) if carrier_type == 'b2b' else True,
         })
 
         return {'success': True}

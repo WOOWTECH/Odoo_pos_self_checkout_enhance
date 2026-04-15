@@ -40,12 +40,25 @@
                     placeholder="愛心碼 Love Code (e.g. 168001)"
                     t-on-change="(ev) => this.einvState.einvLoveCode = ev.target.value"
                     t-att-value="einvState.einvLoveCode"/>
-                <input t-if="einvState.einvCarrierType === 'b2b'"
-                    class="form-control form-control-sm"
-                    placeholder="統一編號 Tax ID (8 digits)"
-                    t-on-change="(ev) => this.einvState.einvBuyerTaxId = ev.target.value"
-                    t-att-value="einvState.einvBuyerTaxId"
-                    maxlength="8"/>
+                <div t-if="einvState.einvCarrierType === 'b2b'" class="d-flex flex-column gap-1">
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm flex-fill"
+                            t-att-class="{'btn-info': einvState.einvB2bPrint, 'btn-outline-secondary': !einvState.einvB2bPrint}"
+                            t-on-click="() => this.einvState.einvB2bPrint = true">
+                            列印
+                        </button>
+                        <button class="btn btn-sm flex-fill"
+                            t-att-class="{'btn-info': !einvState.einvB2bPrint, 'btn-outline-secondary': einvState.einvB2bPrint}"
+                            t-on-click="() => this.einvState.einvB2bPrint = false">
+                            不列印
+                        </button>
+                    </div>
+                    <input class="form-control form-control-sm"
+                        placeholder="統一編號 Tax ID (8 digits)"
+                        t-on-change="(ev) => this.einvState.einvBuyerTaxId = ev.target.value"
+                        t-att-value="einvState.einvBuyerTaxId"
+                        maxlength="8"/>
+                </div>
             </div>
         </xpath>
     </t>

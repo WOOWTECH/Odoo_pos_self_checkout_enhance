@@ -58,7 +58,6 @@ class PosOrder(models.Model):
     tw_invoice_number = fields.Char('Invoice Number (發票號碼)')
     tw_invoice_random_code = fields.Char('Random Code (隨機碼)')
     tw_carrier_type = fields.Selection([
-        ('cloud', 'Cloud Invoice (雲端發票)'),
         ('print', 'Print (列印)'),
         ('mobile', 'Mobile Barcode (手機條碼)'),
         ('donation', 'Donation (捐贈)'),
@@ -67,6 +66,8 @@ class PosOrder(models.Model):
     tw_carrier_num = fields.Char('Carrier Number (載具號碼)')
     tw_love_code = fields.Char('Love Code (愛心碼)')
     tw_buyer_tax_id = fields.Char('Buyer Tax ID (買方統編)')
+    tw_b2b_print = fields.Boolean('B2B Print Paper', default=True,
+        help='When carrier type is B2B, whether to print a paper invoice')
     tw_invoice_status = fields.Selection([
         ('none', 'None'),
         ('issued', 'Issued (已開立)'),
@@ -545,6 +546,7 @@ class PosOrder(models.Model):
         carrier_num = carrier_data.get('carrier_num', '')
         love_code = carrier_data.get('love_code', '')
         buyer_tax_id = carrier_data.get('buyer_tax_id', '')
+        b2b_print = carrier_data.get('b2b_print', True)
 
         from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
 
@@ -593,14 +595,8 @@ class PosOrder(models.Model):
         # Determine flags
         is_donation = carrier_type == 'donation'
         is_b2b = carrier_type == 'b2b' and buyer_tax_id
-        is_cloud = carrier_type == 'cloud'
-        print_flag = '1' if (carrier_type == 'print' or is_b2b) else '0'
-        ecpay_carrier_type = ''
-        if carrier_type == 'mobile':
-            ecpay_carrier_type = '3'
-        elif is_cloud:
-            # Cloud invoice: no print, no carrier — stored in ECPay cloud
-            ecpay_carrier_type = ''
+        print_flag = '1' if carrier_type == 'print' or (is_b2b and b2b_print) else '0'
+        ecpay_carrier_type = '3' if carrier_type == 'mobile' else ''
 
         partner = self.partner_id
         invoice_sdk.Send['RelateNumber'] = ui_record.related_number
@@ -652,6 +648,7 @@ class PosOrder(models.Model):
             'tw_carrier_num': carrier_num,
             'tw_love_code': love_code,
             'tw_buyer_tax_id': buyer_tax_id,
+            'tw_b2b_print': b2b_print if carrier_type == 'b2b' else True,
             'tw_invoice_status': 'issued',
             'tw_qrcode_left': result.get('QRCode_Left', ''),
             'tw_qrcode_right': result.get('QRCode_Right', ''),

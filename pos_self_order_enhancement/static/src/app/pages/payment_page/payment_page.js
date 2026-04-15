@@ -30,10 +30,11 @@ export class PaymentPage extends Component {
 
         // E-Invoice carrier preferences
         this.invoiceState = useState({
-            carrierType: "cloud",
+            carrierType: "print",
             carrierNum: "",
             loveCode: "",
             buyerTaxId: "",
+            b2bPrint: true,
             validationError: null,
         });
 
@@ -256,6 +257,7 @@ export class PaymentPage extends Component {
         this.invoiceState.carrierNum = "";
         this.invoiceState.loveCode = "";
         this.invoiceState.buyerTaxId = "";
+        this.invoiceState.b2bPrint = true;
         this.invoiceState.validationError = null;
     }
 
@@ -310,6 +312,7 @@ export class PaymentPage extends Component {
                 carrier_num: this.invoiceState.carrierNum,
                 love_code: this.invoiceState.loveCode,
                 buyer_tax_id: this.invoiceState.buyerTaxId,
+                b2b_print: this.invoiceState.b2bPrint,
             });
             if (result && !result.success) {
                 this.invoiceState.validationError = result.error;

@@ -15,12 +15,14 @@ patch(PaymentScreen.prototype, {
             einvCarrierNum: "",
             einvLoveCode: "",
             einvBuyerTaxId: "",
+            einvB2bPrint: true,
         });
         this.einvCarrierInput = useRef("einvCarrierInput");
     },
 
     setEinvCarrierType(type) {
         this.einvState.einvCarrierType = type;
+        this.einvState.einvB2bPrint = true;
         if (type === "mobile") {
             setTimeout(() => this.einvCarrierInput?.el?.focus(), 50);
         }
@@ -32,6 +34,7 @@ patch(PaymentScreen.prototype, {
             carrier_num: this.einvState?.einvCarrierNum || "",
             love_code: this.einvState?.einvLoveCode || "",
             buyer_tax_id: this.einvState?.einvBuyerTaxId || "",
+            b2b_print: this.einvState?.einvB2bPrint ?? true,
         };
     },
 
@@ -73,8 +76,10 @@ patch(PaymentScreen.prototype, {
                     { type: "success" }
                 );
 
-                // Print Taiwan invoice receipt if carrier_type is 'print'
-                if (carrierData.carrier_type === "print") {
+                // Print Taiwan invoice receipt if paper print is requested
+                const shouldPrint = carrierData.carrier_type === "print" ||
+                    (carrierData.carrier_type === "b2b" && carrierData.b2b_print);
+                if (shouldPrint) {
                     await this._printTwInvoiceReceipt();
                 }
             } else {

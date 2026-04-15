@@ -55,10 +55,11 @@ class PaymentTransaction(models.Model):
             return
 
         carrier_data = {
-            'carrier_type': order.tw_carrier_type or 'cloud',
+            'carrier_type': order.tw_carrier_type or 'print',
             'carrier_num': order.tw_carrier_num or '',
             'love_code': order.tw_love_code or '',
             'buyer_tax_id': order.tw_buyer_tax_id or '',
+            'b2b_print': order.tw_b2b_print,
         }
         try:
             result = order.action_issue_einvoice(carrier_data)
