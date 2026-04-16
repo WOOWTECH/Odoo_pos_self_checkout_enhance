@@ -807,8 +807,11 @@ class PosOrder(models.Model):
             })
             if isinstance(html, bytes):
                 html = html.decode('utf-8')
-            # Inject CSS inline — ESC/POS printer won't load external stylesheets
-            css = """<style>
+            # Inject CSS inline — ESC/POS printer won't load external stylesheets.
+            # Wrap in Markup so Python doesn't escape <style> when concatenating
+            # with the Markup HTML returned by ir.qweb._render().
+            from markupsafe import Markup
+            css = Markup("""<style>
 .invoiceContainer { font-family: monospace; }
 .invoiceContainer .invoice_inner { width: 5.7cm; font-size: 14px; background: white; display: inline-block; }
 .invoiceContainer .invoice_inner .invoice { width: 5.7cm; text-align: center; }
@@ -823,8 +826,8 @@ class PosOrder(models.Model):
 .invoice_details h2 { margin: 5px 0 10px 0; font-size: 22px; font-weight: bold; }
 .invoice_details ul { border-bottom: 1px dashed #333; margin-bottom: 10px; }
 .invoice_details h4 { text-align: left; margin: 0; font-size: 14px; font-weight: bold; }
-</style>"""
-            return {'html': css + html}
+</style>""")
+            return {'html': str(css + html)}
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning("Failed to render einvoice HTML: %s", e)
