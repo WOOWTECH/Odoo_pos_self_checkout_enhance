@@ -3,6 +3,7 @@
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { changesToOrder } from "@point_of_sale/app/models/utils/order_change";
+import { loadAllImages } from "@point_of_sale/utils";
 
 /**
  * Safely get the first pos.category with kds_hold_fire from a product.
@@ -40,13 +41,58 @@ patch(PosStore.prototype, {
     async initServerData() {
         const result = await super.initServerData(...arguments);
         this._autoFiredPrintedOrders = new Set();
+        this._einvoicePrintedOrders = new Set();
         this.data.connectWebSocket("KDS_ORDER_UPDATE", (data) => {
             this._onKdsOrderUpdate(data);
         });
         this.data.connectWebSocket("AUTO_FIRE_PRINT", async (data) => {
             await this._onAutoFirePrint(data);
         });
+        this.data.connectWebSocket("EINVOICE_PRINT", async (data) => {
+            await this._onEinvoicePrint(data);
+        });
         return result;
+    },
+
+    async _onEinvoicePrint(data) {
+        if (!data.order_id) return;
+        if (this._einvoicePrintedOrders.has(data.order_id)) return;
+        this._einvoicePrintedOrders.add(data.order_id);
+
+        // Fetch order so it's in local store
+        try {
+            await this.data.read("pos.order", [data.order_id]);
+        } catch (e) { /* may already be loaded */ }
+
+        // Find ESC/POS network printer
+        const escposPrinter = (this.unwatched.printers || []).find(
+            (p) => p.config?.printer_type === "network_escpos"
+        );
+        if (!escposPrinter) return;
+
+        // Get server-rendered invoice HTML
+        try {
+            const result = await this.data.call(
+                "pos.order",
+                "get_einvoice_print_html",
+                [[data.order_id]]
+            );
+            if (!result?.html) return;
+
+            // Render in DOM and print via ESC/POS
+            const container = document.createElement("div");
+            container.innerHTML = result.html;
+            document.body.appendChild(container);
+            await loadAllImages(container);
+            try {
+                await escposPrinter.printReceipt(container);
+            } catch (printErr) {
+                console.warn("EINVOICE_PRINT: printer error (non-fatal):", printErr);
+            }
+            container.remove();
+        } catch (e) {
+            console.warn("EINVOICE_PRINT: failed to render/print:", e);
+        }
     },
 
     async _onAutoFirePrint(data) {

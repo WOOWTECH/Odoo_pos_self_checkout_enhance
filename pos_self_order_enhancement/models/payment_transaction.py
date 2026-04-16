@@ -68,6 +68,12 @@ class PaymentTransaction(models.Model):
                     "Auto-issued e-invoice %s for POS order %s",
                     result.get('invoice_no'), order.pos_reference,
                 )
+                # Notify POS to print if carrier type requires paper
+                if order.tw_carrier_type in ('print', 'b2b'):
+                    for config in order.config_id:
+                        config._notify('EINVOICE_PRINT', {
+                            'order_id': order.id,
+                        })
             else:
                 _logger.warning(
                     "E-invoice auto-issuance failed for order %s: %s",
