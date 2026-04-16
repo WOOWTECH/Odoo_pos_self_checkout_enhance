@@ -9,17 +9,34 @@
             <xpath expr="//page[@name='internal_notes']" position="before">
                 <page string="Portal POS" name="portal_pos" invisible="not user_ids">
                     <group>
-                        <field name="portal_pos_config_id"
+                        <field name="portal_pos_config_ids"
+                               widget="many2many_tags"
                                options="{'no_create': True, 'no_open': True}"/>
                     </group>
                     <div class="text-muted">
                         <p>
-                            Assign a POS configuration here to allow this portal user
-                            to access the POS cashier interface from their
+                            Tag one or more POS configurations to grant this
+                            portal user access to those shops from their
                             <strong>My Account</strong> page.
                         </p>
+                        <ul>
+                            <li>
+                                Single shop → the "Point of Sale" card on
+                                <em>/my</em> opens the POS directly.
+                            </li>
+                            <li>
+                                Multiple shops → the card opens a picker at
+                                <em>/my/pos</em> where the user chooses which
+                                shop to run.
+                            </li>
+                            <li>
+                                Remove a tag to revoke access immediately;
+                                the user's next request will drop the elevated
+                                session.
+                            </li>
+                        </ul>
                         <p>
-                            The selected POS config must have a
+                            Each selected POS config must have a
                             <strong>Default User</strong> configured under
                             <em>POS Settings → Self-Ordering</em>.
                         </p>

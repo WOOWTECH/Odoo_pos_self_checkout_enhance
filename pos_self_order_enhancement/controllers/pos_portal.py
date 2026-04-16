@@ -1,14 +1,20 @@
 """Portal-user access to the POS cashier UI.
 
-Adds two pieces:
+Adds three pieces:
 
 1. Override of ``PosController.pos_web`` (``/pos/ui`` / ``/pos/web``) so
-   portal users with an assigned ``portal_pos_config_id`` on their partner
-   can load the POS cashier interface. Internal users continue to use the
-   stock Odoo behaviour.
+   portal users whose partner has any entry in ``portal_pos_config_ids``
+   can load the POS cashier interface. The target shop is picked via
+   ``?config_id=N``; if the user has exactly one assigned shop, that
+   config is used implicitly.  Internal users continue to use the stock
+   Odoo behaviour.
 
-2. Extension of ``CustomerPortal._prepare_home_portal_values`` so the
-   "My Account" portal home page can render a "Point of Sale" card.
+2. New ``/my/pos`` route that renders the shop picker when the user has
+   multiple shops assigned, and auto-redirects when there is only one.
+
+3. Extension of ``CustomerPortal._prepare_home_portal_values`` so the
+   "My Account" portal home page can render a "Point of Sale" card
+   whose subtitle reflects how many shops the user has access to.
 """
 
 import logging
@@ -26,7 +32,7 @@ class PosPortalController(PosController):
 
     @http.route(['/pos/web', '/pos/ui'], type='http', auth='user')
     def pos_web(self, config_id=False, from_backend=False, **k):
-        # ir.http._authenticate may have already swapped request.env to the
+        # ir.http._authenticate may have already swapped request.env to a
         # proxy user. We therefore look up the *session's* user (the actual
         # logged-in identity) to decide which flow to run.
         session_uid = request.session.uid
@@ -41,36 +47,54 @@ class PosPortalController(PosController):
             return request.not_found()
 
         partner = session_user.partner_id
-        pos_config_sudo = partner.portal_pos_config_id
-        if not pos_config_sudo or not pos_config_sudo.active:
+        configs = partner.portal_pos_config_ids.filtered('active')
+        if not configs:
             return request.not_found()
 
-        proxy_user = pos_config_sudo.self_ordering_default_user_id
+        # Resolve which config this request targets.
+        if config_id:
+            try:
+                requested_id = int(config_id)
+            except (TypeError, ValueError):
+                return request.not_found()
+            target = configs.filtered(lambda c: c.id == requested_id)
+            if not target:
+                # Config is either unknown or not assigned to this partner.
+                return request.not_found()
+        elif len(configs) == 1:
+            target = configs
+        else:
+            # Ambiguous — send user to the picker.
+            return request.redirect('/my/pos')
+
+        proxy_user = target.self_ordering_default_user_id
         if not proxy_user or not proxy_user.active:
             _logger.warning(
                 "Portal POS: pos.config %s has no active "
                 "self_ordering_default_user_id; portal user %s cannot "
                 "access the POS UI.",
-                pos_config_sudo.id, session_user.login,
+                target.id, session_user.login,
             )
             return request.not_found()
 
-        # ir.http._authenticate has already swapped request.env to the
-        # proxy user for this request, but to be defensive we elevate
-        # explicitly here as well -- this controller is the entry point.
+        # Pin the active shop to the HTTP session so subsequent RPCs
+        # (/web/dataset/call_kw, /longpolling/, etc.) can resolve which
+        # proxy user to elevate to.
+        request.session['portal_pos_active_config_id'] = target.id
+
+        # Elevate request.env for this controller as well (ir.http has
+        # already done it for requests AFTER the session key is set, but
+        # on the very first /pos/ui hit the session key is only being set
+        # now, so we must elevate explicitly here).
         request.update_env(user=proxy_user.id)
 
-        # Force the config to the one assigned on the partner. Ignore any
-        # ?config_id=... coming from the URL so portal users can never
-        # pivot to another config.
-        config_id = pos_config_sudo.id
-        company = pos_config_sudo.company_id
-        pos_config = request.env['pos.config'].browse(config_id).with_company(company)
+        company = target.company_id
+        pos_config = request.env['pos.config'].browse(target.id).with_company(company)
 
         domain = [
             ('state', 'in', ['opening_control', 'opened']),
             ('rescue', '=', False),
-            ('config_id', '=', config_id),
+            ('config_id', '=', target.id),
         ]
         pos_session = request.env['pos.session'].sudo().search(domain, limit=1)
 
@@ -111,11 +135,39 @@ class PosPortalController(PosController):
 
 class PortalHomePosCard(CustomerPortal):
 
+    @http.route(['/my/pos'], type='http', auth='user', website=True)
+    def portal_my_pos(self, **kw):
+        user = request.env.user
+        # Admin/internal users have the real backend; send them there.
+        if user._is_internal():
+            return request.redirect('/odoo/action-point_of_sale.action_client_pos_menu')
+        if not user._is_portal():
+            return request.redirect('/my')
+
+        partner = user.sudo().partner_id
+        configs = partner.portal_pos_config_ids.filtered('active')
+        if not configs:
+            return request.redirect('/my')
+        if len(configs) == 1:
+            return request.redirect('/pos/ui?config_id=%s' % configs.id)
+
+        return request.render(
+            'pos_self_order_enhancement.portal_pos_picker',
+            {
+                'page_name': 'portal_pos',
+                'configs': configs,
+            },
+        )
+
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.sudo().partner_id
-        pos_config = partner.portal_pos_config_id
-        if pos_config and pos_config.active:
-            values['portal_pos_config_name'] = pos_config.name
-            values['portal_pos_config_id'] = pos_config.id
+        configs = partner.portal_pos_config_ids.filtered('active')
+        values['portal_pos_config_count'] = len(configs)
+        if len(configs) == 1:
+            values['portal_pos_config_label'] = configs.name
+        elif len(configs) > 1:
+            values['portal_pos_config_label'] = '%d shops' % len(configs)
+        else:
+            values['portal_pos_config_label'] = ''
         return values

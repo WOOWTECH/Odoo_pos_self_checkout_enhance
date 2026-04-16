@@ -10,12 +10,12 @@
             <t t-set="portal_client_category_enable" t-value="True"/>
         </xpath>
         <div id="portal_client_category" position="inside">
-            <t t-if="portal_pos_config_id">
+            <t t-if="portal_pos_config_count">
                 <t t-call="portal.portal_docs_entry">
                     <t t-set="icon" t-value="'/point_of_sale/static/description/icon.png'"/>
                     <t t-set="title">Point of Sale</t>
-                    <t t-set="text" t-value="portal_pos_config_name"/>
-                    <t t-set="url" t-value="'/pos/ui'"/>
+                    <t t-set="text" t-value="portal_pos_config_label"/>
+                    <t t-set="url" t-value="'/my/pos'"/>
                     <t t-set="config_card" t-value="True"/>
                 </t>
             </t>

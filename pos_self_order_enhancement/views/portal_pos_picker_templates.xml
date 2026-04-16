@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="portal_pos_picker" name="Portal POS Shop Picker">
+        <t t-call="portal.portal_layout">
+            <t t-set="my_details" t-value="False"/>
+            <div class="o_portal_my_home">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">Choose a shop</h3>
+                    <a href="/my" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa fa-arrow-left"/> My Account
+                    </a>
+                </div>
+                <p class="text-muted">
+                    Select which POS shop to open.
+                </p>
+                <div class="row g-3">
+                    <t t-foreach="configs" t-as="config">
+                        <div class="col-md-6 col-lg-4">
+                            <a t-att-href="'/pos/ui?config_id=%s' % config.id"
+                               class="card h-100 text-decoration-none text-reset">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <img src="/point_of_sale/static/description/icon.png"
+                                             alt="POS"
+                                             style="width: 48px; height: 48px;"
+                                             class="me-3"/>
+                                        <div>
+                                            <h5 class="card-title mb-1">
+                                                <t t-out="config.name"/>
+                                            </h5>
+                                            <small class="text-muted">
+                                                <t t-out="config.company_id.name"/>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>
