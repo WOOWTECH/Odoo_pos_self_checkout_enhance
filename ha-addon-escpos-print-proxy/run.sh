@@ -9,6 +9,7 @@ set -euo pipefail
 API_KEY=$(bashio::config 'api_key')
 PORT=$(bashio::config 'port')
 PAPER_MM=$(bashio::config 'paper_mm')
+PRINTER_IP=$(bashio::config 'printer_ip')
 
 if [[ -z "${API_KEY}" ]]; then
     bashio::log.fatal "api_key is empty. Generate one with:  openssl rand -hex 32"
@@ -16,9 +17,15 @@ if [[ -z "${API_KEY}" ]]; then
     exit 2
 fi
 
+if [[ -n "${PRINTER_IP}" ]]; then
+    bashio::log.info "Default printer IP: ${PRINTER_IP} (used when request omits printer_ip)"
+else
+    bashio::log.warning "No default printer_ip set. Callers must provide printer_ip in each /print request."
+fi
+
 bashio::log.info "Starting ESC/POS print proxy on :${PORT} (paper=${PAPER_MM}mm)"
 
-export API_KEY PORT PAPER_MM
+export API_KEY PORT PAPER_MM PRINTER_IP
 
 cd /app
 exec python3 print_proxy.py

@@ -42,7 +42,7 @@ from flask import Flask, jsonify, request
 
 from escpos_min import print_image
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 _logger = logging.getLogger("escpos_proxy")
 logging.basicConfig(
@@ -53,6 +53,10 @@ logging.basicConfig(
 API_KEY = os.environ.get("API_KEY", "").strip()
 PORT = int(os.environ.get("PORT", "8073"))
 PAPER_MM = int(os.environ.get("PAPER_MM", "80"))
+# Optional default printer IP. When set, requests that omit `printer_ip`
+# in the JSON body fall back to this value. Lets the cloud Odoo side stay
+# ignorant of the shop's LAN topology (IP is configured here, at the shop).
+PRINTER_IP = os.environ.get("PRINTER_IP", "").strip()
 _STARTED_AT = time.time()
 
 
@@ -93,11 +97,20 @@ def create_app():
             return jsonify(ok=False, error=f"malformed JSON: {exc}"), 400
 
         image_b64 = data.get("image_base64")
-        printer_ip = data.get("printer_ip")
+        req_printer_ip = (data.get("printer_ip") or "").strip()
         if not image_b64:
             return jsonify(ok=False, error="missing image_base64"), 400
+
+        # Resolve target printer IP. Request payload wins, add-on default
+        # fallback otherwise. If neither is present, 400 with a clear error.
+        printer_ip = req_printer_ip or PRINTER_IP
         if not printer_ip:
-            return jsonify(ok=False, error="missing printer_ip"), 400
+            return jsonify(
+                ok=False,
+                error="no printer_ip in request and no default configured "
+                      "in add-on options",
+            ), 400
+        ip_source = "payload" if req_printer_ip else "addon-default"
 
         paper = int(data.get("paper_width") or PAPER_MM)
         # `cut` and `beep` are accepted but the driver always cuts and doesn't
@@ -105,7 +118,7 @@ def create_app():
         _ = bool(data.get("cut", True))
         _ = bool(data.get("beep", False))
 
-        _logger.info("dispatch -> %s (paper=%dmm)", printer_ip, paper)
+        _logger.info("dispatch -> %s (paper=%dmm, source=%s)", printer_ip, paper, ip_source)
         result = print_image(printer_ip, 9100, image_b64, paper_width=paper, timeout=5)
 
         if result.get("success"):
