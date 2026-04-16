@@ -9,6 +9,11 @@ Odoo 18 module that enhances the POS self-ordering experience for restaurants an
 - **Pay per Order Mode** - Enables Enterprise-only "Pay per Order" feature for Community version
   - Customers can submit multiple orders
   - Pay all orders at once from "My Orders" page
+- **Cloud ESC/POS Printing (optional)** - Lets a cloud-hosted Odoo print
+  kitchen tickets on a local ESC/POS printer via a Home Assistant add-on
+  + Cloudflare Tunnel. Per-printer opt-in; the default local TCP path is
+  unchanged. See [`ha-addon-escpos-print-proxy/DOCS.md`](ha-addon-escpos-print-proxy/DOCS.md)
+  for the setup walkthrough.
 
 ## Requirements
 
