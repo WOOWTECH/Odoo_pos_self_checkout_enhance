@@ -1,10 +1,19 @@
 import base64
 import io
+import logging
+
+import requests
 
 from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError, UserError
 
 from ..vendor.escpos_min import print_image
+
+_logger = logging.getLogger(__name__)
+
+# Relay HTTP timeout (seconds). Longer than the local TCP timeout because
+# the request traverses Internet + tunnel + LAN before the printer sees it.
+RELAY_TIMEOUT = 10
 
 
 class PosPrinter(models.Model):
@@ -52,12 +61,66 @@ class PosPrinter(models.Model):
         params += ['escpos_printer_ip', 'escpos_proxy_url']
         return params
 
+    # ── cloud relay helper (shared with controllers.print_proxy) ────
+
+    def _send_via_relay(self, image_b64):
+        """POST the print job to this printer's configured cloud relay.
+
+        Single source of truth for the HTTP relay path. Used by:
+          - ``controllers.print_proxy.relay_print`` — runtime POS prints
+          - ``action_print_test_page``              — backend "Print test page"
+
+        Returns {'success': bool, 'error': str|None} — identical envelope
+        shape to ``escpos_min.print_image`` so every caller branches on a
+        single response contract.
+        """
+        self.ensure_one()
+        url = (self.escpos_proxy_url or '').rstrip('/') + '/print'
+        api_key = self.escpos_proxy_api_key or ''
+        headers = {}
+        if api_key:
+            headers['Authorization'] = f'Bearer {api_key}'
+        payload = {
+            'image_base64': image_b64,
+            'printer_ip': self.escpos_printer_ip,
+            'cut': True,
+            'beep': False,
+        }
+        _logger.info(
+            "[escpos] relay -> %s (printer=%s)",
+            url, self.escpos_printer_ip,
+        )
+        try:
+            resp = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=RELAY_TIMEOUT,
+            )
+        except requests.RequestException as e:
+            _logger.warning("[escpos] relay request failed: %s", e)
+            return {'success': False, 'error': f'Relay unreachable: {e}'}
+
+        # Relay responds with {ok: bool, error?: str}. Map to our
+        # {success, error} envelope shared with the TCP path.
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        if resp.status_code == 200 and body.get('ok'):
+            return {'success': True, 'error': None}
+        err = body.get('error') or f'relay returned HTTP {resp.status_code}'
+        _logger.warning("[escpos] relay refused: %s", err)
+        return {'success': False, 'error': err}
+
     def action_print_test_page(self):
         """Render and send a small test ticket to the configured printer.
 
         Used by the "Print test page" button on the printer form view to
         verify connectivity + raster encoding without going through a real
-        POS order.
+        POS order. Honors cloud relay mode when escpos_proxy_url is set —
+        this is the easiest way for an admin to end-to-end verify the
+        Cloudflare tunnel + HA add-on chain.
         """
         self.ensure_one()
         if self.printer_type != 'network_escpos':
@@ -76,12 +139,14 @@ class PosPrinter(models.Model):
         except Exception:
             font = None
 
+        mode_label = "cloud relay" if self.escpos_proxy_url else "local TCP"
         lines = [
             "POS SELF ORDER ENHANCEMENT",
             "ESC/POS network printer test",
             "",
             f"Printer: {self.name or '(unnamed)'}",
             f"IP:      {self.escpos_printer_ip}",
+            f"Mode:    {mode_label}",
             "",
             "Test:    Hello / 12345 / OK",
             "If you can read this, printing works.",
@@ -95,13 +160,16 @@ class PosPrinter(models.Model):
         img.convert('RGB').save(buf, format='JPEG', quality=80)
         b64_jpeg = base64.b64encode(buf.getvalue()).decode('ascii')
 
-        result = print_image(
-            self.escpos_printer_ip,
-            9100,
-            b64_jpeg,
-            paper_width=80,
-            timeout=3,
-        )
+        if self.escpos_proxy_url:
+            result = self._send_via_relay(b64_jpeg)
+        else:
+            result = print_image(
+                self.escpos_printer_ip,
+                9100,
+                b64_jpeg,
+                paper_width=80,
+                timeout=3,
+            )
         if not result.get('success'):
             raise UserError(_(
                 "Test print failed: %s",
@@ -113,9 +181,9 @@ class PosPrinter(models.Model):
             'params': {
                 'title': _("Test print sent"),
                 'message': _(
-                    "A test ticket has been sent to %s. "
+                    "A test ticket has been sent to %s via %s. "
                     "Check the printer."
-                ) % self.escpos_printer_ip,
+                ) % (self.escpos_printer_ip, mode_label),
                 'type': 'success',
                 'sticky': False,
             },
