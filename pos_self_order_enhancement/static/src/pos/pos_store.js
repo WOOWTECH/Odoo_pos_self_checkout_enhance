@@ -4,6 +4,7 @@ import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { changesToOrder } from "@point_of_sale/app/models/utils/order_change";
 import { loadAllImages } from "@point_of_sale/utils";
+import { selectEinvoicePrinter } from "@pos_self_order_enhancement/printer/select_einvoice_printer";
 
 /**
  * Safely get the first pos.category with kds_hold_fire from a product.
@@ -64,10 +65,9 @@ patch(PosStore.prototype, {
             await this.data.read("pos.order", [data.order_id]);
         } catch (e) { /* may already be loaded */ }
 
-        // Find ESC/POS network printer
-        const escposPrinter = (this.unwatched.printers || []).find(
-            (p) => p.config?.printer_type === "network_escpos"
-        );
+        // Find the designated e-invoice printer (pos.config.einvoice_printer_id,
+        // or fall back to the first network_escpos printer).
+        const escposPrinter = selectEinvoicePrinter(this);
         if (!escposPrinter) return;
 
         // Get server-rendered invoice HTML

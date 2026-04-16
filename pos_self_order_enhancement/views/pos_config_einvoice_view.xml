@@ -18,6 +18,16 @@
                                 <field name="ecpay_einvoice_enabled"/>
                             </div>
                         </div>
+                        <div invisible="not ecpay_einvoice_enabled" class="row mt-2">
+                            <div class="col-lg-5 o_light_label">
+                                <label string="E-Invoice Printer / 電子發票印表機" for="einvoice_printer_id"/>
+                            </div>
+                            <div class="col-lg-7">
+                                <field name="einvoice_printer_id"
+                                       options="{'no_create': True, 'no_create_edit': True}"
+                                       placeholder="Auto: first network ESC/POS printer"/>
+                            </div>
+                        </div>
                         <div invisible="not ecpay_einvoice_enabled" class="text-muted small mt-2">
                             ECPay credentials (MerchantID, HashKey, HashIV) are configured at the company level.
                             <br/>

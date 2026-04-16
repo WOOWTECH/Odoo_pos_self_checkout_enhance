@@ -35,11 +35,21 @@ class PosConfig(models.Model):
         string='Seller Tax ID (賣方統編)',
         readonly=True,
     )
+    einvoice_printer_id = fields.Many2one(
+        'pos.printer',
+        string='E-Invoice Printer (電子發票印表機)',
+        domain="[('printer_type', '=', 'network_escpos'), ('id', 'in', printer_ids)]",
+        help="ESC/POS printer used to print Taiwan 電子統一發票 receipts. "
+             "If empty, the first network ESC/POS printer on this POS is used. "
+             "Leave kitchen-routed printers (those with Printed Product Categories) "
+             "unselected here so kitchen tickets and invoices land on separate devices.",
+    )
 
     @api.model
     def _load_pos_self_data_fields(self, config_id):
         params = super()._load_pos_self_data_fields(config_id)
         params.append('ecpay_einvoice_enabled')
+        params.append('einvoice_printer_id')
         return params
 
     def _compute_selection_pay_after(self):

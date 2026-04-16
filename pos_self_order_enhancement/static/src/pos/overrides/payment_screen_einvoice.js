@@ -5,7 +5,7 @@ import { patch } from "@web/core/utils/patch";
 import { useState, useRef } from "@odoo/owl";
 import { loadAllImages } from "@point_of_sale/utils";
 import { _t } from "@web/core/l10n/translation";
-import { EscPosPrinter } from "@pos_self_order_enhancement/printer/escpos_network_printer";
+import { selectEinvoicePrinter } from "@pos_self_order_enhancement/printer/select_einvoice_printer";
 
 patch(PaymentScreen.prototype, {
     setup() {
@@ -121,9 +121,7 @@ patch(PaymentScreen.prototype, {
         // Print Taiwan invoice receipt to ESC/POS preparation printer.
         // Uses the ecpay_invoice_tw QWeb report template (server-side rendered)
         // to ensure the format matches the official government-compliant format.
-        const escposPrinter = this.pos?.unwatched?.printers?.find(
-            (p) => p instanceof EscPosPrinter
-        );
+        const escposPrinter = selectEinvoicePrinter(this.pos);
         if (!escposPrinter) {
             console.warn("No ESC/POS printer found for invoice printing");
             return;
