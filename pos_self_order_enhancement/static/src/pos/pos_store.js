@@ -79,13 +79,19 @@ patch(PosStore.prototype, {
             );
             if (!result?.html) return;
 
-            // Render in DOM and print via ESC/POS
+            // Render in DOM off-screen and print via ESC/POS
             const container = document.createElement("div");
             container.innerHTML = result.html;
+            container.style.position = "fixed";
+            container.style.left = "-9999px";
             document.body.appendChild(container);
-            await loadAllImages(container);
+
+            // Select .invoiceContainer to exclude the <style> tag,
+            // otherwise html2canvas renders the CSS text as part of the image.
+            const el = container.querySelector(".invoiceContainer") || container.firstElementChild;
+            await loadAllImages(el);
             try {
-                await escposPrinter.printReceipt(container);
+                await escposPrinter.printReceipt(el);
             } catch (printErr) {
                 console.warn("EINVOICE_PRINT: printer error (non-fatal):", printErr);
             }
