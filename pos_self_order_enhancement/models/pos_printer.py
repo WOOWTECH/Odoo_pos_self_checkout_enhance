@@ -24,8 +24,12 @@ class PosPrinter(models.Model):
     )
     escpos_printer_ip = fields.Char(
         string='Printer IP Address',
-        help='IP address of the ESC/POS network printer (e.g., 192.168.1.100)',
-        default='192.168.1.100',
+        help=(
+            'LAN IP of the ESC/POS network printer (e.g., 192.168.1.100). '
+            'Required for direct local TCP printing. Optional when Cloud '
+            'Relay URL is set — in cloud mode the HA add-on at the shop '
+            'knows its own target printer IP.'
+        ),
     )
     escpos_proxy_url = fields.Char(
         string='Cloud Relay URL',
@@ -46,11 +50,19 @@ class PosPrinter(models.Model):
         ),
     )
 
-    @api.constrains('escpos_printer_ip')
-    def _constrains_escpos_printer_ip(self):
+    @api.constrains('printer_type', 'escpos_printer_ip', 'escpos_proxy_url')
+    def _constrains_escpos_endpoint(self):
+        """A network_escpos printer must be reachable — either by a direct
+        LAN IP (local TCP mode) or by a Cloud Relay URL (the HA add-on
+        handles the LAN side)."""
         for record in self:
-            if record.printer_type == 'network_escpos' and not record.escpos_printer_ip:
-                raise ValidationError(_("Printer IP Address cannot be empty."))
+            if record.printer_type != 'network_escpos':
+                continue
+            if not record.escpos_printer_ip and not record.escpos_proxy_url:
+                raise ValidationError(_(
+                    "Set either a Printer IP Address (local TCP) or a "
+                    "Cloud Relay URL (cloud mode)."
+                ))
 
     @api.model
     def _load_pos_data_fields(self, config_id):
@@ -82,13 +94,17 @@ class PosPrinter(models.Model):
             headers['Authorization'] = f'Bearer {api_key}'
         payload = {
             'image_base64': image_b64,
-            'printer_ip': self.escpos_printer_ip,
             'cut': True,
             'beep': False,
         }
+        # Only include printer_ip when the admin filled it in. Otherwise
+        # the add-on will use its own configured default — the normal
+        # cloud-mode setup where the shop side owns the LAN topology.
+        if self.escpos_printer_ip:
+            payload['printer_ip'] = self.escpos_printer_ip
         _logger.info(
             "[escpos] relay -> %s (printer=%s)",
-            url, self.escpos_printer_ip,
+            url, self.escpos_printer_ip or '<add-on default>',
         )
         try:
             resp = requests.post(
@@ -127,8 +143,11 @@ class PosPrinter(models.Model):
             raise UserError(_(
                 "The test print only supports the 'network ESC/POS printer' type."
             ))
-        if not self.escpos_printer_ip:
-            raise UserError(_("Please set the printer IP address first."))
+        if not self.escpos_printer_ip and not self.escpos_proxy_url:
+            raise UserError(_(
+                "Set either a Printer IP Address (local TCP) or a "
+                "Cloud Relay URL (cloud mode) first."
+            ))
 
         # Build a tiny test bitmap with Pillow (already in base Odoo).
         from PIL import Image, ImageDraw, ImageFont
@@ -140,12 +159,13 @@ class PosPrinter(models.Model):
             font = None
 
         mode_label = "cloud relay" if self.escpos_proxy_url else "local TCP"
+        ip_label = self.escpos_printer_ip or "(from add-on default)"
         lines = [
             "POS SELF ORDER ENHANCEMENT",
             "ESC/POS network printer test",
             "",
             f"Printer: {self.name or '(unnamed)'}",
-            f"IP:      {self.escpos_printer_ip}",
+            f"IP:      {ip_label}",
             f"Mode:    {mode_label}",
             "",
             "Test:    Hello / 12345 / OK",
@@ -183,7 +203,7 @@ class PosPrinter(models.Model):
                 'message': _(
                     "A test ticket has been sent to %s via %s. "
                     "Check the printer."
-                ) % (self.escpos_printer_ip, mode_label),
+                ) % (ip_label, mode_label),
                 'type': 'success',
                 'sticky': False,
             },

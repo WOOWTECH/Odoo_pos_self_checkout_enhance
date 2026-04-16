@@ -16,13 +16,17 @@ import { _t } from "@web/core/l10n/translation";
  * proxy process is required.
  */
 export class EscPosPrinter extends BasePrinter {
-    setup({ printer_ip }) {
+    setup({ printer_id, printer_ip }) {
         super.setup(...arguments);
+        // Record id is the primary lookup key for the backend controller.
+        // IP is kept for back-compat and still used for direct local TCP.
+        this.printer_id = printer_id;
         this.printer_ip = printer_ip;
     }
 
     async sendPrintingJob(img) {
         const result = await rpc("/pos-escpos/print", {
+            printer_id: this.printer_id,
             printer_ip: this.printer_ip,
             action: "print_receipt",
             receipt: img,
@@ -32,6 +36,7 @@ export class EscPosPrinter extends BasePrinter {
 
     openCashbox() {
         return rpc("/pos-escpos/print", {
+            printer_id: this.printer_id,
             printer_ip: this.printer_ip,
             action: "cashbox",
         });
@@ -68,7 +73,10 @@ export class EscPosPrinter extends BasePrinter {
 patch(PosStore.prototype, {
     create_printer(config) {
         if (config.printer_type === "network_escpos") {
-            return new EscPosPrinter({ printer_ip: config.escpos_printer_ip });
+            return new EscPosPrinter({
+                printer_id: config.id,
+                printer_ip: config.escpos_printer_ip,
+            });
         }
         return super.create_printer(...arguments);
     },
