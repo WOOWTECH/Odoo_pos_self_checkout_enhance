@@ -18,6 +18,24 @@ class PosPrinter(models.Model):
         help='IP address of the ESC/POS network printer (e.g., 192.168.1.100)',
         default='192.168.1.100',
     )
+    escpos_proxy_url = fields.Char(
+        string='Cloud Relay URL',
+        help=(
+            'Optional. When set, print jobs are forwarded to this HTTPS URL '
+            '(a local ESC/POS print proxy reachable from the Odoo server) '
+            'instead of opening a direct TCP connection to the printer. '
+            'Leave empty to keep the existing local TCP printing behavior. '
+            'Example: https://print.myshop.com'
+        ),
+    )
+    escpos_proxy_api_key = fields.Char(
+        string='Cloud Relay API Key',
+        help=(
+            'Bearer token sent to the cloud relay as '
+            'Authorization: Bearer <key>. Only used when Cloud Relay URL '
+            'is set. Stored server-side only; never exposed to POS frontend.'
+        ),
+    )
 
     @api.constrains('escpos_printer_ip')
     def _constrains_escpos_printer_ip(self):
@@ -28,7 +46,10 @@ class PosPrinter(models.Model):
     @api.model
     def _load_pos_data_fields(self, config_id):
         params = super()._load_pos_data_fields(config_id)
-        params += ['escpos_printer_ip']
+        # escpos_proxy_url is exposed so the frontend knows relay mode is active
+        # (for UI hints if ever needed). escpos_proxy_api_key is deliberately
+        # NOT exposed — it must stay server-side only.
+        params += ['escpos_printer_ip', 'escpos_proxy_url']
         return params
 
     def action_print_test_page(self):
