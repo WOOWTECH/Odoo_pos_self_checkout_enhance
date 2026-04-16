@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_partner_form_portal_pos" model="ir.ui.view">
+        <field name="name">res.partner.form.portal.pos</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='internal_notes']" position="before">
+                <page string="Portal POS" name="portal_pos" invisible="not user_ids">
+                    <group>
+                        <field name="portal_pos_config_id"
+                               options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                    <div class="text-muted">
+                        <p>
+                            Assign a POS configuration here to allow this portal user
+                            to access the POS cashier interface from their
+                            <strong>My Account</strong> page.
+                        </p>
+                        <p>
+                            The selected POS config must have a
+                            <strong>Default User</strong> configured under
+                            <em>POS Settings → Self-Ordering</em>.
+                        </p>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
