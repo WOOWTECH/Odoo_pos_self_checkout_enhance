@@ -1,6 +1,6 @@
 {
     "name": "POS Self Order Enhancement",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "category": "Sales/Point of Sale",
     "summary": "Enhanced POS self-ordering with continue ordering, pay per order mode, and friendly UI",
     "description": """

@@ -49,6 +49,16 @@ class PosPrinter(models.Model):
             'is set. Stored server-side only; never exposed to POS frontend.'
         ),
     )
+    escpos_printer_label = fields.Char(
+        string='Printer Label',
+        help=(
+            'Optional label identifying this printer on the HA add-on side '
+            '(e.g. "kitchen", "invoice"). Only used when Cloud Relay URL '
+            'is set. Must match a label configured in the add-on\'s '
+            '"printers" list. Leave empty for single-printer shops — the '
+            'add-on will use its default printer.'
+        ),
+    )
 
     @api.constrains('printer_type', 'escpos_printer_ip', 'escpos_proxy_url')
     def _constrains_escpos_endpoint(self):
@@ -70,7 +80,11 @@ class PosPrinter(models.Model):
         # escpos_proxy_url is exposed so the frontend knows relay mode is active
         # (for UI hints if ever needed). escpos_proxy_api_key is deliberately
         # NOT exposed — it must stay server-side only.
-        params += ['escpos_printer_ip', 'escpos_proxy_url']
+        params += [
+            'escpos_printer_ip',
+            'escpos_proxy_url',
+            'escpos_printer_label',
+        ]
         return params
 
     # ── cloud relay helper (shared with controllers.print_proxy) ────
@@ -97,15 +111,20 @@ class PosPrinter(models.Model):
             'cut': True,
             'beep': False,
         }
-        # Only include printer_ip when the admin filled it in. Otherwise
-        # the add-on will use its own configured default — the normal
-        # cloud-mode setup where the shop side owns the LAN topology.
-        if self.escpos_printer_ip:
+        # Resolution precedence mirrors the add-on:
+        #   label > ip > add-on default.
+        # Label is preferred for multi-printer shops; it lets the cloud
+        # stay ignorant of LAN IPs. IP is kept as an override escape hatch
+        # for the rare case where an admin really does need to steer by IP.
+        if self.escpos_printer_label:
+            payload['printer_label'] = self.escpos_printer_label
+            target_log = f"label={self.escpos_printer_label}"
+        elif self.escpos_printer_ip:
             payload['printer_ip'] = self.escpos_printer_ip
-        _logger.info(
-            "[escpos] relay -> %s (printer=%s)",
-            url, self.escpos_printer_ip or '<add-on default>',
-        )
+            target_log = f"ip={self.escpos_printer_ip}"
+        else:
+            target_log = "<add-on default>"
+        _logger.info("[escpos] relay -> %s (%s)", url, target_log)
         try:
             resp = requests.post(
                 url,
@@ -159,7 +178,10 @@ class PosPrinter(models.Model):
             font = None
 
         mode_label = "cloud relay" if self.escpos_proxy_url else "local TCP"
-        ip_label = self.escpos_printer_ip or "(from add-on default)"
+        if self.escpos_printer_label:
+            ip_label = f"label={self.escpos_printer_label}"
+        else:
+            ip_label = self.escpos_printer_ip or "(from add-on default)"
         lines = [
             "POS SELF ORDER ENHANCEMENT",
             "ESC/POS network printer test",

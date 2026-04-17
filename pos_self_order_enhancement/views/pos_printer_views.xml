@@ -16,6 +16,9 @@
                        invisible="printer_type != 'network_escpos' or not escpos_proxy_url"
                        password="True"
                        placeholder="Bearer token for cloud relay"/>
+                <field name="escpos_printer_label"
+                       invisible="printer_type != 'network_escpos' or not escpos_proxy_url"
+                       placeholder="e.g. kitchen / invoice (leave empty for single-printer shops)"/>
                 <button name="action_print_test_page"
                         type="object"
                         string="Print test page"
