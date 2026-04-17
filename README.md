@@ -24,7 +24,8 @@
   <a href="#security">Security</a> &bull;
   <a href="#api-reference">API Reference</a> &bull;
   <a href="#support">Support</a> &bull;
-  <a href="#license">License</a>
+  <a href="#license">License</a> &bull;
+  <a href="README_zh-TW.md">繁體中文</a>
 </p>
 
 ---
