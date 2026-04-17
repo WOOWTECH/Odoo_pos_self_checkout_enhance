@@ -158,6 +158,8 @@ If you already have a proxy host for Home Assistant (e.g., `ha.yourdomain.com`),
 
 5. Save.
 
+![NPM Custom Locations — /print and /status forwarding to 172.30.32.1:8073](screenshots/npm-custom-locations.png)
+
 **Cloud Relay URL for Odoo:** `https://ha.yourdomain.com`
 (Odoo appends `/print` automatically when sending print jobs.)
 
@@ -236,6 +238,8 @@ additional_hosts:
 | **Paper Width** | `80 mm` or `58 mm` |
 
 > The **Printer IP Address** field is hidden when a Cloud Relay URL is set. The add-on resolves the printer by label or uses the default IP configured in the add-on.
+
+![Odoo printer form — Cloud Relay URL, API Key, and Printer Label configured](screenshots/odoo-printer-cloud-relay.png)
 
 4. Click **Save**.
 5. Click the **Print Test Page** button. If everything is configured correctly, the printer will print a test ticket showing the printer name, mode (cloud relay), and paper width.
@@ -510,6 +514,8 @@ NPM 將來自 Cloudflare Tunnel 的 HTTP 請求路由到列印代理附加元件
 
 5. 儲存。
 
+![NPM 自訂位置 — /print 和 /status 轉發到 172.30.32.1:8073](screenshots/npm-custom-locations.png)
+
 **Odoo 中的 Cloud Relay URL：** `https://ha.yourdomain.com`
 （Odoo 發送列印請求時會自動附加 `/print`。）
 
@@ -588,6 +594,8 @@ additional_hosts:
 | **Paper Width** | `80 mm` 或 `58 mm` |
 
 > 當設定了 Cloud Relay URL 時，**Printer IP Address** 欄位會自動隱藏。附加元件會依標籤解析印表機，或使用附加元件設定中的預設 IP。
+
+![Odoo 印表機表單 — 已設定 Cloud Relay URL、API Key 和 Printer Label](screenshots/odoo-printer-cloud-relay.png)
 
 4. 點擊 **儲存**。
 5. 點擊 **列印測試頁（Print Test Page）** 按鈕。如果一切設定正確，印表機將列印一張測試票券，顯示印表機名稱、模式（cloud relay）和紙張寬度。
