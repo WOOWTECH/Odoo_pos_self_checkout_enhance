@@ -31,6 +31,12 @@ class PosPrinter(models.Model):
             'knows its own target printer IP.'
         ),
     )
+    escpos_paper_width = fields.Selection(
+        [('80', '80 mm'), ('58', '58 mm')],
+        string='Paper Width',
+        default='80',
+        help='Thermal paper width. Affects image scaling for the receipt.',
+    )
     escpos_proxy_url = fields.Char(
         string='Cloud Relay URL',
         help=(
@@ -84,6 +90,7 @@ class PosPrinter(models.Model):
             'escpos_printer_ip',
             'escpos_proxy_url',
             'escpos_printer_label',
+            'escpos_paper_width',
         ]
         return params
 
@@ -110,6 +117,7 @@ class PosPrinter(models.Model):
             'image_base64': image_b64,
             'cut': True,
             'beep': False,
+            'paper_width': int(self.escpos_paper_width or '80'),
         }
         # Resolution precedence mirrors the add-on:
         #   label > ip > add-on default.
@@ -170,7 +178,9 @@ class PosPrinter(models.Model):
 
         # Build a tiny test bitmap with Pillow (already in base Odoo).
         from PIL import Image, ImageDraw, ImageFont
-        img = Image.new('1', (576, 240), 1)  # 80 mm @ 203 dpi, white bg
+        pw = int(self.escpos_paper_width or '80')
+        dots = {80: 576, 58: 384}.get(pw, 576)
+        img = Image.new('1', (dots, 240), 1)  # white bg, width matches paper
         draw = ImageDraw.Draw(img)
         try:
             font = ImageFont.load_default()
@@ -188,6 +198,7 @@ class PosPrinter(models.Model):
             "",
             f"Printer: {self.name or '(unnamed)'}",
             f"IP:      {ip_label}",
+            f"Paper:   {pw}mm ({dots}px)",
             f"Mode:    {mode_label}",
             "",
             "Test:    Hello / 12345 / OK",
@@ -209,7 +220,7 @@ class PosPrinter(models.Model):
                 self.escpos_printer_ip,
                 9100,
                 b64_jpeg,
-                paper_width=80,
+                paper_width=pw,
                 timeout=3,
             )
         if not result.get('success'):

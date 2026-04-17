@@ -58,12 +58,13 @@ class PosEscPosProxy(http.Controller):
                     'success': False,
                     'error': 'No printer IP available for local TCP print.',
                 }
-            _logger.info("[escpos] local TCP -> %s", ip)
+            pw = int(printer.escpos_paper_width or '80') if printer else 80
+            _logger.info("[escpos] local TCP -> %s (paper=%dmm)", ip, pw)
             return print_image(
                 ip,
                 DEFAULT_PRINTER_PORT,
                 receipt,
-                paper_width=80,
+                paper_width=pw,
                 timeout=PRINTER_TIMEOUT,
             )
 

@@ -9,6 +9,8 @@
                 <field name="escpos_printer_ip"
                        invisible="printer_type != 'network_escpos' or escpos_proxy_url"
                        placeholder="192.168.1.100 (local TCP only)"/>
+                <field name="escpos_paper_width"
+                       invisible="printer_type != 'network_escpos'"/>
                 <field name="escpos_proxy_url"
                        invisible="printer_type != 'network_escpos'"
                        placeholder="https://print.myshop.com (leave empty for direct TCP)"/>
