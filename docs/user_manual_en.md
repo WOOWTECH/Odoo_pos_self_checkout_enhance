@@ -111,8 +111,8 @@ Enables a payment gating workflow where each order is held until online payment 
 
 **Setup**
 
-1. Navigate to **Point of Sale > Configuration > Point of Sale** and select your POS config.
-2. Under the **Self-Ordering** section, find the **Pay After** setting.
+1. Navigate to **Point of Sale > Configuration > Settings**.
+2. Under the **Mobile self-order & Kiosk** section, find the **Pay after** setting.
 3. Set it to **"Each Order"**.
 4. Ensure you have at least one online payment method configured (e.g., ECPay, Stripe).
 5. Save the configuration.
@@ -140,8 +140,8 @@ Allows customers to choose to pay at the physical POS counter instead of paying 
 
 **Setup**
 
-1. This option becomes available when **Pay Per Order Mode** (section 1.3) is enabled.
-2. No additional configuration is needed beyond enabling "Each Order" payment mode.
+1. This option is available in both payment modes ("Each Order" and "Meal").
+2. No additional configuration is needed.
 
 **Usage**
 
@@ -152,8 +152,7 @@ Allows customers to choose to pay at the physical POS counter instead of paying 
 
 **Troubleshooting**
 
-- If the "Pay at Counter" option does not appear, confirm that Pay Per Order mode is active.
-- Ensure the POS session is open so that released orders can be received by staff.
+- If the "Pay at Counter" option does not appear, ensure the POS session is open so that released orders can be received by staff.
 - If the order does not appear on the staff terminal, check that the kiosk and POS terminal are using the same POS configuration.
 
 ---
@@ -311,7 +310,7 @@ Enables course-level workflow control. Products assigned to a "Hold & Fire" cate
 
 **Setup**
 
-1. Navigate to **Point of Sale > Configuration > Products > PoS Product Categories**.
+1. Navigate to **Point of Sale > Configuration > PoS Product Categories**.
 2. Select or create the category for the course you want to control (e.g., "Mains," "Desserts").
 3. Enable the **KDS Hold & Fire** checkbox on the category.
 4. Assign products to this category as needed.
@@ -548,12 +547,11 @@ Enables direct printing from Odoo to an ESC/POS printer on the local network via
 
 **Setup**
 
-1. Navigate to **Point of Sale > Configuration > Point of Sale** and select your POS config.
-2. Go to the **Printers** section and add a new printer.
-3. Set the **Type** to **"Network ESC/POS"**.
-4. Enter the printer's **IP Address** (e.g., `192.168.1.100`).
-5. The default port is 9100. Change it only if your printer uses a different port.
-6. Save the printer configuration.
+1. Navigate to **Point of Sale > Configuration > Settings > Preparation > Printers** and add a new printer.
+2. Set the **Type** to **"Use a network ESC/POS printer"**.
+3. Enter the printer's **IP Address** (e.g., `192.168.1.100`).
+4. The default port is 9100. Change it only if your printer uses a different port.
+5. Save the printer configuration.
 
 ![Printer Form Local](screenshots/en/printer-form-local.png)
 
@@ -590,8 +588,8 @@ Enables printing from a cloud-hosted Odoo instance to a local ESC/POS printer vi
    - Note the public URL (e.g., `https://print.yourdomain.com`).
 
 3. **Configure in Odoo:**
-   - Navigate to your POS config's printer settings.
-   - Set the **Type** to **"Network ESC/POS"**.
+   - Navigate to **Point of Sale > Configuration > Settings > Preparation > Printers** and open or create a printer.
+   - Set the **Type** to **"Use a network ESC/POS printer"**.
    - Enter the **Cloud Relay URL** (e.g., `https://print.yourdomain.com`).
    - Enter the **API Key** that matches the one configured in the Home Assistant add-on.
    - Optionally set a **Printer Label** to route to a specific printer on the relay (see section 3.4).
@@ -619,7 +617,7 @@ Allows selecting 80mm or 58mm paper width for each printer individually.
 
 **Setup**
 
-1. Navigate to the printer form (Point of Sale > Configuration > Printers or via the POS config).
+1. Navigate to the printer form (**Point of Sale > Configuration > Settings > Preparation > Printers**).
 2. Find the **Paper Width** setting.
 3. Select either **80 mm** or **58 mm**.
 4. Save.
@@ -672,7 +670,7 @@ Prints a test page to verify the printer connection and configuration.
 
 **Usage**
 
-1. Open the printer form (Point of Sale > Configuration > Printers or via the POS config).
+1. Open the printer form (**Point of Sale > Configuration > Settings > Preparation > Printers**).
 2. Click the **"Print test page"** button.
 3. The printer should output a test page confirming the connection is working.
 
@@ -699,13 +697,12 @@ Provides full Taiwan unified invoice (tong yi fa piao) support via the ECPay API
 **Setup**
 
 1. Install the `ecpay_invoice_tw` and `payment_ecpay` modules if not already installed.
-2. Navigate to **Settings** (General Settings).
-3. Locate the ECPay configuration section.
-4. Enter your ECPay API credentials:
+2. Navigate to **Settings > Accounting** and locate the **ECPay E-Invoice** section.
+3. Enter your ECPay API credentials:
    - Merchant ID
    - Hash Key
    - Hash IV
-5. Save the settings.
+4. Save the settings.
 
 ![POS Config E-Invoice](screenshots/en/pos-config-einvoice.png)
 
@@ -800,10 +797,7 @@ Automatically issues an e-invoice after online payment confirmation, removing th
 
 **Setup**
 
-1. Navigate to **Point of Sale > Configuration > Point of Sale** and select your POS config.
-2. Find the **Taiwan E-Invoice** section.
-3. Enable the auto-issuance option.
-4. Save.
+1. Enable **E-Invoice** on the POS config (see section 4.1). Auto-issuance is built-in -- there is no separate toggle.
 
 **Usage**
 
@@ -884,12 +878,12 @@ Portal users can view their past POS orders from the customer portal.
 **Usage**
 
 - The customer logs into the Odoo portal at `/my`.
-- A **POS Orders** section appears in the portal navigation.
+- A **Point of Sale** card appears on the portal home page.
 - Clicking it shows a list of the customer's past POS orders with details such as date, items, and total amount.
 
 **Troubleshooting**
 
-- If the POS Orders section does not appear in the portal, verify the module is installed and the user has portal access.
+- If the Point of Sale card does not appear in the portal, verify the module is installed and the user has portal access.
 - Customers can only see orders associated with their partner record. If orders are missing, check that the order's partner matches the portal user.
 
 ---
@@ -900,7 +894,7 @@ Enables multi-location support by allowing administrators to assign specific POS
 
 **Setup**
 
-1. Navigate to **Contacts** and open the partner (customer) record.
+1. Open the **Contacts** app (or navigate to the URL `/odoo/contacts`) and open the partner (customer) record.
 2. Go to the **Portal POS** tab.
 3. Assign one or more POS configurations to this partner.
 4. Save.
@@ -911,13 +905,13 @@ Enables multi-location support by allowing administrators to assign specific POS
 
 - When a customer with multiple assigned shops visits `/my/pos`, they see a store picker page.
 - The customer selects the shop they want to order from.
-- They are redirected to the self-order kiosk for that specific POS configuration.
+- They are redirected to the POS cashier interface for that shop.
 
 **Troubleshooting**
 
 - If the store picker does not appear, verify that the partner has at least one POS config assigned in the Portal POS tab.
 - If a customer should have access to a shop but it does not appear, check the partner's Portal POS assignments.
-- The store picker only shows POS configs with active sessions.
+- The store picker shows all active POS configurations assigned to the partner.
 
 ---
 
@@ -950,9 +944,9 @@ Allows portal users to operate the full POS cashier interface from the website, 
 
 **Setup**
 
-1. Navigate to the POS configuration.
-2. Set a **Default User** for the POS config. This is the Odoo user whose permissions will be used when portal users operate the POS.
-3. Navigate to **Contacts** and open the partner record.
+1. Navigate to **Point of Sale > Configuration > Settings**.
+2. Under **Mobile self-order & Kiosk**, set the **Default User** for the POS config. This is the Odoo user whose permissions will be used when portal users operate the POS.
+3. Open the **Contacts** app (or navigate to the URL `/odoo/contacts`) and open the partner record.
 4. In the **Portal POS** tab, assign the POS configurations this partner should be able to operate.
 5. Save.
 
@@ -978,13 +972,13 @@ Allows portal users to operate the full POS cashier interface from the website, 
 
 | Setting | Location |
 |---------|----------|
-| Self-Ordering Mode | POS Config > Self-Ordering |
+| Self-Ordering Mode | Settings > Mobile self-order & Kiosk |
 | KDS Enable / Token | POS Config > Kitchen Display Screen |
 | E-Invoice Enable | POS Config > Taiwan E-Invoice |
-| Printer Setup | POS Config > Printers |
-| Hold & Fire Category | POS Config > Products > PoS Product Categories |
-| Portal POS Assignment | Contacts > Partner > Portal POS tab |
-| ECPay Credentials | Settings (General) |
+| Printer Setup | Settings > Preparation > Printers |
+| Hold & Fire Category | Configuration > PoS Product Categories |
+| Portal POS Assignment | Contacts app > Partner > Portal POS tab |
+| ECPay Credentials | Settings > Accounting > ECPay E-Invoice |
 
 ### Feature Activation Summary
 

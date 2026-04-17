@@ -21,7 +21,9 @@ Thumbs.db
 user_prompt.md
 .playwright/
 .playwright-mcp/
-docs/
+feature_to_add_later/
+QR_Codes.md
+電子發票實施作業要點(全).pdf
 USER_GUIDE.md
 USER_GUIDE_enhancement.md
 USER_GUIDE_pos_self_order.md
@@ -29,3 +31,6 @@ pos_settings.md
 pos_self_order/
 ecpay_odoo18/
 .playwright-cli
+odoo/
+DESIGN.md
+DESIGN.txt
