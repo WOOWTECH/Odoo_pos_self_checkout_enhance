@@ -19,6 +19,7 @@ Thumbs.db
 
 .claude/
 user_prompt.md
+.playwright/
 .playwright-mcp/
 docs/
 USER_GUIDE.md
