@@ -263,10 +263,6 @@ graph LR
 - 健康檢查端點
 - 專為 Cloudflare Tunnel 部署設計
 
-**文件：** [`ha-addon-escpos-print-proxy/DOCS.md`](ha-addon-escpos-print-proxy/DOCS.md) |
-[`DEPLOYMENT.md`](ha-addon-escpos-print-proxy/DEPLOYMENT.md) |
-[`CHANGELOG.md`](ha-addon-escpos-print-proxy/CHANGELOG.md)
-
 ---
 
 ### ecpay_invoice_tw — 台灣電子發票
@@ -348,19 +344,15 @@ pip install Pillow  # ESC/POS 收據影像生成所需
 
 適用於需要存取本地出單機的雲端 Odoo：
 
-1. 安裝 [Home Assistant 附加元件](ha-addon-escpos-print-proxy/DOCS.md)
+1. 安裝 Home Assistant 附加元件
 2. 設定 Cloudflare Tunnel 以公開附加元件
 3. 在 Odoo 出單機記錄中設定 `escpos_proxy_url` 和 `escpos_proxy_api_key`
-
-完整教學請參閱 [`ha-addon-escpos-print-proxy/DOCS.md`](ha-addon-escpos-print-proxy/DOCS.md)。
 
 ### 步驟六（選用）：台灣電子發票
 
 1. 安裝 `ecpay_invoice_tw` 和 `payment_ecpay` 模組
 2. 在**設定 → 電子發票**中設定綠界 API 憑證
 3. 在 POS 設定中啟用電子發票
-
-詳細說明請參閱 [`docs/USER_GUIDE_ecpay_einvoice.md`](docs/USER_GUIDE_ecpay_einvoice.md)。
 
 ---
 
@@ -458,12 +450,6 @@ pip install Pillow  # ESC/POS 收據影像生成所需
 
 ## 支援
 
-- **文件：** 請參閱 [`docs/`](docs/) 目錄中的使用者指南
-  - [自助點餐指南](docs/USER_GUIDE_pos_self_order.md)
-  - [KDS 指南](docs/USER_GUIDE_kds.md)
-  - [出單機指南](docs/USER_GUIDE_printer.md)
-  - [電子發票指南](docs/USER_GUIDE_ecpay_einvoice.md)
-  - [雲端列印設定（繁體中文）](docs/cloud-escpos-printing-zh-tw.md)
 - **問題回報：** [GitHub Issues](https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance/issues)
 - **作者：** [WoowTech](https://www.woowtech.com)
 - **網站：** [aiot.woowtech.io](https://aiot.woowtech.io/)

@@ -263,10 +263,6 @@ graph LR
 - Health check endpoint
 - Designed for Cloudflare Tunnel deployment
 
-**Documentation:** [`ha-addon-escpos-print-proxy/DOCS.md`](ha-addon-escpos-print-proxy/DOCS.md) |
-[`DEPLOYMENT.md`](ha-addon-escpos-print-proxy/DEPLOYMENT.md) |
-[`CHANGELOG.md`](ha-addon-escpos-print-proxy/CHANGELOG.md)
-
 ---
 
 ### ecpay_invoice_tw — Taiwan E-Invoice
@@ -348,19 +344,15 @@ pip install Pillow  # Required for ESC/POS receipt image generation
 
 For cloud-hosted Odoo needing local printer access:
 
-1. Install the [Home Assistant Add-on](ha-addon-escpos-print-proxy/DOCS.md)
+1. Install the Home Assistant Add-on
 2. Configure Cloudflare Tunnel to expose the add-on
 3. Set `escpos_proxy_url` and `escpos_proxy_api_key` on the printer record in Odoo
-
-See [`ha-addon-escpos-print-proxy/DOCS.md`](ha-addon-escpos-print-proxy/DOCS.md) for the full walkthrough.
 
 ### Step 6 (Optional): Taiwan E-Invoice
 
 1. Install `ecpay_invoice_tw` and `payment_ecpay` modules
 2. Configure ECPay API credentials in **Settings → E-Invoice**
 3. Enable e-invoice on the POS config
-
-See [`docs/USER_GUIDE_ecpay_einvoice.md`](docs/USER_GUIDE_ecpay_einvoice.md) for details.
 
 ---
 
@@ -458,12 +450,6 @@ See [`docs/USER_GUIDE_ecpay_einvoice.md`](docs/USER_GUIDE_ecpay_einvoice.md) for
 
 ## Support
 
-- **Documentation:** See the [`docs/`](docs/) directory for user guides
-  - [Self-Order Guide](docs/USER_GUIDE_pos_self_order.md)
-  - [KDS Guide](docs/USER_GUIDE_kds.md)
-  - [Printer Guide](docs/USER_GUIDE_printer.md)
-  - [E-Invoice Guide](docs/USER_GUIDE_ecpay_einvoice.md)
-  - [Cloud Printing Setup (zh-TW)](docs/cloud-escpos-printing-zh-tw.md)
 - **Issues:** [GitHub Issues](https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance/issues)
 - **Author:** [WoowTech](https://www.woowtech.com)
 - **Website:** [aiot.woowtech.io](https://aiot.woowtech.io/)
