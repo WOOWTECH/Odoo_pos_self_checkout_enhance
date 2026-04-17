@@ -102,6 +102,13 @@
 
 ---
 
+## Documentation
+
+- [User Manual (English)](docs/user_manual_en.md) — Step-by-step setup, usage, and troubleshooting for all features
+- [使用手冊（繁體中文）](docs/user_manual_zh-TW.md) — 所有功能的設定、使用方式及疑難排解
+
+---
+
 ## Architecture
 
 ### System Overview
@@ -456,7 +463,7 @@ For cloud-hosted Odoo needing local printer access:
 ## Support
 
 - **Issues:** [GitHub Issues](https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance/issues)
-- **Author:** [WoowTech](https://www.woowtech.com)
+- **Author:** [WoowTech](https://aiot.woowtech.io/)
 - **Website:** [aiot.woowtech.io](https://aiot.woowtech.io/)
 
 ---
@@ -465,4 +472,4 @@ For cloud-hosted Odoo needing local printer access:
 
 This module is licensed under the [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.html).
 
-Copyright © [WoowTech](https://www.woowtech.com)
+Copyright © [WoowTech](https://github.com/WOOWTECH)

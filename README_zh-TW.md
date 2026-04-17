@@ -102,6 +102,13 @@
 
 ---
 
+## 文件
+
+- [使用手冊（繁體中文）](docs/user_manual_zh-TW.md) — 所有功能的設定、使用方式及疑難排解
+- [User Manual (English)](docs/user_manual_en.md) — Step-by-step setup, usage, and troubleshooting for all features
+
+---
+
 ## 系統架構
 
 ### 系統總覽
@@ -456,7 +463,7 @@ git clone https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance.git pos_sel
 ## 支援
 
 - **問題回報：** [GitHub Issues](https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance/issues)
-- **作者：** [WoowTech](https://www.woowtech.com)
+- **作者：** [WoowTech](https://aiot.woowtech.io/)
 - **網站：** [aiot.woowtech.io](https://aiot.woowtech.io/)
 
 ---
@@ -465,4 +472,4 @@ git clone https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance.git pos_sel
 
 本模組採用 [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.html) 授權。
 
-Copyright © [WoowTech](https://www.woowtech.com)
+Copyright © [WoowTech](https://github.com/WOOWTECH)
