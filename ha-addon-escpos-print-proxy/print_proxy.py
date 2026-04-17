@@ -43,7 +43,7 @@ from flask import Flask, jsonify, request
 
 from escpos_min import print_image
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 _logger = logging.getLogger("escpos_proxy")
 logging.basicConfig(
@@ -68,11 +68,14 @@ try:
 except json.JSONDecodeError:
     _logger.warning("printers config is not valid JSON: %r", _PRINTERS_JSON)
     _printers_list = []
-LABELED_PRINTERS = {
-    (p.get("label") or "").strip(): (p.get("ip") or "").strip()
-    for p in _printers_list
-    if isinstance(p, dict) and p.get("label") and p.get("ip")
-}
+LABELED_PRINTERS = {}
+for p in _printers_list:
+    if isinstance(p, dict) and p.get("label") and p.get("ip"):
+        label = (p["label"]).strip()
+        LABELED_PRINTERS[label] = {
+            "ip": (p["ip"]).strip(),
+            "paper_mm": int(p["paper_mm"]) if p.get("paper_mm") else None,
+        }
 _STARTED_AT = time.time()
 
 
@@ -125,16 +128,22 @@ def create_app():
         #      send the job to the wrong printer).
         #   2. printer_ip in payload — direct override.
         #   3. PRINTER_IP add-on default.
+        # Paper width precedence: label's paper_mm > request's paper_width > global PAPER_MM.
+        paper = int(data.get("paper_width") or PAPER_MM)
         printer_ip = ""
         ip_source = ""
         if req_printer_label:
-            printer_ip = LABELED_PRINTERS.get(req_printer_label, "")
-            if not printer_ip:
+            entry = LABELED_PRINTERS.get(req_printer_label)
+            if not entry:
                 return jsonify(
                     ok=False,
                     error=f"printer_label '{req_printer_label}' not found "
                           "in add-on 'printers' list",
                 ), 400
+            printer_ip = entry["ip"]
+            # Per-label paper_mm overrides request and global default
+            if entry.get("paper_mm"):
+                paper = entry["paper_mm"]
             ip_source = f"label:{req_printer_label}"
         elif req_printer_ip:
             printer_ip = req_printer_ip
@@ -148,8 +157,6 @@ def create_app():
                 error="no printer_label / printer_ip in request and no "
                       "default configured in add-on options",
             ), 400
-
-        paper = int(data.get("paper_width") or PAPER_MM)
         # `cut` and `beep` are accepted but the driver always cuts and doesn't
         # beep; acknowledged here for forward-compat contract stability.
         _ = bool(data.get("cut", True))

@@ -2,6 +2,16 @@
 
 All notable changes to this add-on will be documented here.
 
+## 0.4.0 — 2026-04-17
+
+- Per-label `paper_mm` option in the `printers` list. Kitchen printer
+  (80mm) and invoice printer (58mm) can now use different paper widths
+  from the same add-on instance.
+- Paper width resolution precedence:
+  label's `paper_mm` > request's `paper_width` > global `paper_mm`.
+- Backward compatible: existing configs without per-label `paper_mm`
+  continue to use the request's `paper_width` or the global default.
+
 ## 0.3.0 — 2026-04-16
 
 - New optional `printers` list option — `[{label, ip}]` — for shops
