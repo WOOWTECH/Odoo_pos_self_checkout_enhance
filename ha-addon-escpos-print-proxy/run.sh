@@ -10,8 +10,9 @@ API_KEY=$(bashio::config 'api_key')
 PORT=$(bashio::config 'port')
 PAPER_MM=$(bashio::config 'paper_mm')
 PRINTER_IP=$(bashio::config 'printer_ip')
-# Pass the labeled-printers list through as raw JSON; print_proxy.py parses it.
-PRINTERS_JSON=$(bashio::config 'printers')
+# bashio::config on list values outputs NDJSON (one object per line)
+# which isn't valid JSON. Use jq on the options file to get a real array.
+PRINTERS_JSON=$(jq -c '.printers // []' /data/options.json 2>/dev/null || echo '[]')
 
 if [[ -z "${API_KEY}" ]]; then
     bashio::log.fatal "api_key is empty. Generate one with:  openssl rand -hex 32"
@@ -26,7 +27,7 @@ else
 fi
 
 # Log labeled-printers count (label→IP resolution happens in Python).
-PRINTERS_COUNT=$(bashio::config 'printers | length')
+PRINTERS_COUNT=$(echo "$PRINTERS_JSON" | jq 'length' 2>/dev/null || echo "0")
 if [[ "${PRINTERS_COUNT}" != "0" && -n "${PRINTERS_COUNT}" ]]; then
     bashio::log.info "Labeled printers configured: ${PRINTERS_COUNT}"
 fi

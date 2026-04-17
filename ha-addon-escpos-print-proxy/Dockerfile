@@ -11,6 +11,7 @@ ENV LANG=C.UTF-8 \
 
 # Pillow needs libjpeg/zlib at runtime; alpine base doesn't preinstall them.
 RUN apk add --no-cache \
+        jq \
         libjpeg-turbo \
         zlib \
     && apk add --no-cache --virtual .build-deps \
