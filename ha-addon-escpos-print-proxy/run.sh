@@ -8,7 +8,6 @@ set -euo pipefail
 
 API_KEY=$(bashio::config 'api_key')
 PORT=$(bashio::config 'port')
-PAPER_MM=$(bashio::config 'paper_mm')
 PRINTER_IP=$(bashio::config 'printer_ip')
 # bashio::config on list values outputs NDJSON (one object per line)
 # which isn't valid JSON. Use jq on the options file to get a real array.
@@ -32,9 +31,9 @@ if [[ "${PRINTERS_COUNT}" != "0" && -n "${PRINTERS_COUNT}" ]]; then
     bashio::log.info "Labeled printers configured: ${PRINTERS_COUNT}"
 fi
 
-bashio::log.info "Starting ESC/POS print proxy on :${PORT} (paper=${PAPER_MM}mm)"
+bashio::log.info "Starting ESC/POS print proxy on :${PORT}"
 
-export API_KEY PORT PAPER_MM PRINTER_IP PRINTERS_JSON
+export API_KEY PORT PRINTER_IP PRINTERS_JSON
 
 cd /app
 exec python3 print_proxy.py

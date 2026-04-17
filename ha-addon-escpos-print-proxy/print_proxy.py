@@ -31,7 +31,7 @@ Contract (shared with the Odoo `controllers/print_proxy.py` relay path):
 Environment (read by run.sh from /data/options.json):
     API_KEY    Shared secret; required.
     PORT       TCP port to bind; default 8073.
-    PAPER_MM   Default paper width in mm if not in request (80 or 58); default 80.
+    (paper_mm was a global option removed in 0.4.1; now per-printer only)
 """
 import hmac
 import json
@@ -43,7 +43,7 @@ from flask import Flask, jsonify, request
 
 from escpos_min import print_image
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 _logger = logging.getLogger("escpos_proxy")
 logging.basicConfig(
@@ -53,7 +53,6 @@ logging.basicConfig(
 
 API_KEY = os.environ.get("API_KEY", "").strip()
 PORT = int(os.environ.get("PORT", "8073"))
-PAPER_MM = int(os.environ.get("PAPER_MM", "80"))
 # Optional default printer IP. When set, requests that omit `printer_ip`
 # in the JSON body fall back to this value. Lets the cloud Odoo side stay
 # ignorant of the shop's LAN topology (IP is configured here, at the shop).
@@ -128,8 +127,8 @@ def create_app():
         #      send the job to the wrong printer).
         #   2. printer_ip in payload — direct override.
         #   3. PRINTER_IP add-on default.
-        # Paper width precedence: label's paper_mm > request's paper_width > global PAPER_MM.
-        paper = int(data.get("paper_width") or PAPER_MM)
+        # Paper width precedence: label's paper_mm > request's paper_width > default 80.
+        paper = int(data.get("paper_width") or 80)
         printer_ip = ""
         ip_source = ""
         if req_printer_label:

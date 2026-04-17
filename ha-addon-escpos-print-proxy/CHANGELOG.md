@@ -2,6 +2,16 @@
 
 All notable changes to this add-on will be documented here.
 
+## 0.4.1 — 2026-04-17
+
+- Removed redundant global `paper_mm` option from main settings.
+  Per-printer `paper_mm` in the `printers` list (added in 0.4.0)
+  is now the only way to set paper width. Odoo always sends
+  `paper_width` in the relay payload as a fallback (default 80mm).
+- Changed per-printer `paper_mm` schema from free-form integer
+  (`int?`) to `list(58|80)?` — renders as radio buttons in the
+  HA UI, preventing invalid values like `1` or `999`.
+
 ## 0.4.0 — 2026-04-17
 
 - Per-label `paper_mm` option in the `printers` list. Kitchen printer
