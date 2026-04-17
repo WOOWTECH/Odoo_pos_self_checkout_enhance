@@ -34,6 +34,7 @@ Environment (read by run.sh from /data/options.json):
     PAPER_MM   Default paper width in mm if not in request (80 or 58); default 80.
 """
 import hmac
+import json
 import logging
 import os
 import time
@@ -42,7 +43,7 @@ from flask import Flask, jsonify, request
 
 from escpos_min import print_image
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 _logger = logging.getLogger("escpos_proxy")
 logging.basicConfig(
@@ -57,6 +58,21 @@ PAPER_MM = int(os.environ.get("PAPER_MM", "80"))
 # in the JSON body fall back to this value. Lets the cloud Odoo side stay
 # ignorant of the shop's LAN topology (IP is configured here, at the shop).
 PRINTER_IP = os.environ.get("PRINTER_IP", "").strip()
+# Optional label → IP mapping for multi-printer shops (e.g. invoice +
+# kitchen). Cloud Odoo sends `printer_label` in the payload; this table
+# maps it to the actual LAN IP. Admin configures it in the add-on's
+# `printers` option.
+_PRINTERS_JSON = os.environ.get("PRINTERS_JSON", "").strip() or "[]"
+try:
+    _printers_list = json.loads(_PRINTERS_JSON) or []
+except json.JSONDecodeError:
+    _logger.warning("printers config is not valid JSON: %r", _PRINTERS_JSON)
+    _printers_list = []
+LABELED_PRINTERS = {
+    (p.get("label") or "").strip(): (p.get("ip") or "").strip()
+    for p in _printers_list
+    if isinstance(p, dict) and p.get("label") and p.get("ip")
+}
 _STARTED_AT = time.time()
 
 
@@ -97,20 +113,41 @@ def create_app():
             return jsonify(ok=False, error=f"malformed JSON: {exc}"), 400
 
         image_b64 = data.get("image_base64")
+        req_printer_label = (data.get("printer_label") or "").strip()
         req_printer_ip = (data.get("printer_ip") or "").strip()
         if not image_b64:
             return jsonify(ok=False, error="missing image_base64"), 400
 
-        # Resolve target printer IP. Request payload wins, add-on default
-        # fallback otherwise. If neither is present, 400 with a clear error.
-        printer_ip = req_printer_ip or PRINTER_IP
-        if not printer_ip:
+        # Resolve target printer IP.
+        # Precedence (high → low):
+        #   1. printer_label in payload — looked up in LABELED_PRINTERS.
+        #      Unknown label = 400 (don't silently fall through, it would
+        #      send the job to the wrong printer).
+        #   2. printer_ip in payload — direct override.
+        #   3. PRINTER_IP add-on default.
+        printer_ip = ""
+        ip_source = ""
+        if req_printer_label:
+            printer_ip = LABELED_PRINTERS.get(req_printer_label, "")
+            if not printer_ip:
+                return jsonify(
+                    ok=False,
+                    error=f"printer_label '{req_printer_label}' not found "
+                          "in add-on 'printers' list",
+                ), 400
+            ip_source = f"label:{req_printer_label}"
+        elif req_printer_ip:
+            printer_ip = req_printer_ip
+            ip_source = "payload"
+        elif PRINTER_IP:
+            printer_ip = PRINTER_IP
+            ip_source = "addon-default"
+        else:
             return jsonify(
                 ok=False,
-                error="no printer_ip in request and no default configured "
-                      "in add-on options",
+                error="no printer_label / printer_ip in request and no "
+                      "default configured in add-on options",
             ), 400
-        ip_source = "payload" if req_printer_ip else "addon-default"
 
         paper = int(data.get("paper_width") or PAPER_MM)
         # `cut` and `beep` are accepted but the driver always cuts and doesn't

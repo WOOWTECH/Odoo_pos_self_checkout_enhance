@@ -2,6 +2,25 @@
 
 All notable changes to this add-on will be documented here.
 
+## 0.3.0 — 2026-04-16
+
+- New optional `printers` list option — `[{label, ip}]` — for shops
+  with multiple ESC/POS printers (e.g. `電子統一發票` invoice +
+  kitchen). Cloud Odoo sends an optional `printer_label` in the
+  request body; this add-on maps it to the right LAN IP.
+- Rationale: cloud Odoo admin picks a label (`invoice`, `kitchen`)
+  instead of typing a LAN IP. Keeps the "no LAN info in the cloud"
+  design principle when scaling beyond one printer.
+- Backward compatible: payload contract unchanged. Requests without
+  `printer_label` still resolve via `printer_ip` payload field, then
+  fall back to the `printer_ip` option default.
+- Unknown labels return a 400 with a specific error naming the
+  label — prevents silently sending to the wrong printer.
+- Resolution precedence: `printer_label` > `printer_ip` (payload) >
+  `printer_ip` (add-on default).
+- Log line `dispatch -> <ip>` now reports `source=label:<name>` when
+  the label path was taken.
+
 ## 0.2.0 — 2026-04-16
 
 - New optional `printer_ip` add-on option. When set, acts as the
