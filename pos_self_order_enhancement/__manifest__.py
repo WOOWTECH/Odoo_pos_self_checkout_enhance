@@ -68,6 +68,9 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     "website": "https://aiot.woowtech.io/",
     "license": "LGPL-3",
     "depends": ["pos_self_order", "payment", "pos_online_payment_self_order", "ecpay_invoice_tw", "portal"],
+    "external_dependencies": {
+        "python": ["PIL"],
+    },
     "data": [
         "views/payment_templates.xml",
         "views/kds_templates.xml",

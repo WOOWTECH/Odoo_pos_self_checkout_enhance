@@ -319,20 +319,14 @@ cd /path/to/odoo/addons
 git clone https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance.git pos_self_order_enhancement
 ```
 
-### 步驟二：安裝 Python 相依套件
-
-```bash
-pip install Pillow  # ESC/POS 收據影像生成所需
-```
-
-### 步驟三：安裝模組
+### 步驟二：安裝模組
 
 1. 前往 Odoo **應用程式**選單
 2. 點擊**更新應用程式清單**
 3. 搜尋 **「POS Self Order Enhancement」**
 4. 點擊**安裝**
 
-### 步驟四：設定 POS
+### 步驟三：設定 POS
 
 1. 前往**銷售點 → 設定 → 設定**
 2. 啟用所需功能：
@@ -340,7 +334,7 @@ pip install Pillow  # ESC/POS 收據影像生成所需
    - **自助點餐模式** — 選擇「整單付款」模式
    - **網路出單機** — 新增 ESC/POS 出單機，設定 IP 及選用雲端中繼
 
-### 步驟五（選用）：雲端列印設定
+### 步驟四（選用）：雲端列印設定
 
 適用於需要存取本地出單機的雲端 Odoo：
 
@@ -348,7 +342,7 @@ pip install Pillow  # ESC/POS 收據影像生成所需
 2. 設定 Cloudflare Tunnel 以公開附加元件
 3. 在 Odoo 出單機記錄中設定 `escpos_proxy_url` 和 `escpos_proxy_api_key`
 
-### 步驟六（選用）：台灣電子發票
+### 步驟五（選用）：台灣電子發票
 
 1. 安裝 `ecpay_invoice_tw` 和 `payment_ecpay` 模組
 2. 在**設定 → 電子發票**中設定綠界 API 憑證

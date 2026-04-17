@@ -319,20 +319,14 @@ cd /path/to/odoo/addons
 git clone https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance.git pos_self_order_enhancement
 ```
 
-### Step 2: Install Python Dependencies
-
-```bash
-pip install Pillow  # Required for ESC/POS receipt image generation
-```
-
-### Step 3: Install the Module
+### Step 2: Install the Module
 
 1. Go to **Apps** menu in Odoo
 2. Click **Update Apps List**
 3. Search for **"POS Self Order Enhancement"**
 4. Click **Install**
 
-### Step 4: Configure POS
+### Step 3: Configure POS
 
 1. Navigate to **Point of Sale → Configuration → Settings**
 2. Enable desired features:
@@ -340,7 +334,7 @@ pip install Pillow  # Required for ESC/POS receipt image generation
    - **Self-Order Mode** — Choose "Each Order" for pay-per-order
    - **Network Printers** — Add ESC/POS printers with IP and optional cloud relay
 
-### Step 5 (Optional): Cloud Printing Setup
+### Step 4 (Optional): Cloud Printing Setup
 
 For cloud-hosted Odoo needing local printer access:
 
@@ -348,7 +342,7 @@ For cloud-hosted Odoo needing local printer access:
 2. Configure Cloudflare Tunnel to expose the add-on
 3. Set `escpos_proxy_url` and `escpos_proxy_api_key` on the printer record in Odoo
 
-### Step 6 (Optional): Taiwan E-Invoice
+### Step 5 (Optional): Taiwan E-Invoice
 
 1. Install `ecpay_invoice_tw` and `payment_ecpay` modules
 2. Configure ECPay API credentials in **Settings → E-Invoice**
