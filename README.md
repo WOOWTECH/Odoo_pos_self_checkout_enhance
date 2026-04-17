@@ -53,19 +53,27 @@
 
 - **Remove Cancel Button** — Prevents customer cancellation after order submission; staff can still cancel from POS backend
 - **Continue Ordering** — "Continue Ordering" button on the landing page lets customers add items to existing unpaid orders
-- **Pay Per Order Mode** — Enables Enterprise-only "Each Order" payment mode for Community edition
+- **Pay Per Order Mode** — Enables Enterprise-only "Each Order" payment mode for Community edition with payment gating (orders held until online payment completes)
+- **Pay at Counter** — Customers can choose to pay at the POS counter instead of online; order released to staff after selection
 - **Friendly Payment Page** — Orders grouped by session with localized labels and current-session subtotals
 - **Hide Tax Display** — Simplified customer interface without tax line details
+- **Sold Out (86)** — Staff can temporarily mark products as unavailable; status syncs to kiosk in real time and resets when session closes
 
 ### Kitchen Display Screen (KDS)
 
 - **Real-time Order Display** — Standalone HTML5 page with polling; works on any browser or tablet
 - **Item-level Tracking** — Strikethrough done items, bump entire orders, recall from history
-- **Hold & Fire** — Category-level workflow control; staff fires courses when ready
+- **Items Overview (All-Day)** — Aggregated item counts across all active orders for prep planning
+- **Hold & Fire** — Category-level workflow control; staff fires courses (e.g., starters, mains, desserts) when ready
+- **Send Back / Remake** — Send items back to kitchen with reason tracking and remake count
+- **Served Tracking** — Mark individual items or entire orders as served to the table
+- **Combo Visualization** — Combo parent and child items displayed with clear grouping
+- **Batch Operations** — Mark all items of the same product as done across orders
 - **Timer with Color Escalation** — Green → Yellow → Red based on configurable thresholds
 - **Audio Chimes** — Distinct sounds for new orders and remake requests
 - **Multi-language** — English and Traditional Chinese (zh_TW) built in
 - **Token-based Auth** — No login required; access via URL token
+- **Dashboard Badge** — Quick KDS access link on POS shop kanban view
 
 ### ESC/POS Network Printing
 
@@ -81,6 +89,8 @@
 - **Carrier Types** — Print, Mobile Barcode, Donation, B2B (with optional paper copy)
 - **QR Code Generation** — Left/right QR codes per MOF specification
 - **Invoice Lifecycle** — Issue, void, and reversal workflows
+- **Auto Issuance** — E-invoice issued automatically after online payment confirmation
+- **Tax ID Lookup** — Look up company name from Taiwan GCIS open data by tax ID (統編)
 - **POS Receipt Integration** — Invoice data printed directly on ESC/POS receipts
 
 ### Customer Portal
@@ -88,6 +98,7 @@
 - **Order History** — Portal users can view past POS orders
 - **Store Picker** — Multi-location support with per-partner shop assignment
 - **Payment Retry** — Re-attempt failed online payments from portal
+- **Portal POS Cashier** — Portal users can operate the full POS cashier interface with per-partner shop access control
 
 ---
 
