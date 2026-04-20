@@ -64,6 +64,8 @@ This chapter covers the seven features that improve the customer-facing self-ord
 
 Prevents customers from cancelling their order after submission. Staff retains full cancel authority from the POS backend.
 
+![Self-Order Configuration](screenshots/en/pos-config-self-ordering.png)
+
 **Setup**
 
 1. No configuration required. This feature is automatically enabled when the module is installed.
@@ -86,6 +88,8 @@ Prevents customers from cancelling their order after submission. Staff retains f
 ### 1.2 Continue Ordering
 
 Displays a "Continue Ordering" button on the self-order landing page when the customer has an existing unpaid order in the current session.
+
+![Self-Order Configuration](screenshots/en/pos-config-self-ordering.png)
 
 **Setup**
 
@@ -126,6 +130,38 @@ Enables a payment gating workflow where each order is held until online payment 
 - The order is only released to the POS (and subsequently to the kitchen) after payment succeeds.
 - Staff can see pending-payment orders in the POS backend.
 
+**Payment Flow by Scenario**
+
+#### Scenario A: Pay after Each Order + Online Payment (ECPay)
+1. Customer places order on kiosk. The order is created as draft with status `pending_online`.
+2. Customer is redirected to the ECPay payment page.
+3. Payment succeeds. The order status becomes `paid` and the order is auto-sent to the kitchen.
+4. All Hold & Fire categories are auto-fired (no manual fire needed).
+5. KDS shows the order. Kitchen staff marks items done. Order status becomes `done`.
+6. POS floor screen shows a **"Ready"** badge on the table.
+7. POS staff clicks **"Served"**. The order is marked as served and removed from active displays.
+
+#### Scenario B: Pay after Each Order + Pay at Counter
+1. Customer places order. Status is `pending_online`.
+2. Customer clicks **"Pay at Counter"**. Status becomes `pending_counter`.
+3. POS floor screen shows a **"Counter Pay"** badge (orange $ icon) on the table.
+4. Staff opens the table, processes payment at the register.
+5. Order is sent to kitchen. Same KDS lifecycle as Scenario A (auto-fire enabled).
+
+#### Scenario C: Pay after Meal + Online Payment (ECPay)
+1. Customer places order. The order is immediately visible to POS and kitchen (no payment gate).
+2. Hold & Fire categories remain **held** -- staff fires courses manually from POS.
+3. Customer can continue ordering (add more items to the same table).
+4. When ready to leave, customer pays via ECPay online payment.
+5. E-invoice is auto-issued after payment confirmation.
+
+#### Scenario D: Pay after Meal + Pay at Counter
+1. Customer places order. The order is immediately visible to POS and kitchen.
+2. Hold & Fire categories remain held -- staff fires courses manually.
+3. Customer adds more items as desired.
+4. Customer goes to the counter to pay when finished.
+5. Staff processes payment at the POS register.
+
 **Troubleshooting**
 
 - If orders go straight to the kitchen without payment, verify that Pay After is set to "Each Order" and not "Meal."
@@ -137,6 +173,8 @@ Enables a payment gating workflow where each order is held until online payment 
 ### 1.4 Pay at Counter
 
 Allows customers to choose to pay at the physical POS counter instead of paying online. The order is released to the POS terminal for staff to collect payment.
+
+![Payment Page with Pay at Counter](screenshots/en/kiosk-payment-counter.png)
 
 **Setup**
 
@@ -161,6 +199,8 @@ Allows customers to choose to pay at the physical POS counter instead of paying 
 
 Improves the payment page layout by grouping orders by session with localized labels and showing current-session subtotals.
 
+![Payment Page](screenshots/en/kiosk-payment-counter.png)
+
 **Setup**
 
 1. No configuration required. This feature is automatically enabled upon module installation.
@@ -181,6 +221,8 @@ Improves the payment page layout by grouping orders by session with localized la
 ### 1.6 Hide Tax Display
 
 Removes tax line details from the customer-facing cart page to provide a simplified interface.
+
+![Cart without Tax Lines](screenshots/en/kiosk-cart-no-tax.png)
 
 **Setup**
 
@@ -239,7 +281,7 @@ Provides a standalone KDS page that polls the Odoo server for new orders and dis
 
 **Setup**
 
-1. Navigate to **Point of Sale > Configuration > Point of Sale** and select your POS config.
+1. Navigate to **Point of Sale > Configuration > Point of Sales** > select your shop > scroll to the **Kitchen Display Screen (KDS)** section.
 2. Find the **Kitchen Display Screen** section.
 3. Enable the KDS feature.
 4. An access URL with a token is generated. Copy this URL.
@@ -266,6 +308,8 @@ Provides a standalone KDS page that polls the Odoo server for new orders and dis
 
 Allows kitchen staff to track individual items within an order. Items can be marked as done (strikethrough), entire orders can be bumped, and completed orders can be recalled from history.
 
+![KDS Item Strikethrough](screenshots/en/kds-item-strikethrough.png)
+
 **Setup**
 
 1. No additional configuration beyond enabling the KDS (section 2.1).
@@ -286,6 +330,8 @@ Allows kitchen staff to track individual items within an order. Items can be mar
 ### 2.3 Items Overview (All-Day)
 
 Shows an aggregated count of all products across all active orders, useful for prep planning.
+
+![KDS Items Overview](screenshots/en/kds-items-overview.png)
 
 **Setup**
 
@@ -325,6 +371,10 @@ Enables course-level workflow control. Products assigned to a "Hold & Fire" cate
 3. When staff is ready to prepare the next course, they go to the POS backend and **fire** the held course.
 4. Fired items then appear as active on the KDS for kitchen preparation.
 
+> **Important:** When "Pay after Each Order" mode is enabled, Hold & Fire categories automatically become auto-fire. Once payment is confirmed, ALL held categories are fired to the kitchen immediately -- no manual "Fire" button click is needed. This is because in pay-per-order mode there is no cashier present to sequence courses manually.
+>
+> In "Pay after Meal" mode, Hold & Fire works as normal -- staff must manually fire each course from the POS terminal.
+
 **Troubleshooting**
 
 - If items are not being held, verify the category has the "KDS Hold & Fire" checkbox enabled.
@@ -337,6 +387,8 @@ Enables course-level workflow control. Products assigned to a "Hold & Fire" cate
 ### 2.5 Send Back / Remake
 
 Allows POS staff to send items back to the kitchen with a reason. The item reappears on the KDS with a remake badge and reason text.
+
+![KDS Active Orders](screenshots/en/kds-active-orders.png)
 
 **Setup**
 
@@ -361,6 +413,8 @@ Allows POS staff to send items back to the kitchen with a reason. The item reapp
 
 Allows POS staff to mark individual items or entire orders as served to the customer's table.
 
+![POS Floor with Ready Badge](screenshots/en/pos-floor-ready-badge.png)
+
 **Setup**
 
 1. No additional configuration beyond enabling the KDS (section 2.1).
@@ -381,6 +435,8 @@ Allows POS staff to mark individual items or entire orders as served to the cust
 ### 2.7 Combo Visualization
 
 Displays combo (meal deal) orders on the KDS with the parent item and its child components clearly grouped with indentation.
+
+![KDS Active Orders](screenshots/en/kds-active-orders.png)
 
 **Setup**
 
@@ -403,6 +459,8 @@ Displays combo (meal deal) orders on the KDS with the parent item and its child 
 
 Allows kitchen staff to mark all instances of the same product as done across all orders at once, useful for batch cooking.
 
+![KDS Items Overview](screenshots/en/kds-items-overview.png)
+
 **Setup**
 
 1. No additional configuration beyond enabling the KDS (section 2.1).
@@ -424,6 +482,8 @@ Allows kitchen staff to mark all instances of the same product as done across al
 
 Each order card on the KDS displays an elapsed time timer that changes color based on how long the order has been waiting.
 
+![KDS Active Orders](screenshots/en/kds-active-orders.png)
+
 **Setup**
 
 1. No additional configuration. The timer is built into the KDS display.
@@ -444,6 +504,8 @@ Each order card on the KDS displays an elapsed time timer that changes color bas
 ### 2.10 Audio Chimes
 
 The KDS plays distinct audio sounds when new orders arrive and when remake requests are received.
+
+![KDS Active Orders](screenshots/en/kds-active-orders.png)
 
 **Setup**
 
@@ -467,6 +529,8 @@ The KDS plays distinct audio sounds when new orders arrive and when remake reque
 ### 2.11 Multi-language
 
 The KDS interface supports English and Traditional Chinese (zh_TW) with a built-in language toggle.
+
+![KDS Active Orders](screenshots/en/kds-active-orders.png)
 
 **Setup**
 
@@ -553,6 +617,8 @@ Enables direct printing from Odoo to an ESC/POS printer on the local network via
 4. The default port is 9100. Change it only if your printer uses a different port.
 5. Save the printer configuration.
 
+> **Important:** The Odoo server and the ESC/POS printer must be on the same local network (LAN) for direct TCP printing. If your Odoo is hosted in the cloud, use **Cloud Relay Mode** (section 3.2) instead.
+
 ![Printer Form Local](screenshots/en/printer-form-local.png)
 
 **Usage**
@@ -575,25 +641,54 @@ Enables direct printing from Odoo to an ESC/POS printer on the local network via
 
 Enables printing from a cloud-hosted Odoo instance to a local ESC/POS printer via a Home Assistant add-on and Cloudflare Tunnel.
 
+**What this solves:** Cloud-hosted Odoo servers cannot reach printers on your local network directly. The Home Assistant `ha-addon-escpos-print-proxy` add-on acts as a bridge -- it receives print jobs from the internet (via HTTPS) and forwards them to your local printer (via TCP).
+
 **Setup**
 
-1. **Install the Home Assistant Add-on:**
-   - Install the `ha-addon-escpos-print-proxy` add-on on your Home Assistant instance.
-   - Configure the add-on with your printer(s) -- specify IP addresses, labels, and paper widths.
-   - Set an API key for authentication.
-   - Start the add-on.
+**Step 1: Install the add-on in Home Assistant**
+1. Open Home Assistant > Settings > Add-ons > Add-on Store.
+2. Click the three-dot menu (top right) > Repositories.
+3. Add the repository URL for `ha-addon-escpos-print-proxy`.
+4. Find "ESC/POS Print Proxy" in the store and click Install.
 
-2. **Set up Cloudflare Tunnel:**
-   - Configure a Cloudflare Tunnel to expose the Home Assistant add-on's endpoint to the internet.
-   - Note the public URL (e.g., `https://print.yourdomain.com`).
+**Step 2: Generate an API key**
+```bash
+openssl rand -hex 32
+```
+Save this 64-character hex string -- you will need it for both the add-on and Odoo.
 
-3. **Configure in Odoo:**
-   - Navigate to **Point of Sale > Configuration > Settings > Preparation > Printers** and open or create a printer.
-   - Set the **Type** to **"Use a network ESC/POS printer"**.
-   - Enter the **Cloud Relay URL** (e.g., `https://print.yourdomain.com`).
-   - Enter the **API Key** that matches the one configured in the Home Assistant add-on.
-   - Optionally set a **Printer Label** to route to a specific printer on the relay (see section 3.4).
-   - Save.
+**Step 3: Configure the add-on**
+In the add-on Configuration tab, set:
+- `api_key`: paste the generated hex string
+- `port`: `8073` (default)
+- Printers: add each printer with its label and LAN IP address
+
+**Step 4: Start the add-on**
+Click Start. Check the Log tab to verify the proxy is running.
+
+**Step 5: Expose the add-on to the internet**
+
+*Option A: Cloudflare Tunnel (recommended)*
+- In the Cloudflare Tunnel add-on configuration, add a hostname:
+  - Hostname: `print.yourdomain.com`
+  - Service: `http://localhost:8073`
+
+*Option B: Nginx Proxy Manager (NPM)*
+- In the NPM add-on, add a new Proxy Host:
+  - Domain: `print.yourdomain.com`
+  - Forward Hostname: `localhost`
+  - Forward Port: `8073`
+  - Enable SSL (Let's Encrypt)
+
+**Step 6: Configure in Odoo**
+1. Navigate to **Point of Sale > Configuration > Settings > Preparation > Printers** and open or create a printer.
+2. Set the **Type** to **"Use a network ESC/POS printer"**.
+3. Enter the **Cloud Relay URL** (e.g., `https://print.yourdomain.com`).
+4. Enter the **Cloud Relay API Key** (the same hex string from Step 2).
+5. Set the **Printer Label** (e.g., `kitchen`) -- must match the label in the HA add-on config.
+6. Save and click **"Print test page"** to verify.
+
+![Printer Form Cloud Relay](screenshots/en/printer-form-cloud.png)
 
 **Usage**
 
@@ -614,6 +709,8 @@ Enables printing from a cloud-hosted Odoo instance to a local ESC/POS printer vi
 ### 3.3 Per-printer Paper Width
 
 Allows selecting 80mm or 58mm paper width for each printer individually.
+
+![Printer Form](screenshots/en/printer-form-local.png)
 
 **Setup**
 
@@ -640,6 +737,8 @@ Allows selecting 80mm or 58mm paper width for each printer individually.
 
 Assigns labels to printers for routing print jobs to specific devices (e.g., "kitchen," "invoice," "bar").
 
+![Printer Form](screenshots/en/printer-form-local.png)
+
 **Setup**
 
 1. Navigate to the printer form.
@@ -664,6 +763,8 @@ Assigns labels to printers for routing print jobs to specific devices (e.g., "ki
 
 Prints a test page to verify the printer connection and configuration.
 
+![Printer Form](screenshots/en/printer-form-local.png)
+
 **Setup**
 
 1. No additional setup. The test button is available on the printer form.
@@ -687,6 +788,15 @@ Prints a test page to verify the printer connection and configuration.
 This chapter covers Taiwan Ministry of Finance (MOF) compliant electronic invoice integration via the ECPay API. These features are specific to businesses operating in Taiwan.
 
 ![POS Config E-Invoice](screenshots/en/pos-config-einvoice.png)
+
+> **Prerequisites for Taiwan Uniform Invoice printing:**
+>
+> To have POS create and print Taiwan Uniform Invoices on an ESC/POS printer:
+> 1. Set up an ESC/POS network printer (see Chapter 3).
+> 2. Navigate to the POS config form (**Point of Sale > Configuration > Point of Sales** > select shop).
+> 3. In the **Taiwan E-Invoice** section, enable **"Enable E-Invoice"**.
+> 4. Select the printer in the **"E-Invoice Printer"** field.
+> 5. Configure ECPay API credentials (see section 4.1).
 
 ---
 
@@ -725,6 +835,8 @@ Provides full Taiwan unified invoice (tong yi fa piao) support via the ECPay API
 
 Supports multiple e-invoice carrier types as required by Taiwan MOF regulations.
 
+![Payment with E-Invoice Options](screenshots/en/kiosk-payment-counter.png)
+
 **Setup**
 
 1. Enable e-invoice on the POS config (see section 4.5).
@@ -752,6 +864,8 @@ During payment at the POS, the cashier or customer selects the invoice carrier t
 
 Automatically generates left and right QR codes on the invoice per MOF specification, using data returned from ECPay after issuance.
 
+![E-Invoice Configuration](screenshots/en/pos-config-einvoice.png)
+
 **Setup**
 
 1. No additional configuration. QR codes are generated automatically when an e-invoice is successfully issued through ECPay.
@@ -772,6 +886,8 @@ Automatically generates left and right QR codes on the invoice per MOF specifica
 ### 4.4 Invoice Lifecycle
 
 Supports the full invoice lifecycle: issue, view, and void.
+
+![E-Invoice Configuration](screenshots/en/pos-config-einvoice.png)
 
 **Setup**
 
@@ -795,6 +911,8 @@ Supports the full invoice lifecycle: issue, view, and void.
 
 Automatically issues an e-invoice after online payment confirmation, removing the need for manual invoice creation.
 
+![E-Invoice Configuration](screenshots/en/pos-config-einvoice.png)
+
 **Setup**
 
 1. Enable **E-Invoice** on the POS config (see section 4.1). Auto-issuance is built-in -- there is no separate toggle.
@@ -817,6 +935,8 @@ Automatically issues an e-invoice after online payment confirmation, removing th
 
 Looks up a company name from the Taiwan GCIS (Government Company Information System) open data using the tax ID (tong bian).
 
+![E-Invoice Configuration](screenshots/en/pos-config-einvoice.png)
+
 **Setup**
 
 1. No additional configuration. This feature uses GCIS open data and requires no API keys.
@@ -837,6 +957,8 @@ Looks up a company name from the Taiwan GCIS (Government Company Information Sys
 ### 4.7 POS Receipt Integration
 
 Prints e-invoice data directly on ESC/POS receipts, including invoice number, carrier information, and QR codes.
+
+![E-Invoice Configuration](screenshots/en/pos-config-einvoice.png)
 
 **Setup**
 
@@ -869,6 +991,8 @@ This chapter covers features that allow portal users (customers with Odoo portal
 ### 5.1 Order History
 
 Portal users can view their past POS orders from the customer portal.
+
+![Portal Home](screenshots/en/portal-my-pos-card.png)
 
 **Setup**
 
@@ -919,6 +1043,8 @@ Enables multi-location support by allowing administrators to assign specific POS
 
 Allows portal users to retry failed online payments for their POS orders directly from the portal.
 
+![Portal Home](screenshots/en/portal-my-pos-card.png)
+
 **Setup**
 
 1. No additional configuration is needed. This feature is available when Pay Per Order mode is active and the customer has a portal account.
@@ -941,6 +1067,8 @@ Allows portal users to retry failed online payments for their POS orders directl
 ### 5.4 Portal POS Cashier
 
 Allows portal users to operate the full POS cashier interface from the website, with access controlled by per-partner shop assignment.
+
+![Partner Portal POS](screenshots/en/partner-portal-pos.png)
 
 **Setup**
 
