@@ -617,63 +617,16 @@ POS 看板（Dashboard）上的 POS 卡片會顯示 KDS 徽章，方便管理者
 
 **適用情境：** 雲端託管的 Odoo 伺服器無法直接連接本地網路上的出單機。Home Assistant `ha-addon-escpos-print-proxy` 附加元件作為橋接 -- 從網際網路接收列印任務（透過 HTTPS），再轉發至本地出單機（透過 TCP）。
 
-**設定**
-
-**步驟 1：在 Home Assistant 安裝附加元件**
-1. 開啟 Home Assistant > 設定 > 附加元件 > 附加元件商店。
-2. 點擊右上角三點選單 > 儲存庫。
-3. 新增 `ha-addon-escpos-print-proxy` 的儲存庫 URL。
-4. 在商店中找到「ESC/POS Print Proxy」並點擊安裝。
-
-**步驟 2：產生 API 金鑰**
-```bash
-openssl rand -hex 32
-```
-儲存此 64 字元十六進位字串 -- 附加元件和 Odoo 都需要使用。
-
-**步驟 3：設定附加元件**
-在附加元件的設定分頁中設定：
-- `api_key`：貼上產生的十六進位字串
-- `port`：`8073`（預設）
-- 出單機：新增每台出單機的標籤和區域網路 IP 位址
-
-**步驟 4：啟動附加元件**
-點擊啟動。檢查日誌分頁確認代理正在運作。
-
-**步驟 5：將附加元件公開至網際網路**
-
-*方案 A：Cloudflare Tunnel（推薦）*
-- 在 Cloudflare Tunnel 附加元件設定中新增主機名稱：
-  - 主機名稱：`print.yourdomain.com`
-  - 服務：`http://localhost:8073`
-
-*方案 B：Nginx Proxy Manager（NPM）*
-- 在 NPM 附加元件中新增代理主機：
-  - 網域：`print.yourdomain.com`
-  - 轉發主機名稱：`localhost`
-  - 轉發連接埠：`8073`
-  - 啟用 SSL（Let's Encrypt）
-
-**步驟 6：在 Odoo 中設定**
-1. 前往 **POS營業點 > 配置 > 設定 > 準備工作 > 印表機**，開啟或新建出單機。
-2. 將**類型**設為 **「Use a network ESC/POS printer」**。
-3. 輸入**雲端中繼 URL**（例如 `https://print.yourdomain.com`）。
-4. 輸入**雲端中繼 API 金鑰**（步驟 2 產生的相同字串）。
-5. 設定**出單機標籤**（例如 `kitchen`）-- 必須與 HA 附加元件設定中的標籤一致。
-6. 儲存並點擊**「列印測試頁」**驗證。
-
 ![出單機表單雲端中繼](screenshots/zh-TW/printer-form-cloud.png)
 
-**使用方式**
-
-1. 雲端中繼伺服器接收列印指令並轉發至對應的出單機。
-2. 出單機端需執行中繼代理程式（Print Proxy），連接雲端中繼伺服器。
+完整設定指南（Home Assistant 附加元件安裝、API 金鑰產生、Cloudflare Tunnel / NPM 設定、Odoo 出單機設定），請參閱 [`ha-addon-escpos-print-proxy/DOCS.md`](../ha-addon-escpos-print-proxy/DOCS.md)。
 
 **疑難排解**
 
-- 列印延遲：雲端模式受網路延遲影響，正常約 1-3 秒。
-- 出單機離線：確認代理程式正在執行並已連上雲端中繼伺服器。
-- API 金鑰錯誤：至 POS 設定確認金鑰正確。
+- 列印失敗：確認 Cloudflare Tunnel 正在運作且 URL 可從網際網路存取。
+- API 金鑰錯誤：確認 Odoo 中的 API 金鑰與 Home Assistant 附加元件設定中的金鑰一致。
+- 測試中繼：存取健康檢查端點 `GET https://print.yourdomain.com/status`。
+- 查看 Home Assistant 附加元件日誌以取得錯誤訊息。
 
 ---
 

@@ -637,62 +637,13 @@ Enables direct printing from Odoo to an ESC/POS printer on the local network via
 
 ### 3.2 Cloud Relay Mode
 
-Enables printing from a cloud-hosted Odoo instance to a local ESC/POS printer via a Home Assistant add-on and Cloudflare Tunnel.
+Enables printing from a cloud-hosted Odoo instance to a local ESC/POS printer via a Home Assistant add-on and Cloudflare Tunnel or Nginx Proxy Manager.
 
 **What this solves:** Cloud-hosted Odoo servers cannot reach printers on your local network directly. The Home Assistant `ha-addon-escpos-print-proxy` add-on acts as a bridge -- it receives print jobs from the internet (via HTTPS) and forwards them to your local printer (via TCP).
 
-**Setup**
-
-**Step 1: Install the add-on in Home Assistant**
-1. Open Home Assistant > Settings > Add-ons > Add-on Store.
-2. Click the three-dot menu (top right) > Repositories.
-3. Add the repository URL for `ha-addon-escpos-print-proxy`.
-4. Find "ESC/POS Print Proxy" in the store and click Install.
-
-**Step 2: Generate an API key**
-```bash
-openssl rand -hex 32
-```
-Save this 64-character hex string -- you will need it for both the add-on and Odoo.
-
-**Step 3: Configure the add-on**
-In the add-on Configuration tab, set:
-- `api_key`: paste the generated hex string
-- `port`: `8073` (default)
-- Printers: add each printer with its label and LAN IP address
-
-**Step 4: Start the add-on**
-Click Start. Check the Log tab to verify the proxy is running.
-
-**Step 5: Expose the add-on to the internet**
-
-*Option A: Cloudflare Tunnel (recommended)*
-- In the Cloudflare Tunnel add-on configuration, add a hostname:
-  - Hostname: `print.yourdomain.com`
-  - Service: `http://localhost:8073`
-
-*Option B: Nginx Proxy Manager (NPM)*
-- In the NPM add-on, add a new Proxy Host:
-  - Domain: `print.yourdomain.com`
-  - Forward Hostname: `localhost`
-  - Forward Port: `8073`
-  - Enable SSL (Let's Encrypt)
-
-**Step 6: Configure in Odoo**
-1. Navigate to **Point of Sale > Configuration > Settings > Preparation > Printers** and open or create a printer.
-2. Set the **Type** to **"Use a network ESC/POS printer"**.
-3. Enter the **Cloud Relay URL** (e.g., `https://print.yourdomain.com`).
-4. Enter the **Cloud Relay API Key** (the same hex string from Step 2).
-5. Set the **Printer Label** (e.g., `kitchen`) -- must match the label in the HA add-on config.
-6. Save and click **"Print test page"** to verify.
-
 ![Printer Form Cloud Relay](screenshots/en/printer-form-cloud.png)
 
-**Usage**
-
-- When Odoo needs to print, it sends an HTTPS POST request to the Cloud Relay URL with the API key as a Bearer token.
-- The Home Assistant add-on receives the request and forwards it to the appropriate local printer via TCP.
-- This allows cloud Odoo to print to any local printer without exposing inbound ports.
+For the complete setup guide (Home Assistant add-on installation, API key generation, Cloudflare Tunnel / NPM configuration, and Odoo printer setup), see [`ha-addon-escpos-print-proxy/DOCS.md`](../ha-addon-escpos-print-proxy/DOCS.md).
 
 **Troubleshooting**
 
