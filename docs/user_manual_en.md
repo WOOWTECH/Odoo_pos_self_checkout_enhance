@@ -44,11 +44,9 @@
   - [4.5 Auto Issuance](#45-auto-issuance)
   - [4.6 Tax ID Lookup](#46-tax-id-lookup)
   - [4.7 POS Receipt Integration](#47-pos-receipt-integration)
-- [Chapter 5: Customer Portal](#chapter-5-customer-portal)
-  - [5.1 Order History](#51-order-history)
-  - [5.2 Store Picker](#52-store-picker)
-  - [5.3 Payment Retry](#53-payment-retry)
-  - [5.4 Portal POS Cashier](#54-portal-pos-cashier)
+- [Chapter 5: Portal POS Access](#chapter-5-portal-pos-access)
+  - [5.1 Admin Setup: Grant Portal User Access to POS](#51-admin-setup-grant-portal-user-access-to-pos)
+  - [5.2 Portal User: Access POS from /my Page](#52-portal-user-access-pos-from-my-page)
 
 ---
 
@@ -980,117 +978,58 @@ Prints e-invoice data directly on ESC/POS receipts, including invoice number, ca
 
 ---
 
-## Chapter 5: Customer Portal
+## Chapter 5: Portal POS Access
 
-This chapter covers features that allow portal users (customers with Odoo portal accounts) to interact with POS orders through the website.
-
-![Portal My POS Card](screenshots/en/portal-my-pos-card.png)
+This chapter covers how to grant portal users (e.g., franchisees, partners) access to operate the POS cashier interface remotely through the Odoo portal.
 
 ---
 
-### 5.1 Order History
+### 5.1 Admin Setup: Grant Portal User Access to POS
 
-Portal users can view their past POS orders from the customer portal.
-
-![Portal Home](screenshots/en/portal-my-pos-card.png)
+Administrators assign POS shop access to portal users through the user's related partner record.
 
 **Setup**
 
-1. Ensure the customer has a portal user account in Odoo.
-2. No additional configuration is needed. The order history is available by default once the module is installed.
+1. Navigate to **Settings > Users & Companies > Users**.
+2. Select the portal user (e.g., `woowtech_user002@protonmail.com`).
+3. Click the **Related Partner** button (at the top of the user form) to open the partner record.
+4. Click the **Portal POS** tab.
+5. In the **Portal POS Configs** field, add the POS configuration(s) this user should have access to.
+6. Click **Save**.
 
-**Usage**
+![Partner Portal POS Tab](screenshots/en/partner-portal-pos.png)
 
-- The customer logs into the Odoo portal at `/my`.
-- A **Point of Sale** card appears on the portal home page.
-- Clicking it shows a list of the customer's past POS orders with details such as date, items, and total amount.
+> **Important:** Each POS configuration must have a **Default User** set under **Point of Sale > Configuration > Settings > Mobile self-order & Kiosk**. This internal user's permissions are used when the portal user operates the POS.
 
 **Troubleshooting**
 
-- If the Point of Sale card does not appear in the portal, verify the module is installed and the user has portal access.
-- Customers can only see orders associated with their partner record. If orders are missing, check that the order's partner matches the portal user.
+- If the **Portal POS** tab does not appear on the partner form, verify that the `pos_self_order_enhancement` module is installed.
+- If no POS configurations appear in the dropdown, ensure at least one POS shop exists and is active.
+- The portal user must have an active portal account (not just a contact record).
 
 ---
 
-### 5.2 Store Picker
+### 5.2 Portal User: Access POS from /my Page
 
-Enables multi-location support by allowing administrators to assign specific POS configurations (shops) to individual portal users. Customers access a store picker page to choose their shop.
-
-**Setup**
-
-1. Open the **Contacts** app (or navigate to the URL `/odoo/contacts`) and open the partner (customer) record.
-2. Go to the **Portal POS** tab.
-3. Assign one or more POS configurations to this partner.
-4. Save.
-
-![Partner Portal POS](screenshots/en/partner-portal-pos.png)
+After the administrator grants access, the portal user can log in and access the POS cashier interface from the portal home page.
 
 **Usage**
 
-- When a customer with multiple assigned shops visits `/my/pos`, they see a store picker page.
-- The customer selects the shop they want to order from.
-- They are redirected to the POS cashier interface for that shop.
+1. The portal user logs in to the Odoo website (e.g., `https://your-odoo.com/web/login`).
+2. After login, the user is redirected to the `/my` portal home page.
+3. A **Point of Sale** card appears on the portal home page showing the assigned shop(s).
+4. **Single shop assigned:** Clicking the card opens the POS cashier interface directly.
+5. **Multiple shops assigned:** Clicking the card opens a store picker page at `/my/pos` where the user selects which shop to operate.
+6. The full POS cashier interface loads. The portal user can take orders, process payments, and perform all standard POS operations.
+
+![Portal Home with POS Card](screenshots/en/portal-my-pos-card.png)
 
 **Troubleshooting**
 
-- If the store picker does not appear, verify that the partner has at least one POS config assigned in the Portal POS tab.
-- If a customer should have access to a shop but it does not appear, check the partner's Portal POS assignments.
-- The store picker shows all active POS configurations assigned to the partner.
-
----
-
-### 5.3 Payment Retry
-
-Allows portal users to retry failed online payments for their POS orders directly from the portal.
-
-![Portal Home](screenshots/en/portal-my-pos-card.png)
-
-**Setup**
-
-1. No additional configuration is needed. This feature is available when Pay Per Order mode is active and the customer has a portal account.
-
-**Usage**
-
-- If an online payment fails during the self-order checkout, the order remains in a pending state.
-- The customer logs into the portal and navigates to their POS orders.
-- The failed order shows a **Retry Payment** option.
-- The customer clicks it and is redirected to the payment page to attempt the payment again.
-
-**Troubleshooting**
-
-- If the retry option does not appear, verify that the order is in a pending payment state (not already paid or cancelled).
-- Ensure the payment provider is still active and properly configured.
-- If payment continues to fail, the issue may be with the payment provider or the customer's payment method.
-
----
-
-### 5.4 Portal POS Cashier
-
-Allows portal users to operate the full POS cashier interface from the website, with access controlled by per-partner shop assignment.
-
-![Partner Portal POS](screenshots/en/partner-portal-pos.png)
-
-**Setup**
-
-1. Navigate to **Point of Sale > Configuration > Settings**.
-2. Under **Mobile self-order & Kiosk**, set the **Default User** for the POS config. This is the Odoo user whose permissions will be used when portal users operate the POS.
-3. Open the **Contacts** app (or navigate to the URL `/odoo/contacts`) and open the partner record.
-4. In the **Portal POS** tab, assign the POS configurations this partner should be able to operate.
-5. Save.
-
-**Usage**
-
-- The portal user logs in and navigates to the assigned POS shop.
-- Instead of the self-order kiosk view, they access the full POS cashier interface.
-- They can take orders, process payments, and perform all standard POS operations.
-- Their actions are executed under the permissions of the Default User configured on the POS config.
-
-**Troubleshooting**
-
-- If the portal user cannot access the POS cashier, verify that a Default User is set on the POS config.
-- Ensure the partner has the POS config assigned in the Portal POS tab.
-- The Default User must have sufficient permissions to operate the POS (typically an internal user with POS access rights).
-- If the POS interface loads but operations fail, check the Default User's permissions in Odoo.
+- If the **Point of Sale** card does not appear on `/my`, verify that the administrator has assigned POS configuration(s) to the user's partner record (see section 5.1).
+- If clicking the card shows "Access Denied", ensure the POS configuration has a **Default User** set under Settings > Mobile self-order & Kiosk.
+- If the POS interface loads but operations fail, check that the Default User has sufficient POS permissions (typically an internal user with full POS access rights).
+- If the portal user sees a blank page, clear the browser cache and try again.
 
 ---
 
@@ -1105,7 +1044,7 @@ Allows portal users to operate the full POS cashier interface from the website, 
 | E-Invoice Enable | POS Config > Taiwan E-Invoice |
 | Printer Setup | Settings > Preparation > Printers |
 | Hold & Fire Category | Configuration > PoS Product Categories |
-| Portal POS Assignment | Contacts app > Partner > Portal POS tab |
+| Portal POS Assignment | Settings > Users > select user > Related Partner > Portal POS tab |
 | ECPay Credentials | Settings > Accounting > ECPay E-Invoice |
 
 ### Feature Activation Summary
@@ -1115,7 +1054,7 @@ Allows portal users to operate the full POS cashier interface from the website, 
 | Remove Cancel Button | Auto-enabled |
 | Continue Ordering | Auto-enabled |
 | Pay Per Order | Manual: Pay After = Each Order |
-| Pay at Counter | Auto-enabled when Pay Per Order active |
+| Pay at Counter | Available in both payment modes |
 | Friendly Payment Page | Auto-enabled |
 | Hide Tax Display | Auto-enabled |
 | Sold Out (86) | Manual: toggle per product in POS |
@@ -1123,4 +1062,4 @@ Allows portal users to operate the full POS cashier interface from the website, 
 | Hold & Fire | Manual: enable per category |
 | Network Printing | Manual: add printer in POS Config |
 | E-Invoice | Manual: enable in POS Config + credentials |
-| Portal Features | Manual: assign POS configs to partners |
+| Portal POS Access | Manual: assign POS configs via Users > Related Partner > Portal POS |
