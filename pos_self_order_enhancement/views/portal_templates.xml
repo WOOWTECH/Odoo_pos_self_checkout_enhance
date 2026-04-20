@@ -22,4 +22,22 @@
         </div>
     </template>
 
+    <template id="portal_my_home_kds"
+              name="Portal My Home: Kitchen Display"
+              inherit_id="portal.portal_my_home"
+              customize_show="True"
+              priority="51">
+        <div id="portal_client_category" position="inside">
+            <t t-if="portal_kds_config_count">
+                <t t-call="portal.portal_docs_entry">
+                    <t t-set="icon" t-value="'/point_of_sale/static/description/icon.png'"/>
+                    <t t-set="title">Kitchen Display</t>
+                    <t t-set="text" t-value="portal_kds_config_label"/>
+                    <t t-set="url" t-value="'/my/kds'"/>
+                    <t t-set="config_card" t-value="True"/>
+                </t>
+            </t>
+        </div>
+    </template>
+
 </odoo>

@@ -159,6 +159,33 @@ class PortalHomePosCard(CustomerPortal):
             },
         )
 
+    @http.route(['/my/kds'], type='http', auth='user', website=True)
+    def portal_my_kds(self, **kw):
+        user = request.env.user
+        if user._is_internal():
+            return request.redirect('/my')
+        if not user._is_portal():
+            return request.redirect('/my')
+
+        partner = user.sudo().partner_id
+        configs = partner.portal_pos_config_ids.filtered(
+            lambda c: c.active and c.kds_enabled
+        )
+        if not configs:
+            return request.redirect('/my')
+        if len(configs) == 1:
+            return request.redirect(
+                '/pos-kds/%s?token=%s' % (configs.id, configs.kds_access_token)
+            )
+
+        return request.render(
+            'pos_self_order_enhancement.portal_kds_picker',
+            {
+                'page_name': 'portal_kds',
+                'configs': configs,
+            },
+        )
+
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.sudo().partner_id
@@ -170,4 +197,13 @@ class PortalHomePosCard(CustomerPortal):
             values['portal_pos_config_label'] = '%d shops' % len(configs)
         else:
             values['portal_pos_config_label'] = ''
+
+        kds_configs = configs.filtered('kds_enabled')
+        values['portal_kds_config_count'] = len(kds_configs)
+        if len(kds_configs) == 1:
+            values['portal_kds_config_label'] = kds_configs.name
+        elif len(kds_configs) > 1:
+            values['portal_kds_config_label'] = '%d kitchens' % len(kds_configs)
+        else:
+            values['portal_kds_config_label'] = ''
         return values
