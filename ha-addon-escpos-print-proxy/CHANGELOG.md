@@ -2,6 +2,14 @@
 
 All notable changes to this add-on will be documented here.
 
+## 0.5.0 — 2026-04-21
+
+- Auto-generate API key on first start when `api_key` is left empty.
+  The generated key is persisted to addon options via the HA Supervisor
+  API and visible in the Configuration tab for copying to Odoo.
+- `api_key` is now optional in the schema — no need to generate one
+  manually before starting the addon.
+
 ## 0.4.1 — 2026-04-17
 
 - Removed redundant global `paper_mm` option from main settings.

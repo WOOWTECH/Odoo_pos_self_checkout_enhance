@@ -14,9 +14,24 @@ PRINTER_IP=$(bashio::config 'printer_ip')
 PRINTERS_JSON=$(jq -c '.printers // []' /data/options.json 2>/dev/null || echo '[]')
 
 if [[ -z "${API_KEY}" ]]; then
-    bashio::log.fatal "api_key is empty. Generate one with:  openssl rand -hex 32"
-    bashio::log.fatal "Then set it in the add-on Configuration tab."
-    exit 2
+    bashio::log.info "No api_key configured — generating one automatically..."
+    API_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+
+    # Read current options, inject key, persist via Supervisor API
+    UPDATED=$(jq -c --arg k "${API_KEY}" '.api_key = $k' /data/options.json)
+    RESP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "{\"options\": ${UPDATED}}" \
+        http://supervisor/addons/self/options)
+
+    if [[ "${RESP}" == "200" ]]; then
+        bashio::log.info "API key generated and saved."
+        bashio::log.info "Copy it from: Settings > Add-ons > ESC/POS Print Proxy > Configuration tab."
+    else
+        bashio::log.fatal "Failed to save auto-generated key (HTTP ${RESP}). Set api_key manually."
+        exit 2
+    fi
 fi
 
 if [[ -n "${PRINTER_IP}" ]]; then

@@ -1,5 +1,5 @@
 name: ESC/POS Print Proxy
-version: "0.4.1"
+version: "0.5.0"
 slug: escpos_print_proxy
 description: >-
   Receives bearer-authenticated print jobs over HTTP from cloud-hosted
@@ -24,7 +24,7 @@ options:
   printers: []
   port: 8073
 schema:
-  api_key: password
+  api_key: "password?"
   printer_ip: "str?"
   printers:
     - label: str

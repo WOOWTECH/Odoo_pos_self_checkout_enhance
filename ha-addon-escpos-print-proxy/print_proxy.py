@@ -43,7 +43,7 @@ from flask import Flask, jsonify, request
 
 from escpos_min import print_image
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 _logger = logging.getLogger("escpos_proxy")
 logging.basicConfig(
