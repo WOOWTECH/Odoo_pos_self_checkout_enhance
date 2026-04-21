@@ -54,13 +54,13 @@ Set in the add-on's **Configuration** tab:
 
 | Option     | Type                | Default | Notes                                       |
 |------------|---------------------|---------|---------------------------------------------|
-| api_key    | string              | (empty) | **Required.** Generate: `openssl rand -hex 32` |
+| api_key    | string              | (empty) | **Auto-generated on first start if left empty.** Or set manually: `openssl rand -hex 32` |
 | printer_ip | string              | (empty) | Default target printer IP. Used when payload omits both `printer_label` and `printer_ip`. Leave empty if `printers` (below) is configured. |
 | printers   | list of {label, ip} | `[]`    | Optional label → IP map for multi-printer shops. Cloud Odoo sends `printer_label` in payload. Example: `[{label: invoice, ip: 192.168.2.241}, {label: kitchen, ip: 192.168.2.242}]` |
 | port       | int                 | 8073    | Port the proxy listens on.                  |
 | paper_mm   | 58 or 80            | 80      | Default paper width if not in the request.  |
 
-The add-on refuses to start if `api_key` is empty.
+If `api_key` is empty, the add-on auto-generates a secure 64-character key on first start and saves it to the Configuration tab.
 
 ## Host network
 

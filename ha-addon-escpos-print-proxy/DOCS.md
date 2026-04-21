@@ -93,21 +93,21 @@ Go to the add-on's **Configuration** tab and set the following:
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `api_key` | Yes | Shared secret for Bearer authentication. Generate one: `openssl rand -hex 32` |
+| `api_key` | No | Shared secret for Bearer authentication. **Leave empty to auto-generate on first start.** The generated key is saved automatically and visible in this Configuration tab. You can also set one manually: `openssl rand -hex 32`. |
 | `printer_ip` | No | Default target printer IP. Used when the request omits both `printer_label` and `printer_ip`. Leave empty if using the `printers` list below. |
 | `printers` | No | Label-to-IP mapping for multi-printer shops. Each entry has: `label` (e.g., `kitchen`), `ip` (e.g., `192.168.2.242`), and optional `paper_mm` (`58` or `80`). |
 | `port` | Yes | HTTP port the proxy listens on. Default: `8073`. |
 
-**Single-printer example:**
+**Single-printer example (auto-generated key):**
 
 ```yaml
-api_key: "your-generated-64-char-hex-key"
+api_key: ""
 printer_ip: "192.168.2.241"
 printers: []
 port: 8073
 ```
 
-**Multi-printer example:**
+**Multi-printer example (manual key):**
 
 ```yaml
 api_key: "your-generated-64-char-hex-key"
@@ -128,11 +128,14 @@ port: 8073
 2. Go to the **Log** tab. You should see:
 
 ```
+No api_key configured — generating one automatically...
+API key generated and saved.
+Copy it from: Settings > Add-ons > ESC/POS Print Proxy > Configuration tab.
 Starting ESC/POS print proxy on :8073
-ESC/POS print proxy 0.4.1 listening on 0.0.0.0:8073
+ESC/POS print proxy 0.5.0 listening on 0.0.0.0:8073
 ```
 
-If `api_key` is empty, the add-on will refuse to start with a fatal error.
+If you left `api_key` empty, the add-on auto-generates a secure 64-character key and saves it. Go back to the **Configuration** tab to see and copy the generated key.
 
 ---
 
@@ -233,7 +236,7 @@ additional_hosts:
 |-------|-------|
 | **Type** | `Use a network ESC/POS printer` |
 | **Cloud Relay URL** | `https://ha.yourdomain.com` (Approach A) or `https://print.yourdomain.com` (Approach B) |
-| **Cloud Relay API Key** | The same `api_key` you configured in the add-on (Step 1) |
+| **Cloud Relay API Key** | The `api_key` from the add-on's Configuration tab (auto-generated or manually set in Step 1) |
 | **Printer Label** | e.g., `kitchen` — must match a label in the add-on's `printers` list. Leave empty for single-printer shops. |
 | **Paper Width** | `80 mm` or `58 mm` |
 
@@ -258,7 +261,7 @@ curl https://ha.yourdomain.com/status
 
 Expected response:
 ```json
-{"ok": true, "version": "0.4.1", "uptime_s": 12345.6}
+{"ok": true, "version": "0.5.0", "uptime_s": 12345.6}
 ```
 
 #### Common errors
@@ -303,7 +306,7 @@ The test print will fail with "decode failed" (the base64 is not a real image), 
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `api_key` | password | (empty) | **Required.** Bearer token for authentication. Generate: `openssl rand -hex 32`. Add-on refuses to start if empty. |
+| `api_key` | password | (empty) | Bearer token for authentication. **Auto-generated on first start if left empty.** Or set manually: `openssl rand -hex 32`. |
 | `printer_ip` | string | (empty) | Default target printer LAN IP. Used when the request has no `printer_label` or `printer_ip`. |
 | `printers` | list | `[]` | Multi-printer label→IP map. Each entry: `{label: str, ip: str, paper_mm: "58"\|"80"}`. |
 | `port` | port | `8073` | HTTP port the proxy listens on (1–65535). |
@@ -329,7 +332,7 @@ Content-Type: application/json
 **GET /status** (unauthenticated)
 
 ```json
-{"ok": true, "version": "0.4.1", "uptime_s": 12345.6}
+{"ok": true, "version": "0.5.0", "uptime_s": 12345.6}
 ```
 
 #### Response codes
@@ -449,21 +452,21 @@ scp -r ha-addon-escpos-print-proxy/ root@<HA-IP>:/addons/
 
 | 選項 | 必要 | 說明 |
 |------|------|------|
-| `api_key` | 是 | 用於 Bearer 驗證的共用密鑰。產生方式：`openssl rand -hex 32` |
+| `api_key` | 否 | 用於 Bearer 驗證的共用密鑰。**留空即可在首次啟動時自動產生。** 產生的金鑰會自動儲存並顯示在此設定分頁中。也可手動設定：`openssl rand -hex 32`。 |
 | `printer_ip` | 否 | 預設目標印表機 IP。當請求未提供 `printer_label` 和 `printer_ip` 時使用。如果使用下方的 `printers` 清單，可留空。 |
 | `printers` | 否 | 多印表機的標籤對應 IP。每個項目包含：`label`（例如 `kitchen`）、`ip`（例如 `192.168.2.242`）、選填 `paper_mm`（`58` 或 `80`）。 |
 | `port` | 是 | 代理服務監聽的 HTTP 埠。預設：`8073`。 |
 
-**單一印表機範例：**
+**單一印表機範例（自動產生金鑰）：**
 
 ```yaml
-api_key: "your-generated-64-char-hex-key"
+api_key: ""
 printer_ip: "192.168.2.241"
 printers: []
 port: 8073
 ```
 
-**多印表機範例：**
+**多印表機範例（手動設定金鑰）：**
 
 ```yaml
 api_key: "your-generated-64-char-hex-key"
@@ -484,11 +487,14 @@ port: 8073
 2. 前往 **日誌（Log）** 分頁，您應該看到：
 
 ```
+No api_key configured — generating one automatically...
+API key generated and saved.
+Copy it from: Settings > Add-ons > ESC/POS Print Proxy > Configuration tab.
 Starting ESC/POS print proxy on :8073
-ESC/POS print proxy 0.4.1 listening on 0.0.0.0:8073
+ESC/POS print proxy 0.5.0 listening on 0.0.0.0:8073
 ```
 
-如果 `api_key` 為空，附加元件將拒絕啟動並顯示嚴重錯誤。
+如果 `api_key` 留空，附加元件會自動產生一組安全的 64 字元金鑰並儲存。回到 **設定（Configuration）** 分頁即可查看並複製產生的金鑰。
 
 ---
 
@@ -589,7 +595,7 @@ additional_hosts:
 |------|------|
 | **類型** | `使用網路 ESC/POS 印表機` |
 | **Cloud Relay URL** | `https://ha.yourdomain.com`（方式 A）或 `https://print.yourdomain.com`（方式 B） |
-| **Cloud Relay API Key** | 與附加元件中設定的 `api_key` 相同 |
+| **Cloud Relay API Key** | 附加元件設定分頁中的 `api_key`（自動產生或在步驟一手動設定） |
 | **Printer Label** | 例如 `kitchen` — 必須與附加元件 `printers` 清單中的標籤一致。單一印表機可留空。 |
 | **Paper Width** | `80 mm` 或 `58 mm` |
 
@@ -614,7 +620,7 @@ curl https://ha.yourdomain.com/status
 
 預期回應：
 ```json
-{"ok": true, "version": "0.4.1", "uptime_s": 12345.6}
+{"ok": true, "version": "0.5.0", "uptime_s": 12345.6}
 ```
 
 #### 常見錯誤
@@ -659,7 +665,7 @@ curl -X POST http://localhost:8073/print \
 
 | 選項 | 類型 | 預設值 | 說明 |
 |------|------|--------|------|
-| `api_key` | password | （空） | **必要。** 用於 Bearer 驗證的 token。產生方式：`openssl rand -hex 32`。為空時附加元件拒絕啟動。 |
+| `api_key` | password | （空） | 用於 Bearer 驗證的 token。**留空時首次啟動自動產生。** 也可手動設定：`openssl rand -hex 32`。 |
 | `printer_ip` | string | （空） | 預設目標印表機區域網路 IP。當請求無 `printer_label` 或 `printer_ip` 時使用。 |
 | `printers` | list | `[]` | 多印表機標籤→IP 對應。每個項目：`{label: str, ip: str, paper_mm: "58"\|"80"}`。 |
 | `port` | integer | `8073` | 代理服務監聽的 HTTP 埠。 |
@@ -685,7 +691,7 @@ Content-Type: application/json
 **GET /status**（無需驗證）
 
 ```json
-{"ok": true, "version": "0.4.1", "uptime_s": 12345.6}
+{"ok": true, "version": "0.5.0", "uptime_s": 12345.6}
 ```
 
 #### 回應代碼
