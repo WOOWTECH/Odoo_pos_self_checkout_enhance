@@ -6,6 +6,7 @@ import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { SendBackPopup } from "@pos_self_order_enhancement/pos/send_back_popup";
+import { _t } from "@web/core/l10n/translation";
 
 // Helper: parse KDS JSON fields safely
 function parseKdsJson(raw) {
@@ -115,6 +116,9 @@ patch(ControlButtons.prototype, {
     get courseGroups() {
         return getOrderCourseGroups(this.pos);
     },
+    getFireLabel(cg) {
+        return `${cg.name} - ${_t("FIRE")}`;
+    },
     async onClickServed() {
         await handleClickServed(this.pos);
     },
@@ -140,6 +144,9 @@ patch(ProductScreen.prototype, {
     },
     get courseGroups() {
         return getOrderCourseGroups(this.pos);
+    },
+    getFireLabel(cg) {
+        return `${cg.name} - ${_t("FIRE")}`;
     },
     async onClickServed() {
         await handleClickServed(this.pos);

@@ -29,6 +29,10 @@ export class SendBackPopup extends Component {
         });
     }
 
+    get dialogTitle() {
+        return this.props.title || _t("Send Back to Kitchen");
+    }
+
     get hasSelection() {
         return Object.values(this.state.selectedLines).some(Boolean);
     }

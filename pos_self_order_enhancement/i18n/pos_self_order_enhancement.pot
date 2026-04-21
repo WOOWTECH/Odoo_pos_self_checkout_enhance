@@ -172,6 +172,13 @@ msgstr ""
 
 #. module: pos_self_order_enhancement
 #. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.js:0
+msgid "Remake"
+msgstr ""
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
 #: code:addons/pos_self_order_enhancement/static/src/pos/overrides/payment_screen_einvoice.js:0
 msgid "Invoice issued: %s"
 msgstr ""
@@ -417,9 +424,10 @@ msgid "Done"
 msgstr ""
 
 #. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_screen.xml:0
 #: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__kds_state__served
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
 msgid "Served"
 msgstr ""
 
@@ -494,188 +502,225 @@ msgid "58 mm"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/landing_page/landing_page.xml:0
 msgid "My Order"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/landing_page/landing_page.xml:0
 msgid "Order History"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/landing_page/landing_page.xml:0
 msgid "Continue Ordering"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Select Payment Method"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Payment"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Processing, please wait..."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Order Summary"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Current Session"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Total"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Pay at Counter"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Pay at the cashier"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Online Payment"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Back to Home"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Payment Error"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Retry"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Processing Payment..."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Order Received!"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Please go to the counter to pay."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Order:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Total:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Order #"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
 msgid "Loading..."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
 msgid "Payment Successful!"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
 msgid "Order Number:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
 msgid "Amount Paid:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
 msgid "Thank you for your order"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
 msgid "Your food is being prepared"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
 msgid "Order Again"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/order_history_page/order_history_page.xml:0
 msgid "Checkout"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "Your order has been sent to the kitchen."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "Please proceed to payment."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "Back to Order"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "Go to Payment"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "You can continue ordering or checkout from \"My Orders\"."
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "My Orders"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
 msgid "OK"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/served_popup.xml:0
 msgid "Close"
 msgstr ""
 
@@ -685,104 +730,118 @@ msgid "Return to Ordering"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
 msgid "Sent to Kitchen"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
 msgid "New Items"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
 msgid "Subtotal:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
 msgid "Your Selection"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
 msgid "Edit"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
 msgid "Out of stock"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
 msgid "Add to cart"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.floor_screen
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/floor_screen.xml:0
 msgid "Counter Pay"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.floor_screen
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/floor_screen.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
 msgid "Ready"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.floor_screen
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/floor_screen.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
 msgid "Hold"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
 msgid "Cooking"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-msgid "Remake"
-msgstr ""
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_screen.xml:0
 msgid "FIRE"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_screen.xml:0
 msgid "Send Back"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
 msgid "Send Back to Kitchen"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
 msgid "Cancel"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
 msgid "Select items to send back:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
 msgid "Reason:"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.order_change_receipt
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/overrides/order_change_receipt.xml:0
 msgid "⚠ SEND BACK ⚠"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.order_change_receipt
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/overrides/order_change_receipt.xml:0
 msgid "★ ORDER NOTE ★"
 msgstr ""
 
@@ -833,23 +892,26 @@ msgstr ""
 
 #. module: pos_self_order_enhancement
 #. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/product_card.xml:0
 #: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ProductCard
 msgid "Sold Out"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/served_popup.js:0
 msgid "Ready to Serve"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/served_popup.xml:0
 msgid "Mark as Served"
 msgstr ""
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.OrderWidget
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/overrides/order_widget.xml:0
 msgid "General Note"
 msgstr ""
 

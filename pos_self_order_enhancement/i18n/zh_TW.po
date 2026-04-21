@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-20 00:00+0000\n"
-"PO-Revision-Date: 2026-04-20 00:00+0000\n"
+"POT-Creation-Date: 2026-04-21 00:00+0000\n"
+"PO-Revision-Date: 2026-04-21 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Traditional Chinese\n"
 "MIME-Version: 1.0\n"
@@ -27,6 +27,48 @@ msgstr "餐點"
 #: code:addons/pos_self_order_enhancement/models/pos_config.py:0
 msgid "Each Order"
 msgstr "整單"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
+msgid "Set either a Printer IP Address (local TCP) or a Cloud Relay URL (cloud mode)."
+msgstr "請設定出單機 IP 位址（本地 TCP）或雲端中繼網址（雲端模式）。"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
+msgid "The test print only supports the 'network ESC/POS printer' type."
+msgstr "測試列印僅支援「網路 ESC/POS 出單機」類型。"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
+msgid "Set either a Printer IP Address (local TCP) or a Cloud Relay URL (cloud mode) first."
+msgstr "請先設定出單機 IP 位址（本地 TCP）或雲端中繼網址（雲端模式）。"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
+msgid "Test print failed: %s"
+msgstr "測試列印失敗：%s"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
+msgid "Test print sent"
+msgstr "測試列印已送出"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
+msgid "A test ticket has been sent to %s via %s. Check the printer."
+msgstr "測試票券已透過 %s 送至 %s，請確認出單機。"
+
+#. module: pos_self_order_enhancement
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/controllers/orders.py:0
+msgid "Order not found"
+msgstr "找不到訂單"
 
 #. module: pos_self_order_enhancement
 #. odoo-javascript
@@ -113,305 +155,6 @@ msgid "Failed to save invoice data. Please try again."
 msgstr "儲存發票資料失敗，請重試。"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-msgid "My Order"
-msgstr "我的訂單"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-msgid "Order History"
-msgstr "歷史訂單"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
-msgid "Continue Ordering"
-msgstr "繼續點餐"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Select Payment Method"
-msgstr "選擇付款方式"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Payment"
-msgstr "付款"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Processing, please wait..."
-msgstr "處理中，請稍候..."
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Order Summary"
-msgstr "訂單摘要"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Current Session"
-msgstr "本次加點"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Total"
-msgstr "總計"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Pay at Counter"
-msgstr "現場結帳"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Pay at the cashier"
-msgstr "至櫃台付款"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Online Payment"
-msgstr "線上支付"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Back to Home"
-msgstr "回到主頁"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Payment Error"
-msgstr "付款錯誤"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Retry"
-msgstr "重試"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Processing Payment..."
-msgstr "付款處理中..."
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Order Received!"
-msgstr "訂單已收到！"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Please go to the counter to pay."
-msgstr "請前往櫃台付款"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Order:"
-msgstr "訂單："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Total:"
-msgstr "總計："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Order #"
-msgstr "第 # 次點餐"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Loading..."
-msgstr "載入中..."
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "Payment Successful!"
-msgstr "付款成功！"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "Order Number:"
-msgstr "訂單編號："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "Amount Paid:"
-msgstr "付款金額："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "Thank you for your order"
-msgstr "感謝您的惠顧"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "Your food is being prepared"
-msgstr "餐點準備中，請稍候"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
-msgid "Order Again"
-msgstr "再點一份"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.order_history_page
-msgid "Checkout"
-msgstr "結帳付款"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Your order has been sent to the kitchen."
-msgstr "餐點已送至廚房準備中"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Please proceed to payment."
-msgstr "請前往付款頁面完成結帳"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Back to Order"
-msgstr "返回訂單"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Go to Payment"
-msgstr "前往付款"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "You can continue ordering or checkout from \"My Orders\"."
-msgstr "您可以繼續點餐或前往「我的訂單」統一結帳"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "My Orders"
-msgstr "我的訂單"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "OK"
-msgstr "確定"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
-msgid "Close"
-msgstr "關閉"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_templates
-msgid "Return to Ordering"
-msgstr "回到點餐頁面"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
-msgid "Sent to Kitchen"
-msgstr "已送出至廚房"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
-msgid "New Items"
-msgstr "新增品項"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
-msgid "Subtotal:"
-msgstr "小計："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
-msgid "Your Selection"
-msgstr "您的選擇"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
-msgid "Edit"
-msgstr "編輯"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
-msgid "Out of stock"
-msgstr "缺貨"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.combo_page
-msgid "Add to cart"
-msgstr "加入購物車"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.floor_screen
-msgid "Counter Pay"
-msgstr "現場結帳"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.floor_screen
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-msgid "Ready"
-msgstr "備餐完成"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.floor_screen
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-msgid "Hold"
-msgstr "暫停"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
-msgid "Served"
-msgstr "已上菜"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-msgid "Cooking"
-msgstr "製作中"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-msgid "Remake"
-msgstr "重做"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
-msgid "FIRE"
-msgstr "出餐"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
-msgid "Send Back"
-msgstr "退回廚房"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
-msgid "Send Back to Kitchen"
-msgstr "退回廚房"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
-msgid "Cancel"
-msgstr "取消"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
-msgid "Select items to send back:"
-msgstr "選擇要退回的品項："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.send_back_popup
-msgid "Reason:"
-msgstr "原因："
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.order_change_receipt
-msgid "⚠ SEND BACK ⚠"
-msgstr "⚠ 退回重做 ⚠"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.order_change_receipt
-msgid "★ ORDER NOTE ★"
-msgstr "★ 訂單備註 ★"
-
-#. module: pos_self_order_enhancement
 #. odoo-javascript
 #: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.js:0
 msgid "Wrong Item"
@@ -428,6 +171,13 @@ msgstr "未熟"
 #: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.js:0
 msgid "Customer Changed Mind"
 msgstr "客人改變主意"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.js:0
+msgid "Remake"
+msgstr "重做"
 
 #. module: pos_self_order_enhancement
 #. odoo-javascript
@@ -479,8 +229,8 @@ msgstr "已售完 (86)："
 
 #. module: pos_self_order_enhancement
 #. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/product_card.xml:0
 #: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ProductCard
 msgid "Sold Out"
 msgstr "已售完"
 
@@ -495,6 +245,12 @@ msgstr "QR點餐已售完，但員工訂單仍可使用"
 #: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
 msgid "Available"
 msgstr "供應中"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/served_popup.js:0
+msgid "Ready to Serve"
+msgstr "備餐完成"
 
 #. module: pos_self_order_enhancement
 #: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__kds_enabled
@@ -683,9 +439,10 @@ msgid "Done"
 msgstr "完成"
 
 #. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_screen.xml:0
 #: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__kds_state__served
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
 msgid "Served"
 msgstr "已上菜"
 
@@ -760,46 +517,348 @@ msgid "58 mm"
 msgstr "58 mm"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "Set either a Printer IP Address (local TCP) or a Cloud Relay URL (cloud mode)."
-msgstr "請設定出單機 IP 位址（本地 TCP）或雲端中繼網址（雲端模式）。"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/landing_page/landing_page.xml:0
+msgid "My Order"
+msgstr "我的訂單"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "The test print only supports the 'network ESC/POS printer' type."
-msgstr "測試列印僅支援「網路 ESC/POS 出單機」類型。"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/landing_page/landing_page.xml:0
+msgid "Order History"
+msgstr "歷史訂單"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "Set either a Printer IP Address (local TCP) or a Cloud Relay URL (cloud mode) first."
-msgstr "請先設定出單機 IP 位址（本地 TCP）或雲端中繼網址（雲端模式）。"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/landing_page/landing_page.xml:0
+msgid "Continue Ordering"
+msgstr "繼續點餐"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "Test print failed: %s"
-msgstr "測試列印失敗：%s"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Select Payment Method"
+msgstr "選擇付款方式"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "Test print sent"
-msgstr "測試列印已送出"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Payment"
+msgstr "付款"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "A test ticket has been sent to %s via %s. Check the printer."
-msgstr "測試票券已透過 %s 送至 %s，請確認出單機。"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Processing, please wait..."
+msgstr "處理中，請稍候..."
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/controllers/orders.py:0
-msgid "Order not found"
-msgstr "找不到訂單"
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Order Summary"
+msgstr "訂單摘要"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Current Session"
+msgstr "本次加點"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Total"
+msgstr "總計"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Pay at Counter"
+msgstr "現場結帳"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Pay at the cashier"
+msgstr "至櫃台付款"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Online Payment"
+msgstr "線上支付"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Back to Home"
+msgstr "回到主頁"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Payment Error"
+msgstr "付款錯誤"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Retry"
+msgstr "重試"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Processing Payment..."
+msgstr "付款處理中..."
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Order Received!"
+msgstr "訂單已收到！"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Please go to the counter to pay."
+msgstr "請前往櫃台付款"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Order:"
+msgstr "訂單："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Total:"
+msgstr "總計："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Order #"
+msgstr "第 # 次點餐"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.xml:0
+msgid "Loading..."
+msgstr "載入中..."
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
+msgid "Payment Successful!"
+msgstr "付款成功！"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
+msgid "Order Number:"
+msgstr "訂單編號："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
+msgid "Amount Paid:"
+msgstr "付款金額："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
+msgid "Thank you for your order"
+msgstr "感謝您的惠顧"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
+msgid "Your food is being prepared"
+msgstr "餐點準備中，請稍候"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_success_page/payment_success_page.xml:0
+msgid "Order Again"
+msgstr "再點一份"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/order_history_page/order_history_page.xml:0
+msgid "Checkout"
+msgstr "結帳付款"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "Your order has been sent to the kitchen."
+msgstr "餐點已送至廚房準備中"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "Please proceed to payment."
+msgstr "請前往付款頁面完成結帳"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "Back to Order"
+msgstr "返回訂單"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "Go to Payment"
+msgstr "前往付款"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "You can continue ordering or checkout from \"My Orders\"."
+msgstr "您可以繼續點餐或前往「我的訂單」統一結帳"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "My Orders"
+msgstr "我的訂單"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+msgid "OK"
+msgstr "確定"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/confirmation_page/confirmation_page.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/served_popup.xml:0
+msgid "Close"
+msgstr "關閉"
+
+#. module: pos_self_order_enhancement
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_templates
+msgid "Return to Ordering"
+msgstr "回到點餐頁面"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
+msgid "Sent to Kitchen"
+msgstr "已送出至廚房"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
+msgid "New Items"
+msgstr "新增品項"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
+msgid "Subtotal:"
+msgstr "小計："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
+msgid "Your Selection"
+msgstr "您的選擇"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
+msgid "Edit"
+msgstr "編輯"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
+msgid "Out of stock"
+msgstr "缺貨"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/combo_page/combo_page.xml:0
+msgid "Add to cart"
+msgstr "加入購物車"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/floor_screen.xml:0
+msgid "Counter Pay"
+msgstr "現場結帳"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/floor_screen.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+msgid "Ready"
+msgstr "備餐完成"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/floor_screen.xml:0
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+msgid "Hold"
+msgstr "暫停"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/orderline.xml:0
+msgid "Cooking"
+msgstr "製作中"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_screen.xml:0
+msgid "FIRE"
+msgstr "出餐"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_screen.xml:0
+msgid "Send Back"
+msgstr "退回廚房"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
+msgid "Send Back to Kitchen"
+msgstr "退回廚房"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
+msgid "Cancel"
+msgstr "取消"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
+msgid "Select items to send back:"
+msgstr "選擇要退回的品項："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/send_back_popup.xml:0
+msgid "Reason:"
+msgstr "原因："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/overrides/order_change_receipt.xml:0
+msgid "⚠ SEND BACK ⚠"
+msgstr "⚠ 退回重做 ⚠"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/overrides/order_change_receipt.xml:0
+msgid "★ ORDER NOTE ★"
+msgstr "★ 訂單備註 ★"
 
 #. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
@@ -847,17 +906,14 @@ msgid "Items in this category are held until staff fires them to the kitchen."
 msgstr "此分類的品項會被暫停，直到員工手動出餐至廚房。"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
-msgid "Ready to Serve"
-msgstr "備餐完成"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/served_popup.xml:0
 msgid "Mark as Served"
 msgstr "標記為已上菜"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.OrderWidget
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/overrides/order_widget.xml:0
 msgid "General Note"
 msgstr "整單備註"
 
@@ -894,5 +950,10 @@ msgstr "選擇要開啟的廚房顯示螢幕。"
 
 #. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_my_home_pos
+msgid "Portal POS"
+msgstr "Portal POS"
+
+#. module: pos_self_order_enhancement
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.view_partner_form_portal_pos
 msgid "Portal POS"
 msgstr "Portal POS"

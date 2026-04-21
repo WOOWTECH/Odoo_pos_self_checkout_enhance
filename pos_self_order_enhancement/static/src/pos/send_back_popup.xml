@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="pos_self_order_enhancement.SendBackPopup">
-        <Dialog title="props.title or 'Send Back to Kitchen'" size="'md'">
+        <Dialog title="dialogTitle" size="'md'">
             <t t-set-slot="footer">
                 <button class="btn btn-secondary" t-on-click="cancel">Cancel</button>
                 <button class="btn btn-danger"

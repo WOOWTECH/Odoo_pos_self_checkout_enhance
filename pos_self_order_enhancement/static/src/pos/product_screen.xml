@@ -9,7 +9,7 @@
                     <button t-if="!cg.is_fired"
                             class="btn btn-warning flex-grow-1"
                             t-on-click="() => this.onFireCourse(cg.id)">
-                        <t t-esc="cg.name"/> - FIRE
+                        <t t-esc="getFireLabel(cg)"/>
                     </button>
                 </t>
                 <button t-if="orderIsKdsReady"
@@ -33,7 +33,7 @@
                     <button t-if="!cg.is_fired"
                             class="btn btn-warning flex-fill"
                             t-on-click="() => this.onFireCourse(cg.id)">
-                        <t t-esc="cg.name"/> - FIRE
+                        <t t-esc="getFireLabel(cg)"/>
                     </button>
                 </t>
                 <button t-if="orderIsKdsReady"

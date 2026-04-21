@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="pos_self_order_enhancement.ServedPopup">
-        <Dialog title="props.title or 'Ready to Serve'" size="'md'">
+        <Dialog title="dialogTitle" size="'md'">
             <div class="p-3">
                 <h5 class="mb-3">
                     <i class="fa fa-check-circle text-success me-2"/>
