@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-14 00:00+0000\n"
-"PO-Revision-Date: 2026-04-14 00:00+0000\n"
+"POT-Creation-Date: 2026-04-20 00:00+0000\n"
+"PO-Revision-Date: 2026-04-20 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Traditional Chinese\n"
 "MIME-Version: 1.0\n"
@@ -69,6 +69,48 @@ msgstr "沒有待付款的訂單"
 #: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
 msgid "The current order cannot be paid (maybe it is already paid)."
 msgstr "此訂單無法付款（可能已經付款完成）。"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Please enter mobile barcode"
+msgstr "請輸入手機條碼"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Invalid mobile barcode format (e.g. /ABC+123)"
+msgstr "手機條碼格式錯誤 (例: /ABC+123)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Please enter love code"
+msgstr "請輸入愛心碼"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Invalid love code format (3-7 digits)"
+msgstr "愛心碼格式錯誤 (3~7碼數字)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Please enter tax ID"
+msgstr "請輸入統一編號"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Invalid tax ID format (8 digits)"
+msgstr "統一編號格式錯誤 (8碼數字)"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
+msgid "Failed to save invoice data. Please try again."
+msgstr "儲存發票資料失敗，請重試。"
 
 #. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.landing_page
@@ -171,6 +213,16 @@ msgid "Total:"
 msgstr "總計："
 
 #. module: pos_self_order_enhancement
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+msgid "Order #"
+msgstr "第 # 次點餐"
+
+#. module: pos_self_order_enhancement
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
+msgid "Loading..."
+msgstr "載入中..."
+
+#. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_success_page
 msgid "Payment Successful!"
 msgstr "付款成功！"
@@ -236,24 +288,20 @@ msgid "My Orders"
 msgstr "我的訂單"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_templates
-msgid "Return to Ordering"
-msgstr "回到點餐頁面"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
-msgid "Close"
-msgstr "關閉"
-
-#. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
 msgid "OK"
 msgstr "確定"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_page
-msgid "Order #"
-msgstr "第 # 次點餐"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.confirmation_page
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+msgid "Close"
+msgstr "關閉"
+
+#. module: pos_self_order_enhancement
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.payment_templates
+msgid "Return to Ordering"
+msgstr "回到點餐頁面"
 
 #. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.cart_page
@@ -424,75 +472,298 @@ msgid "The printer received the job but could not print. Please check that the p
 msgstr "出單機已收到列印工作但無法列印，請確認出單機已開機、已連接網路，且紙張已裝妥。"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
+msgid "Sold Out (86):"
+msgstr "已售完 (86)："
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ProductCard
+msgid "Sold Out"
+msgstr "已售完"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
+msgid "Sold Out for QR Order, but available for staff order"
+msgstr "QR點餐已售完，但員工訂單仍可使用"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
+msgid "Available"
+msgstr "供應中"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__kds_enabled
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_my_home_kds
 msgid "Kitchen Display"
 msgstr "廚房顯示螢幕"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__kds_access_token
 msgid "KDS Access Token"
 msgstr "KDS 存取令牌"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__kds_url
 msgid "KDS URL"
 msgstr "KDS 網址"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__ecpay_einvoice_enabled
+msgid "E-Invoice (電子發票)"
+msgstr "電子發票"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__ecpay_seller_tax_id
+msgid "Seller Tax ID (賣方統編)"
+msgstr "賣方統編"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_config__einvoice_printer_id
+msgid "E-Invoice Printer (電子發票印表機)"
+msgstr "電子發票印表機"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__kds_state
 msgid "Kitchen Status"
 msgstr "廚房狀態"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields.selection
-msgid "New"
-msgstr "新訂單"
-
-#. module: pos_self_order_enhancement
-#: model:ir.model.fields.selection
-msgid "In Progress"
-msgstr "製作中"
-
-#. module: pos_self_order_enhancement
-#: model:ir.model.fields.selection
-msgid "Done"
-msgstr "完成"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
-msgid "Regenerate Token"
-msgstr "重新產生令牌"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
-msgid "Kitchen Display Screen (KDS)"
-msgstr "廚房顯示螢幕 (KDS)"
-
-#. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
-msgid "Real-time kitchen order display on any browser"
-msgstr "在任何瀏覽器即時顯示廚房訂單"
-
-#. module: pos_self_order_enhancement
-#: model:ir.model.fields
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__kds_done_items
 msgid "KDS Done Items"
 msgstr "KDS 已完成品項"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields.selection
-msgid "Use a network ESC/POS printer"
-msgstr "使用網路 ESC/POS 出單機"
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__kds_sent_to_kitchen
+msgid "Sent to Kitchen by Staff"
+msgstr "已由員工送至廚房"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__kds_remake_data
+msgid "KDS Remake Data"
+msgstr "KDS 重做資料"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__kds_fired_courses
+msgid "KDS Fired Courses"
+msgstr "KDS 出餐分類"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__kds_served_items
+msgid "KDS Served Items"
+msgstr "KDS 已上菜品項"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__self_order_payment_status
+msgid "Self-Order Payment Status"
+msgstr "自助點餐付款狀態"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__ecpay_invoice_id
+msgid "統一發票"
+msgstr "統一發票"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_invoice_number
+msgid "Invoice Number (發票號碼)"
+msgstr "發票號碼"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_invoice_random_code
+msgid "Random Code (隨機碼)"
+msgstr "隨機碼"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_carrier_type
+msgid "Carrier Type (載具類型)"
+msgstr "載具類型"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_carrier_num
+msgid "Carrier Number (載具號碼)"
+msgstr "載具號碼"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_love_code
+msgid "Love Code (愛心碼)"
+msgstr "愛心碼"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_buyer_tax_id
+msgid "Buyer Tax ID (買方統編)"
+msgstr "買方統編"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_buyer_name
+msgid "Buyer Name (買方名稱)"
+msgstr "買方名稱"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_b2b_print
+msgid "B2B Print Paper"
+msgstr "B2B 列印紙本"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_invoice_status
+msgid "Invoice Status"
+msgstr "發票狀態"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_qrcode_left
+msgid "QR Code Left"
+msgstr "左側 QR Code"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_qrcode_right
+msgid "QR Code Right"
+msgstr "右側 QR Code"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_order__tw_pos_barcode
+msgid "POS Barcode"
+msgstr "POS 條碼"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_printer__escpos_printer_ip
 msgid "Printer IP Address"
 msgstr "出單機 IP 位址"
 
 #. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_printer__escpos_paper_width
+msgid "Paper Width"
+msgstr "紙張寬度"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_printer__escpos_proxy_url
+msgid "Cloud Relay URL"
+msgstr "雲端中繼網址"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_printer__escpos_proxy_api_key
+msgid "Cloud Relay API Key"
+msgstr "雲端中繼 API 金鑰"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_printer__escpos_printer_label
+msgid "Printer Label"
+msgstr "出單機標籤"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_product_product__is_sold_out
+msgid "Sold Out (86)"
+msgstr "已售完 (86)"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_pos_category__kds_hold_fire
+msgid "Hold & Fire"
+msgstr "暫停 & 出餐"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields,field_description:pos_self_order_enhancement.field_res_partner__portal_pos_config_ids
+msgid "Portal POS Configs"
+msgstr "Portal POS 設定"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__kds_state__new
+msgid "New"
+msgstr "新訂單"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__kds_state__in_progress
+msgid "In Progress"
+msgstr "製作中"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__kds_state__done
+msgid "Done"
+msgstr "完成"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__kds_state__served
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.orderline
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.product_screen
+msgid "Served"
+msgstr "已上菜"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__self_order_payment_status__none
+msgid "No Payment Gate"
+msgstr "無付款閘門"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__self_order_payment_status__pending_online
+msgid "Pending Online Payment"
+msgstr "等待線上付款"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__self_order_payment_status__pending_counter
+msgid "Pending Counter Payment"
+msgstr "等待現場付款"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__self_order_payment_status__paid
+msgid "Payment Confirmed"
+msgstr "付款已確認"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_carrier_type__print
+msgid "Print (列印)"
+msgstr "列印"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_carrier_type__mobile
+msgid "Mobile Barcode (手機條碼)"
+msgstr "手機條碼"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_carrier_type__donation
+msgid "Donation (捐贈)"
+msgstr "捐贈"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_carrier_type__b2b
+msgid "B2B (統編)"
+msgstr "統編"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_invoice_status__none
+msgid "None"
+msgstr "無"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_invoice_status__issued
+msgid "Issued (已開立)"
+msgstr "已開立"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_order__tw_invoice_status__voided
+msgid "Voided (已作廢)"
+msgstr "已作廢"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_printer__printer_type__network_escpos
+msgid "Use a network ESC/POS printer"
+msgstr "使用網路 ESC/POS 出單機"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_printer__escpos_paper_width__80
+msgid "80 mm"
+msgstr "80 mm"
+
+#. module: pos_self_order_enhancement
+#: model:ir.model.fields.selection,name:pos_self_order_enhancement.selection__pos_printer__escpos_paper_width__58
+msgid "58 mm"
+msgstr "58 mm"
+
+#. module: pos_self_order_enhancement
 #. odoo-python
 #: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "Printer IP Address cannot be empty."
-msgstr "出單機 IP 位址不可為空。"
+msgid "Set either a Printer IP Address (local TCP) or a Cloud Relay URL (cloud mode)."
+msgstr "請設定出單機 IP 位址（本地 TCP）或雲端中繼網址（雲端模式）。"
 
 #. module: pos_self_order_enhancement
 #. odoo-python
@@ -503,8 +774,8 @@ msgstr "測試列印僅支援「網路 ESC/POS 出單機」類型。"
 #. module: pos_self_order_enhancement
 #. odoo-python
 #: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "Please set the printer IP address first."
-msgstr "請先設定出單機 IP 位址。"
+msgid "Set either a Printer IP Address (local TCP) or a Cloud Relay URL (cloud mode) first."
+msgstr "請先設定出單機 IP 位址（本地 TCP）或雲端中繼網址（雲端模式）。"
 
 #. module: pos_self_order_enhancement
 #. odoo-python
@@ -521,37 +792,39 @@ msgstr "測試列印已送出"
 #. module: pos_self_order_enhancement
 #. odoo-python
 #: code:addons/pos_self_order_enhancement/models/pos_printer.py:0
-msgid "A test ticket has been sent to %s. Check the printer."
-msgstr "測試票券已送至 %s，請確認出單機。"
+msgid "A test ticket has been sent to %s via %s. Check the printer."
+msgstr "測試票券已透過 %s 送至 %s，請確認出單機。"
 
 #. module: pos_self_order_enhancement
-#: model:ir.model.fields
-msgid "Sold Out (86)"
-msgstr "已售完 (86)"
+#. odoo-python
+#: code:addons/pos_self_order_enhancement/controllers/orders.py:0
+msgid "Order not found"
+msgstr "找不到訂單"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
-msgid "Sold Out (86):"
-msgstr "已售完 (86)："
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
+msgid "Kitchen Display Screen (KDS)"
+msgstr "廚房顯示螢幕 (KDS)"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
-msgid "Sold Out"
-msgstr "已售完"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
+msgid "Real-time kitchen order display on any browser"
+msgstr "在任何瀏覽器即時顯示廚房訂單"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
-msgid "Sold Out for QR Order, but available for staff order"
-msgstr "QR點餐已售完，但員工訂單仍可使用"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_kds
+msgid "Regenerate Token"
+msgstr "重新產生令牌"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/pos/product_info_popup.js:0
-msgid "Available"
-msgstr "供應中"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_einvoice
+msgid "Taiwan E-Invoice (電子發票)"
+msgstr "台灣電子發票"
+
+#. module: pos_self_order_enhancement
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_einvoice
+msgid "Enable E-Invoice / 啟用電子發票"
+msgstr "啟用電子發票"
 
 #. module: pos_self_order_enhancement
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_dashboard_kds
@@ -574,59 +847,52 @@ msgid "Items in this category are held until staff fires them to the kitchen."
 msgstr "此分類的品項會被暫停，直到員工手動出餐至廚房。"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_einvoice
-msgid "Taiwan E-Invoice (電子發票)"
-msgstr "台灣電子發票"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+msgid "Ready to Serve"
+msgstr "備餐完成"
 
 #. module: pos_self_order_enhancement
-#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.pos_config_view_form_einvoice
-msgid "Enable E-Invoice / 啟用電子發票"
-msgstr "啟用電子發票"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.ServedPopup
+msgid "Mark as Served"
+msgstr "標記為已上菜"
 
 #. module: pos_self_order_enhancement
-#. odoo-python
-#: code:addons/pos_self_order_enhancement/controllers/orders.py:0
-msgid "Order not found"
-msgstr "找不到訂單"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.OrderWidget
+msgid "General Note"
+msgstr "整單備註"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Please enter mobile barcode"
-msgstr "請輸入手機條碼"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_my_home_pos
+msgid "Point of Sale"
+msgstr "銷售點"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Invalid mobile barcode format (e.g. /ABC+123)"
-msgstr "手機條碼格式錯誤 (例: /ABC+123)"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_pos_picker
+msgid "Choose a shop"
+msgstr "選擇店鋪"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Please enter love code"
-msgstr "請輸入愛心碼"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_pos_picker
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_kds_picker
+msgid "My Account"
+msgstr "我的帳戶"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Invalid love code format (3-7 digits)"
-msgstr "愛心碼格式錯誤 (3~7碼數字)"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_pos_picker
+msgid "Select which POS shop to open."
+msgstr "選擇要開啟的 POS 店鋪。"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Please enter tax ID"
-msgstr "請輸入統一編號"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_kds_picker
+msgid "Choose a kitchen display"
+msgstr "選擇廚房顯示螢幕"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Invalid tax ID format (8 digits)"
-msgstr "統一編號格式錯誤 (8碼數字)"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_kds_picker
+msgid "Select which Kitchen Display to open."
+msgstr "選擇要開啟的廚房顯示螢幕。"
 
 #. module: pos_self_order_enhancement
-#. odoo-javascript
-#: code:addons/pos_self_order_enhancement/static/src/app/pages/payment_page/payment_page.js:0
-msgid "Failed to save invoice data. Please try again."
-msgstr "儲存發票資料失敗，請重試。"
+#: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.portal_my_home_pos
+msgid "Portal POS"
+msgstr "Portal POS"
