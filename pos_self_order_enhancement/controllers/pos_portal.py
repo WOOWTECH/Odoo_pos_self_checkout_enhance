@@ -188,10 +188,18 @@ class PortalHomePosCard(CustomerPortal):
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
+        partner = request.env.user.sudo().partner_id
+        configs = partner.portal_pos_config_ids.filtered('active')
+
         if not counters or 'portal_pos_config_count' in counters:
-            partner = request.env.user.sudo().partner_id
-            configs = partner.portal_pos_config_ids.filtered('active')
             values['portal_pos_config_count'] = len(configs)
+
+        if not counters or 'portal_kds_config_count' in counters:
+            kds_configs = configs.filtered('kds_enabled')
+            values['portal_kds_config_count'] = len(kds_configs)
+
+        # Labels only needed for page render (counters=[]), not for RPC
+        if not counters:
             if len(configs) == 1:
                 values['portal_pos_config_label'] = configs.name
             elif len(configs) > 1:
@@ -199,11 +207,7 @@ class PortalHomePosCard(CustomerPortal):
             else:
                 values['portal_pos_config_label'] = ''
 
-        if not counters or 'portal_kds_config_count' in counters:
-            partner = request.env.user.sudo().partner_id
-            configs = partner.portal_pos_config_ids.filtered('active')
             kds_configs = configs.filtered('kds_enabled')
-            values['portal_kds_config_count'] = len(kds_configs)
             if len(kds_configs) == 1:
                 values['portal_kds_config_label'] = kds_configs.name
             elif len(kds_configs) > 1:
