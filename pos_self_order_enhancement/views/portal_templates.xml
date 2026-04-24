@@ -11,27 +11,11 @@
         </xpath>
         <div id="portal_client_category" position="inside">
             <t t-call="portal.portal_docs_entry">
-                <t t-set="icon" t-value="'/point_of_sale/static/description/icon.png'"/>
-                <t t-set="title">Point of Sale</t>
-                <t t-set="text" t-value="portal_pos_config_label"/>
+                <t t-set="icon" t-value="'/pos_self_order_enhancement/static/src/img/portal-pos.svg'"/>
+                <t t-set="title">銷售點</t>
+                <t t-set="text">管理您的銷售收款與訂單</t>
                 <t t-set="url" t-value="'/my/pos'"/>
                 <t t-set="placeholder_count" t-value="'portal_pos_config_count'"/>
-            </t>
-        </div>
-    </template>
-
-    <template id="portal_my_home_kds"
-              name="Portal My Home: Kitchen Display"
-              inherit_id="portal.portal_my_home"
-              customize_show="True"
-              priority="51">
-        <div id="portal_client_category" position="inside">
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="icon" t-value="'/point_of_sale/static/description/icon.png'"/>
-                <t t-set="title">Kitchen Display</t>
-                <t t-set="text" t-value="portal_kds_config_label"/>
-                <t t-set="url" t-value="'/my/kds'"/>
-                <t t-set="placeholder_count" t-value="'portal_kds_config_count'"/>
             </t>
         </div>
     </template>

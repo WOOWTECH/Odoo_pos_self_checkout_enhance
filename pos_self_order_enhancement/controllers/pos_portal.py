@@ -9,8 +9,8 @@ Adds three pieces:
    config is used implicitly.  Internal users continue to use the stock
    Odoo behaviour.
 
-2. New ``/my/pos`` route that renders the shop picker when the user has
-   multiple shops assigned, and auto-redirects when there is only one.
+2. New ``/my/pos`` route that renders the shop picker page showing all
+   assigned POS shops with session status and KDS access.
 
 3. Extension of ``CustomerPortal._prepare_home_portal_values`` so the
    "My Account" portal home page can render a "Point of Sale" card
@@ -138,18 +138,8 @@ class PortalHomePosCard(CustomerPortal):
     @http.route(['/my/pos'], type='http', auth='user', website=True)
     def portal_my_pos(self, **kw):
         user = request.env.user
-        # Admin/internal users have the real backend; send them there.
-        if user._is_internal():
-            return request.redirect('/odoo/action-point_of_sale.action_client_pos_menu')
-        if not user._is_portal():
-            return request.redirect('/my')
-
         partner = user.sudo().partner_id
         configs = partner.portal_pos_config_ids.filtered('active')
-        if not configs:
-            return request.redirect('/my')
-        if len(configs) == 1:
-            return request.redirect('/pos/ui?config_id=%s' % configs.id)
 
         return request.render(
             'pos_self_order_enhancement.portal_pos_picker',
@@ -161,57 +151,12 @@ class PortalHomePosCard(CustomerPortal):
 
     @http.route(['/my/kds'], type='http', auth='user', website=True)
     def portal_my_kds(self, **kw):
-        user = request.env.user
-        if user._is_internal():
-            return request.redirect('/my')
-        if not user._is_portal():
-            return request.redirect('/my')
-
-        partner = user.sudo().partner_id
-        configs = partner.portal_pos_config_ids.filtered(
-            lambda c: c.active and c.kds_enabled
-        )
-        if not configs:
-            return request.redirect('/my')
-        if len(configs) == 1:
-            return request.redirect(
-                '/pos-kds/%s?token=%s' % (configs.id, configs.kds_access_token)
-            )
-
-        return request.render(
-            'pos_self_order_enhancement.portal_kds_picker',
-            {
-                'page_name': 'portal_kds',
-                'configs': configs,
-            },
-        )
+        return request.redirect('/my/pos')
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
-        partner = request.env.user.sudo().partner_id
-        configs = partner.portal_pos_config_ids.filtered('active')
-
         if not counters or 'portal_pos_config_count' in counters:
+            partner = request.env.user.sudo().partner_id
+            configs = partner.portal_pos_config_ids.filtered('active')
             values['portal_pos_config_count'] = len(configs)
-
-        if not counters or 'portal_kds_config_count' in counters:
-            kds_configs = configs.filtered('kds_enabled')
-            values['portal_kds_config_count'] = len(kds_configs)
-
-        # Labels only needed for page render (counters=[]), not for RPC
-        if not counters:
-            if len(configs) == 1:
-                values['portal_pos_config_label'] = configs.name
-            elif len(configs) > 1:
-                values['portal_pos_config_label'] = '%d shops' % len(configs)
-            else:
-                values['portal_pos_config_label'] = ''
-
-            kds_configs = configs.filtered('kds_enabled')
-            if len(kds_configs) == 1:
-                values['portal_kds_config_label'] = kds_configs.name
-            elif len(kds_configs) > 1:
-                values['portal_kds_config_label'] = '%d kitchens' % len(kds_configs)
-            else:
-                values['portal_kds_config_label'] = ''
         return values

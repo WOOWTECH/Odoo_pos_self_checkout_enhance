@@ -5,79 +5,60 @@
         <t t-call="portal.portal_layout">
             <t t-set="my_details" t-value="False"/>
             <div class="o_portal_my_home">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="mb-0">Choose a shop</h3>
-                    <a href="/my" class="btn btn-sm btn-outline-secondary">
-                        <i class="fa fa-arrow-left"/> My Account
-                    </a>
-                </div>
-                <p class="text-muted">
-                    Select which POS shop to open.
-                </p>
-                <div class="row g-3">
-                    <t t-foreach="configs" t-as="config">
-                        <div class="col-md-6 col-lg-4">
-                            <a t-att-href="'/pos/ui?config_id=%s' % config.id"
-                               class="card h-100 text-decoration-none text-reset">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <img src="/point_of_sale/static/description/icon.png"
-                                             alt="POS"
-                                             style="width: 48px; height: 48px;"
-                                             class="me-3"/>
-                                        <div>
-                                            <h5 class="card-title mb-1">
-                                                <t t-out="config.name"/>
-                                            </h5>
-                                            <small class="text-muted">
-                                                <t t-out="config.company_id.name"/>
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    </t>
-                </div>
-            </div>
-        </t>
-    </template>
+                <!-- Spinner placeholder (required by PortalHomeCounters widget) -->
+                <div class="o_portal_doc_spinner spinner-border text-o-color-2 d-none"/>
 
-    <template id="portal_kds_picker" name="Portal KDS Picker">
-        <t t-call="portal.portal_layout">
-            <t t-set="my_details" t-value="False"/>
-            <div class="o_portal_my_home">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="mb-0">Choose a kitchen display</h3>
+                <!-- Breadcrumb -->
+                <div class="d-flex align-items-center gap-2 mb-4">
                     <a href="/my" class="btn btn-sm btn-outline-secondary">
-                        <i class="fa fa-arrow-left"/> My Account
+                        <i class="fa fa-arrow-left"/> 返回
                     </a>
+                    <span class="text-muted">/</span>
+                    <a href="/my/home" class="text-muted"><i class="fa fa-home"/></a>
+                    <span class="text-muted">/</span>
+                    <span class="text-muted">銷售點</span>
                 </div>
-                <p class="text-muted">
-                    Select which Kitchen Display to open.
-                </p>
-                <div class="row g-3">
-                    <t t-foreach="configs" t-as="config">
-                        <div class="col-md-6 col-lg-4">
-                            <a t-att-href="'/pos-kds/%s?token=%s' % (config.id, config.kds_access_token)"
-                               class="card h-100 text-decoration-none text-reset">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fa fa-cutlery fa-2x me-3 text-muted"/>
-                                        <div>
-                                            <h5 class="card-title mb-1">
-                                                <t t-out="config.name"/>
-                                            </h5>
-                                            <small class="text-muted">
-                                                <t t-out="config.company_id.name"/>
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    </t>
-                </div>
+
+                <!-- Empty state -->
+                <t t-if="not configs">
+                    <div class="text-center py-5 text-muted">
+                        <p class="mb-0">目前沒有指派給您的營業點</p>
+                    </div>
+                </t>
+
+                <!-- Shop cards (Office-Assistant style) -->
+                <t t-foreach="configs" t-as="config">
+                    <div class="d-flex align-items-center bg-white rounded-3 shadow-sm p-3 mb-3">
+                        <!-- Icon circle (links to POS) -->
+                        <a t-att-href="'/pos/ui?config_id=%s' % config.id"
+                           class="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0 text-decoration-none"
+                           style="width: 56px; height: 56px; background-color: #F3EDF2;">
+                            <img src="/pos_self_order_enhancement/static/src/img/portal-pos.svg"
+                                 alt="POS" style="width: 32px; height: 32px;"/>
+                        </a>
+                        <!-- Title + status (links to POS) -->
+                        <a t-att-href="'/pos/ui?config_id=%s' % config.id"
+                           class="flex-grow-1 text-decoration-none text-reset">
+                            <div class="fw-bold" style="font-size: 1.05rem;">
+                                <t t-out="config.name"/>
+                            </div>
+                            <div t-if="config.has_active_session" class="text-success small">
+                                <i class="fa fa-circle small"/> 營業中
+                            </div>
+                            <div t-else="" class="text-muted small">
+                                <i class="fa fa-circle small"/> 已關閉
+                            </div>
+                        </a>
+                        <!-- KDS badge (separate link, right side) -->
+                        <a t-if="config.kds_enabled and config.kds_access_token"
+                           t-att-href="'/pos-kds/%s?token=%s' % (config.id, config.kds_access_token)"
+                           class="badge rounded-pill text-dark text-decoration-none ms-2 flex-shrink-0"
+                           style="background-color: #FFC107; padding: 8px 12px;"
+                           title="廚房螢幕">
+                            <i class="fa fa-cutlery"/> KDS
+                        </a>
+                    </div>
+                </t>
             </div>
         </t>
     </template>
