@@ -247,10 +247,10 @@
                                     <t t-foreach="onlinePaymentMethods" t-as="method" t-key="method.id">
                                         <button class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3"
                                                 t-on-click="() => this.selectOnlinePayment(method.id)">
-                                            <i class="fa fa-globe me-3 fs-4"></i>
+                                            <i class="fa fa-credit-card me-3 fs-4"></i>
                                             <div class="text-start">
-                                                <span class="fw-bold" t-esc="method.name"/>
-                                                <small class="d-block text-muted">Online Payment</small>
+                                                <span class="fw-bold">線上支付</span>
+                                                <small class="d-block text-muted">支援信用卡</small>
                                             </div>
                                         </button>
                                     </t>

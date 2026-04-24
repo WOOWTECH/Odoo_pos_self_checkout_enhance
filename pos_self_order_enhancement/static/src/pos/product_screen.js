@@ -136,6 +136,14 @@ patch(ProductScreen.prototype, {
         super.setup(...arguments);
         this.kdsDialog = useService("dialog");
     },
+    /**
+     * Override to use product.product image URL instead of product.template.
+     * Fixes broken images when POS is behind a reverse proxy (e.g. Cloudflare
+     * Tunnel) where the template URL resolves to a wrong port.
+     */
+    getProductImage(product) {
+        return product.getImageUrl();
+    },
     get orderIsKdsReady() {
         return getOrderIsKdsReady(this.pos);
     },

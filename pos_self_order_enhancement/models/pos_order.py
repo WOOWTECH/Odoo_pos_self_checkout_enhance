@@ -3,6 +3,7 @@ import logging
 import requests
 
 from odoo import models, fields, api
+from odoo.exceptions import UserError
 from odoo.osv.expression import AND, OR
 
 _logger = logging.getLogger(__name__)
@@ -218,6 +219,16 @@ class PosOrder(models.Model):
 
     def mark_sent_to_kitchen(self):
         """Called by POS frontend when staff clicks Order button."""
+        # Guard: reject unpaid self-order orders
+        blocked = self.filtered(
+            lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
+        )
+        if blocked:
+            raise UserError(
+                "Cannot send to kitchen: payment not confirmed.\n%s"
+                % ', '.join(blocked.mapped('name'))
+            )
+
         vals = {'kds_sent_to_kitchen': True}
         for order in self:
             if not order.kds_state:
@@ -353,18 +364,15 @@ class PosOrder(models.Model):
     def _send_notification(self, order_ids):
         """Extend to also notify KDS screens (only for kitchen-confirmed orders).
 
-        In pay-per-order mode, notifications are suppressed entirely via context
-        flag during order creation. The controller handles notification later
-        (after payment is confirmed or customer selects counter payment).
+        POS is always notified so staff can see orders. Kitchen (KDS) is only
+        notified for orders that have been sent to kitchen (kds_sent_to_kitchen=True).
+        The mark_sent_to_kitchen() guard prevents unpaid orders from reaching kitchen.
         """
         if self.env.context.get('suppress_self_order_notification'):
             return
 
-        notifiable = order_ids.filtered(
-            lambda o: o.self_order_payment_status != 'pending_online'
-        )
-        if notifiable:
-            super()._send_notification(notifiable)
+        # Notify POS for ALL orders (staff needs to see them)
+        super()._send_notification(order_ids)
 
         config_ids = order_ids.config_id
         for config in config_ids:
@@ -387,16 +395,15 @@ class PosOrder(models.Model):
 
     @api.model
     def _load_pos_data_domain(self, data):
-        """Hide pending_online orders but include paid payment-gated orders."""
+        """Include all self-order orders (including pending) + paid gated orders."""
         domain = super()._load_pos_data_domain(data)
-        draft_domain = AND([domain, [('self_order_payment_status', '!=', 'pending_online')]])
         session_id = data['pos.session']['data'][0]['id']
         paid_gated = [
             ('state', 'in', ['paid', 'done', 'invoiced']),
             ('self_order_payment_status', '=', 'paid'),
             ('session_id', '=', session_id),
         ]
-        return OR([draft_domain, paid_gated])
+        return OR([domain, paid_gated])
 
     @api.model
     def sync_from_ui(self, orders):
@@ -479,11 +486,13 @@ class PosOrder(models.Model):
             if tables:
                 gated.send_table_count_notification(tables)
 
-            # Auto-fire paid orders to kitchen (industry standard).
-            # In pay-per-order mode, kitchen starts immediately after
-            # payment — no manual cashier "fire" step needed.
+            # Auto-fire paid orders to kitchen — ONLY for meal mode.
+            # In meal mode, payment confirmation = kitchen starts immediately.
+            # In each mode, staff must manually click Order to send to kitchen.
             to_fire = gated.filtered(
-                lambda o: not o.kds_sent_to_kitchen and o.config_id.kds_enabled
+                lambda o: not o.kds_sent_to_kitchen
+                          and o.config_id.kds_enabled
+                          and o.config_id.self_ordering_pay_after == 'meal'
             )
             if to_fire:
                 to_fire.mark_sent_to_kitchen()

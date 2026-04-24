@@ -10,11 +10,14 @@ from odoo.addons.pos_self_order.controllers.orders import PosSelfOrderController
 
 
 class PosSelfOrderControllerEnh(PosSelfOrderController):
-    """Override order processing to implement payment gate for pay-per-order mode.
+    """Override order processing to implement payment gate for self-order.
 
-    In 'each' (pay-per-order) mode, orders are created as draft but POS/KDS
-    notifications are suppressed until payment is confirmed. This matches
-    industry standard where payment is a gate before kitchen starts cooking.
+    All self-order modes (meal + each) apply a payment gate:
+    - Orders are created as draft with self_order_payment_status='pending_online'
+    - POS is notified immediately (staff can see the order)
+    - Kitchen (KDS/printer) is blocked until payment is confirmed
+    - Meal mode: auto-fires to kitchen after payment
+    - Each mode: staff manually fires to kitchen after payment
     """
 
     @http.route("/pos-self-order/process-order/<device_type>/", auth="public", type="json", website=True)
@@ -26,7 +29,6 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         is_takeaway = order.get('takeaway')
         pos_config, table = self._verify_authorization(access_token, table_identifier, is_takeaway)
         pos_session = pos_config.current_session_id
-        is_each_mode = pos_config.self_ordering_pay_after == 'each'
 
         # ── Build order reference (same as base) ──
         ir_sequence_session = pos_config.env['ir.sequence'].with_context(
@@ -55,16 +57,10 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         order['fiscal_position_id'] = fiscal_position.id if fiscal_position else False
 
         # ── Create order ──
-        # In "each" mode, suppress ALL POS notifications during sync_from_ui.
-        # Two flags needed:
-        #   - preparation=True: suppresses base point_of_sale notify_synchronisation (line 1133)
-        #   - suppress_self_order_notification=True: suppresses pos_self_order _send_notification
+        # preparation=True suppresses base point_of_sale notify_synchronisation
+        # during sync_from_ui. We send our own notification after setting payment gate.
         order_model = pos_config.env['pos.order'].sudo().with_company(pos_config.company_id.id)
-        if is_each_mode:
-            order_model = order_model.with_context(
-                suppress_self_order_notification=True,
-                preparation=True,
-            )
+        order_model = order_model.with_context(preparation=True)
         results = order_model.sync_from_ui([order])
         line_ids = pos_config.env['pos.order.line'].browse(
             [line['id'] for line in results['pos.order.line']]
@@ -85,13 +81,13 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         if amount_total == 0:
             order_ids._process_saved_order(False)
 
-        # ── Payment gate: suppress notification for pay-per-order ──
-        if is_each_mode and amount_total > 0:
+        # ── Payment gate: apply to ALL self-order modes ──
+        if amount_total > 0:
             order_ids.write({'self_order_payment_status': 'pending_online'})
-            # Do NOT call send_table_count_notification — order stays invisible
-            # to POS until payment is confirmed or customer selects counter payment
-        else:
-            order_ids.send_table_count_notification(order_ids.mapped('table_id'))
+
+        # Notify POS so staff can see the order (but kitchen is blocked
+        # by mark_sent_to_kitchen guard until payment is confirmed)
+        order_ids.send_table_count_notification(order_ids.mapped('table_id'))
 
         return self._generate_return_values(order_ids, pos_config)
 

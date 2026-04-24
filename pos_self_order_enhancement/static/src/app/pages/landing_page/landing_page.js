@@ -83,8 +83,8 @@ patch(LandingPage.prototype, {
         const isMobile = this.selfOrder.config.self_ordering_mode === "mobile";
         const payAfter = this.selfOrder.config.self_ordering_pay_after;
 
-        // Support both "each" and "meal" modes
-        if (!isMobile || (payAfter !== "each" && payAfter !== "meal")) {
+        // Only support "each" mode — meal mode goes straight to payment
+        if (!isMobile || payAfter !== "each") {
             return false;
         }
 

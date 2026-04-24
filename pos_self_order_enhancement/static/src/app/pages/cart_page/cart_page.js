@@ -113,6 +113,19 @@ patch(CartPage.prototype, {
                 return;
             }
 
+            // Show table selector if table mode but no table set (same as base pay())
+            const serviceMode = this.selfOrder.config.self_ordering_service_mode;
+            const orderingType = this.selfOrder.config.self_ordering_mode;
+            if (
+                orderingType === "mobile" &&
+                serviceMode === "table" &&
+                !order.takeaway &&
+                !this.selfOrder.currentTable
+            ) {
+                this.state.selectTable = true;
+                return;
+            }
+
             // Set table from QR scan if not already set on order
             if (!order.table_id && this.selfOrder.currentTable) {
                 this.selfOrder.currentOrder.update({
@@ -123,8 +136,14 @@ patch(CartPage.prototype, {
             }
 
             this.selfOrder.rpcLoading = true;
-            await this.selfOrder.sendDraftOrderToServer();
+            const result = await this.selfOrder.sendDraftOrderToServer();
             this.selfOrder.rpcLoading = false;
+
+            if (result) {
+                // Navigate to confirmation page (same as base confirmOrder in meal mode)
+                const device = this.selfOrder.config.self_ordering_mode;
+                this.selfOrder.confirmationPage("order", device, result.access_token);
+            }
             return;
         }
 

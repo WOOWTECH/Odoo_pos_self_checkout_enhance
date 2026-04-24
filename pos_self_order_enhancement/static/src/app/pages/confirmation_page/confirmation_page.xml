@@ -7,22 +7,16 @@
         <!-- Replace the default action button based on payment mode -->
         <xpath expr="//div[hasclass('px-3') and hasclass('py-4')]/button[hasclass('btn-primary')]" position="replace">
             <t t-if="showPayPerMealUI">
-                <!-- Pay per Meal mode: show back to cart and payment buttons -->
+                <!-- Pay per Meal mode: prompt payment only (no continue ordering) -->
                 <div class="d-flex flex-column gap-3 w-100">
                     <p class="text-center text-muted mb-3">
                         Your order has been sent to the kitchen.<br/>
                         Please proceed to payment.
                     </p>
-                    <div class="d-flex gap-3 w-100">
-                        <button class="btn btn-lg btn-secondary flex-grow-1" t-on-click="goToCart">
-                            <i class="oi oi-chevron-left me-2"></i>
-                            Back to Order
-                        </button>
-                        <button class="btn btn-lg btn-primary flex-grow-1" t-on-click="goToPayment">
-                            <i class="fa fa-credit-card me-2"></i>
-                            Go to Payment
-                        </button>
-                    </div>
+                    <button class="btn btn-lg btn-primary w-100" t-on-click="goToPayment">
+                        <i class="fa fa-credit-card me-2"></i>
+                        Go to Payment
+                    </button>
                 </div>
             </t>
             <t t-elif="showPayPerOrderUI">
