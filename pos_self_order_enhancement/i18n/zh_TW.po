@@ -747,8 +747,8 @@ msgstr "回到點餐頁面"
 #. module: pos_self_order_enhancement
 #. odoo-javascript
 #: code:addons/pos_self_order_enhancement/static/src/app/pages/cart_page/cart_page.xml:0
-msgid "Sent to Kitchen"
-msgstr "已送出至廚房"
+msgid "Sent to Counter"
+msgstr "已送出至櫃檯"
 
 #. module: pos_self_order_enhancement
 #. odoo-javascript
