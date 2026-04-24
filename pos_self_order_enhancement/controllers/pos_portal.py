@@ -188,7 +188,7 @@ class PortalHomePosCard(CustomerPortal):
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
-        if 'portal_pos_config_count' in counters:
+        if not counters or 'portal_pos_config_count' in counters:
             partner = request.env.user.sudo().partner_id
             configs = partner.portal_pos_config_ids.filtered('active')
             values['portal_pos_config_count'] = len(configs)
@@ -199,13 +199,15 @@ class PortalHomePosCard(CustomerPortal):
             else:
                 values['portal_pos_config_label'] = ''
 
-            if 'portal_kds_config_count' in counters:
-                kds_configs = configs.filtered('kds_enabled')
-                values['portal_kds_config_count'] = len(kds_configs)
-                if len(kds_configs) == 1:
-                    values['portal_kds_config_label'] = kds_configs.name
-                elif len(kds_configs) > 1:
-                    values['portal_kds_config_label'] = '%d kitchens' % len(kds_configs)
-                else:
-                    values['portal_kds_config_label'] = ''
+        if not counters or 'portal_kds_config_count' in counters:
+            partner = request.env.user.sudo().partner_id
+            configs = partner.portal_pos_config_ids.filtered('active')
+            kds_configs = configs.filtered('kds_enabled')
+            values['portal_kds_config_count'] = len(kds_configs)
+            if len(kds_configs) == 1:
+                values['portal_kds_config_label'] = kds_configs.name
+            elif len(kds_configs) > 1:
+                values['portal_kds_config_label'] = '%d kitchens' % len(kds_configs)
+            else:
+                values['portal_kds_config_label'] = ''
         return values
