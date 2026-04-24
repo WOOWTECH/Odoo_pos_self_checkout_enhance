@@ -39,7 +39,7 @@
                 <div class="sent-items-section">
                     <div class="cart-section-header d-flex align-items-center gap-2 px-3 py-2 bg-light border-bottom">
                         <i class="fa fa-check-circle text-success"/>
-                        <span class="text-muted fw-semibold small text-uppercase" style="letter-spacing: 0.05em;">Sent to Counter</span>
+                        <span class="text-muted fw-semibold small" style="letter-spacing: 0.05em;">已送出至櫃檯</span>
                     </div>
                     <t t-foreach="sentLines" t-as="line" t-key="line.uuid">
                         <div class="product-card-item py-2 px-3 bg-view border-bottom opacity-65">
@@ -68,7 +68,7 @@
                 <!-- New Items header (only shown when both sections exist) -->
                 <div t-if="hasNewLines" class="cart-section-header d-flex align-items-center gap-2 px-3 py-2 border-bottom">
                     <i class="fa fa-plus-circle text-primary"/>
-                    <span class="text-primary fw-semibold small text-uppercase" style="letter-spacing: 0.05em;">New Items</span>
+                    <span class="text-primary fw-semibold small" style="letter-spacing: 0.05em;">新增品項</span>
                 </div>
             </t>
         </xpath>
