@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_printer_form_escpos" model="ir.ui.view">
+        <field name="name">pos.printer.form.escpos</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <field name="printer_type" position="after">
+                <field name="escpos_printer_ip"
+                       invisible="printer_type != 'network_escpos' or escpos_proxy_url"
+                       placeholder="192.168.1.100 (local TCP only)"/>
+                <field name="escpos_paper_width"
+                       invisible="printer_type != 'network_escpos'"/>
+                <field name="escpos_proxy_url"
+                       invisible="printer_type != 'network_escpos'"
+                       placeholder="https://print.myshop.com (leave empty for direct TCP)"/>
+                <field name="escpos_proxy_api_key"
+                       invisible="printer_type != 'network_escpos' or not escpos_proxy_url"
+                       password="True"
+                       placeholder="Bearer token for cloud relay"/>
+                <field name="escpos_printer_label"
+                       invisible="printer_type != 'network_escpos' or not escpos_proxy_url"
+                       placeholder="e.g. kitchen / invoice (leave empty for single-printer shops)"/>
+                <button name="action_print_test_page"
+                        type="object"
+                        string="Print test page"
+                        class="btn-secondary"
+                        invisible="printer_type != 'network_escpos'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

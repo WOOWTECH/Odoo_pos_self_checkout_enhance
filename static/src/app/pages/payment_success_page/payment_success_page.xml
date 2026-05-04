@@ -13,16 +13,16 @@
                 </div>
 
                 <!-- Success Message -->
-                <h2 class="fw-bold mb-3 text-success">付款成功！</h2>
+                <h2 class="fw-bold mb-3 text-success">Payment Successful!</h2>
 
                 <!-- Order Details -->
                 <div class="order-details bg-light rounded-3 p-3 mb-4">
                     <div class="mb-2">
-                        <span class="text-muted">訂單編號:</span>
+                        <span class="text-muted">Order Number:</span>
                         <span class="fw-bold ms-2" t-esc="orderReference"/>
                     </div>
                     <div>
-                        <span class="text-muted">付款金額:</span>
+                        <span class="text-muted">Amount Paid:</span>
                         <span class="fw-bold fs-5 text-primary ms-2">
                             <t t-esc="formatCurrency(paymentAmount)"/>
                         </span>
@@ -31,14 +31,14 @@
 
                 <!-- Thank You Message -->
                 <div class="thank-you-message mb-4">
-                    <p class="mb-1 fs-5">感謝您的惠顧</p>
-                    <p class="text-muted mb-0">餐點準備中，請稍候</p>
+                    <p class="mb-1 fs-5">Thank you for your order</p>
+                    <p class="text-muted mb-0">Your food is being prepared</p>
                 </div>
 
                 <!-- Order Again Button -->
                 <button class="btn btn-primary btn-lg w-100 py-3" t-on-click="orderAgain">
                     <i class="fa fa-plus-circle me-2"></i>
-                    再點一份
+                    Order Again
                 </button>
             </div>
         </div>

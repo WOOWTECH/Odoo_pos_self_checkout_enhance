@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!--
+        Move the order-level note from the bottom of the kitchen prep chit
+        to the very top, in a bold boxed block. Preserves the upstream
+        gate so partial-diff chits do not re-print an unchanged note.
+    -->
+    <t t-name="pos_self_order_enhancement.OrderChangeReceipt"
+       t-inherit="point_of_sale.OrderChangeReceipt"
+       t-inherit-mode="extension">
+
+        <!-- Remove the original bottom-of-chit note block -->
+        <xpath expr="//t[@t-if=&quot;(!changedlines.length or fullReceipt) and changes.order_note.length&quot;]" position="replace"/>
+
+        <!--
+            SEND BACK / REMAKE banner — must be the most prominent block on
+            the chit so kitchen staff cannot miss a remade item. Inverted
+            black/white styling and slightly larger font than ORDER NOTE.
+            Listed BEFORE the ORDER NOTE xpath so it renders above it on
+            the printed paper.
+        -->
+        <xpath expr="//div[@t-foreach='changedlines']" position="before">
+            <t t-if="changes.remake_reason">
+                <div class="send-back-banner mb-3"
+                     style="border: 4px solid black; padding: 10px; font-size: 150%; font-weight: 900; text-align: center; background: black; color: white;">
+                    <div style="border-bottom: 2px solid white; padding-bottom: 6px; margin-bottom: 8px; font-size: 90%;">⚠ SEND BACK ⚠</div>
+                    <t t-esc="changes.remake_label"/>
+                </div>
+            </t>
+        </xpath>
+
+        <!-- ORDER NOTE banner — re-inserted at the top of the receipt body, before the item lines -->
+        <xpath expr="//div[@t-foreach='changedlines']" position="before">
+            <t t-if="(!changedlines.length or fullReceipt) and changes.order_note and changes.order_note.length">
+                <div class="order-note-banner mb-3"
+                     style="border: 3px solid black; padding: 8px; font-size: 130%; font-weight: 900; text-align: center;">
+                    <div style="border-bottom: 2px solid black; padding-bottom: 4px; margin-bottom: 6px; font-size: 85%;">★ ORDER NOTE ★</div>
+                    <t t-esc="changes.order_note.split('\n').join(', ')"/>
+                </div>
+            </t>
+        </xpath>
+    </t>
+</templates>

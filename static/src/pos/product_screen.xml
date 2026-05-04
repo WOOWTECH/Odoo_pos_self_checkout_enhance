@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Desktop + Mobile: inject fire/served/sendback buttons above numpad -->
+    <t t-name="pos_self_order_enhancement.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('subpads')]" position="before">
+            <div t-if="courseGroups.length > 0 or orderIsKdsReady or orderCanSendBack"
+                 class="d-flex gap-2 w-100 py-1">
+                <t t-foreach="courseGroups" t-as="cg" t-key="cg.id">
+                    <button t-if="!cg.is_fired"
+                            class="btn btn-warning flex-grow-1"
+                            t-on-click="() => this.onFireCourse(cg.id)">
+                        <t t-esc="getFireLabel(cg)"/>
+                    </button>
+                </t>
+                <button t-if="orderIsKdsReady"
+                        class="btn btn-success flex-grow-1"
+                        t-on-click="onClickServed">
+                    Served
+                </button>
+                <button t-if="orderCanSendBack"
+                        class="btn btn-danger flex-grow-1"
+                        t-on-click="onClickSendBack">
+                    Send Back
+                </button>
+            </div>
+        </xpath>
+
+        <!-- Mobile: also show above switchpane -->
+        <xpath expr="//div[hasclass('switchpane')]" position="before">
+            <div t-if="courseGroups.length > 0 or orderIsKdsReady or orderCanSendBack"
+                 class="d-flex flex-wrap gap-2 p-2 border-top bg-view">
+                <t t-foreach="courseGroups" t-as="cg" t-key="cg.id">
+                    <button t-if="!cg.is_fired"
+                            class="btn btn-warning flex-fill"
+                            t-on-click="() => this.onFireCourse(cg.id)">
+                        <t t-esc="getFireLabel(cg)"/>
+                    </button>
+                </t>
+                <button t-if="orderIsKdsReady"
+                        class="btn btn-success flex-fill"
+                        t-on-click="onClickServed">
+                    Served
+                </button>
+                <button t-if="orderCanSendBack"
+                        class="btn btn-danger flex-fill"
+                        t-on-click="onClickSendBack">
+                    Send Back
+                </button>
+            </div>
+        </xpath>
+    </t>
+</templates>

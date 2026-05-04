@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
 
-    <!-- Override CartPage to remove tax display and add inline quantity controls -->
+    <!-- Override CartPage: two-section layout for meal mode, inline qty controls -->
     <t t-inherit="pos_self_order.CartPage" t-inherit-mode="extension">
-        <!-- Remove the tax line by replacing it with empty content -->
-        <xpath expr="//p[contains(@class, 'text-muted')]" position="replace">
+        <!-- Remove the tax line (M8) -->
+        <xpath expr="//p[contains(@class, 'o-so-tabular-nums') and contains(@class, 'text-muted')]" position="replace">
         </xpath>
 
         <!-- Replace the quantity display "Nx" with +/- buttons in meal mode only -->
@@ -14,13 +14,13 @@
                 <button type="button"
                         class="btn btn-sm btn-outline-secondary px-2 py-0"
                         t-on-click="(ev) => { ev.stopPropagation(); this.decreaseQuantity(line); }">
-                    <span class="fw-bold">－</span>
+                    <span class="fw-bold">-</span>
                 </button>
                 <span class="mx-2 fw-bold" t-esc="line.qty"/>
                 <button type="button"
                         class="btn btn-sm btn-outline-success px-2 py-0"
                         t-on-click="(ev) => { ev.stopPropagation(); this.increaseQuantity(line); }">
-                    <span class="fw-bold">＋</span>
+                    <span class="fw-bold">+</span>
                 </button>
             </div>
             <!-- In other modes: show original "Nx" format (only when no changes) -->
@@ -30,6 +30,54 @@
         <!-- Hide the original +/- buttons in meal mode (they show +(-1) format which is confusing) -->
         <xpath expr="//div[hasclass('btn-group') and .//button[contains(@t-on-click, 'changeQuantity')]]" position="attributes">
             <attribute name="t-if">Object.keys(selfOrder.currentOrder.changes).length > 0 and selfOrder.config.self_ordering_pay_after !== 'meal'</attribute>
+        </xpath>
+
+        <!-- Insert "Sent to Kitchen" section BEFORE the existing foreach loop -->
+        <xpath expr="//div[hasclass('order-content')]/t[@t-foreach='linesToDisplay']" position="before">
+            <!-- Sent to Kitchen section (meal mode only) -->
+            <t t-if="isMealMode and hasSentLines">
+                <div class="sent-items-section">
+                    <div class="cart-section-header d-flex align-items-center gap-2 px-3 py-2 bg-light border-bottom">
+                        <i class="fa fa-check-circle text-success"/>
+                        <span class="text-muted fw-semibold small" style="letter-spacing: 0.05em;">已送出至櫃檯</span>
+                    </div>
+                    <t t-foreach="sentLines" t-as="line" t-key="line.uuid">
+                        <div class="product-card-item py-2 px-3 bg-view border-bottom opacity-65">
+                            <div class="product-wrapper d-flex align-items-center gap-2">
+                                <div class="product-info d-flex flex-column flex-grow-1">
+                                    <div class="text-muted">
+                                        <span><t t-esc="line.qty"/>x </span>
+                                        <span t-esc="line.product_id.display_name"/>
+                                    </div>
+                                    <div t-if="line.combo_line_ids.length > 0" class="small text-muted ms-3">
+                                        <div t-foreach="line.combo_line_ids" t-as="cline" t-key="cline.uuid">
+                                            - <span t-esc="cline.product_id.display_name"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="line-price o-so-tabular-nums text-muted small" t-esc="selfOrder.formatMonetary(getPrice(line))"/>
+                            </div>
+                        </div>
+                    </t>
+                    <!-- Sent subtotal (only shown when there are also new items) -->
+                    <div t-if="hasNewLines" class="d-flex justify-content-end px-3 py-1 border-bottom bg-light">
+                        <span class="o-so-tabular-nums text-muted small">Subtotal: <t t-esc="selfOrder.formatMonetary(sentLinesSubtotal)"/></span>
+                    </div>
+                </div>
+
+                <!-- New Items header (only shown when both sections exist) -->
+                <div t-if="hasNewLines" class="cart-section-header d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+                    <i class="fa fa-plus-circle text-primary"/>
+                    <span class="text-primary fw-semibold small" style="letter-spacing: 0.05em;">新增品項</span>
+                </div>
+            </t>
+        </xpath>
+
+        <!-- Insert new items subtotal AFTER the existing foreach loop -->
+        <xpath expr="//div[hasclass('order-content')]/t[@t-foreach='linesToDisplay']" position="after">
+            <div t-if="isMealMode and hasSentLines and hasNewLines" class="d-flex justify-content-end px-3 py-1 border-bottom">
+                <span class="o-so-tabular-nums small fw-bold">Subtotal: <t t-esc="selfOrder.formatMonetary(newLinesSubtotal)"/></span>
+            </div>
         </xpath>
     </t>
 

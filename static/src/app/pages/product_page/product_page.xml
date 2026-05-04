@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.ProductPage"
+       t-inherit="pos_self_order.ProductPage"
+       t-inherit-mode="extension">
+
+        <!-- Replace the header so the title is centered and the Discard
+             button is a small icon-only pill. -->
+        <xpath expr="//div[hasclass('border-bottom') and hasclass('z-1')]" position="replace">
+            <div class="position-relative flex-shrink-0 px-3 py-2 w-100 bg-view border-bottom z-1 d-flex align-items-center justify-content-center">
+                <button class="position-absolute start-0 top-50 translate-middle-y ms-2 btn btn-sm btn-light border"
+                        t-on-click="() => router.back()">
+                    <i class="oi oi-chevron-left" aria-hidden="true"/>
+                </button>
+                <h1 class="mb-0 text-nowrap fs-5 fw-bold"><t t-esc="product.name"/></h1>
+            </div>
+        </xpath>
+
+        <!-- Drop the duplicate h2 under the image. -->
+        <xpath expr="//div[hasclass('o-so-product-details-description')]/h2" position="replace"/>
+
+        <!-- Shrink the qty stepper. -->
+        <xpath expr="//div[hasclass('o_self_order_incr_button')]" position="replace">
+            <div class="o_self_order_incr_button btn-group" role="group" aria-label="Quantity select">
+                <button type="button" t-on-click="() => this.changeQuantity(false)"
+                        t-attf-class="{{ !this.env.editable ? 'disabled' : '' }} btn btn-outline-secondary btn-sm">
+                    <span class="fs-5 lh-1 fa-fw d-inline-block">－</span>
+                </button>
+                <div class="o-so-tabular-nums d-flex align-items-center px-3 text-bg-200" t-esc="state.qty"/>
+                <button type="button" t-on-click="() => this.changeQuantity(true)"
+                        class="btn btn-outline-secondary btn-sm">
+                    <span class="fs-5 lh-1 fa-fw d-inline-block">＋</span>
+                </button>
+            </div>
+        </xpath>
+
+        <!-- Shrink the Add to cart button. -->
+        <xpath expr="//button[@t-on-click='addToCart']" position="attributes">
+            <attribute name="class">btn btn-primary</attribute>
+        </xpath>
+    </t>
+</templates>

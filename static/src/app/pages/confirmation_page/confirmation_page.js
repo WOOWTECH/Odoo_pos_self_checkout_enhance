@@ -3,120 +3,61 @@
 import { ConfirmationPage } from "@pos_self_order/app/pages/confirmation_page/confirmation_page";
 import { patch } from "@web/core/utils/patch";
 
-/**
- * Patch ConfirmationPage to support both payment modes:
- *
- * 1. "Pay per Meal" (meal) mode:
- *    - After order submission, redirect to payment page
- *    - Supports online payment or counter payment
- *
- * 2. "Pay per Order" (each) mode:
- *    - After order submission, show "Back to Home" and "My Orders" buttons
- *    - Allow customers to continue ordering or go to checkout later
- */
 patch(ConfirmationPage.prototype, {
-    /**
-     * Check if the POS is configured for "Pay per Meal" mode.
-     * @returns {boolean}
-     */
     get isPayPerMeal() {
-        try {
-            return this.selfOrder?.config?.self_ordering_pay_after === 'meal';
-        } catch (e) {
-            return false;
-        }
+        return this.selfOrder?.config?.self_ordering_pay_after === 'meal';
     },
 
-    /**
-     * Check if the POS is configured for "Pay per Order" mode.
-     * @returns {boolean}
-     */
     get isPayPerOrder() {
-        try {
-            return this.selfOrder?.config?.self_ordering_pay_after === 'each';
-        } catch (e) {
-            return false;
-        }
+        return this.selfOrder?.config?.self_ordering_pay_after === 'each';
     },
 
     /**
-     * Check if we should show the "Pay per Meal" UI (redirect to payment).
-     * Only show when:
-     * - Mode is "meal" (pay per meal)
-     * - Order is not yet paid
-     * - In mobile mode (not kiosk)
-     * @returns {boolean}
+     * Show pay-per-meal UI: redirect to payment for unpaid mobile orders.
      */
     get showPayPerMealUI() {
-        try {
-            if (!this.isPayPerMeal) {
-                return false;
-            }
-            const order = this.confirmedOrder;
-            if (!order || !order.id) {
-                return false;
-            }
-            const isPaid = order.state === 'paid';
-            const isMobile = this.selfOrder?.config?.self_ordering_mode === 'mobile';
-            return !isPaid && isMobile;
-        } catch (e) {
+        if (!this.isPayPerMeal) {
             return false;
         }
+        const order = this.confirmedOrder;
+        if (!order?.id) {
+            return false;
+        }
+        const isPaid = order.state === 'paid';
+        const isMobile = this.selfOrder?.config?.self_ordering_mode === 'mobile';
+        return !isPaid && isMobile;
     },
 
     /**
-     * Check if we should show the "Pay per Order" UI.
-     * Only show when:
-     * - Mode is "each" (pay per order)
-     * - Order is not yet paid
-     * - In mobile mode (not kiosk)
-     * @returns {boolean}
+     * Show pay-per-order UI: navigation buttons for unpaid mobile orders.
      */
     get showPayPerOrderUI() {
-        try {
-            if (!this.isPayPerOrder) {
-                return false;
-            }
-            const order = this.confirmedOrder;
-            if (!order || !order.id) {
-                return false;
-            }
-            const isPaid = order.state === 'paid';
-            const isMobile = this.selfOrder?.config?.self_ordering_mode === 'mobile';
-            return !isPaid && isMobile;
-        } catch (e) {
+        if (!this.isPayPerOrder) {
             return false;
         }
+        const order = this.confirmedOrder;
+        if (!order?.id) {
+            return false;
+        }
+        const isPaid = order.state === 'paid';
+        const isMobile = this.selfOrder?.config?.self_ordering_mode === 'mobile';
+        return !isPaid && isMobile;
     },
 
-    /**
-     * Navigate to payment page (for Pay per Meal mode).
-     */
     goToPayment() {
         this.router.navigate("payment");
     },
 
-    /**
-     * Navigate back to landing page (default route).
-     */
     goToLanding() {
         this.router.navigate("default");
     },
 
-    /**
-     * Navigate to order history page for checkout.
-     */
     goToMyOrders() {
         this.router.navigate("orderHistory");
     },
 
-    /**
-     * Navigate back to cart page (order list).
-     * In meal mode, ensures the confirmed order is set as current order before navigating.
-     */
     goToCart() {
-        // In meal mode, ensure the confirmed order is accessible as currentOrder
-        if (this.confirmedOrder && this.confirmedOrder.uuid) {
+        if (this.confirmedOrder?.uuid) {
             this.selfOrder.selectedOrderUuid = this.confirmedOrder.uuid;
         }
         this.router.navigate("cart");

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="portal_my_home_pos"
+              name="Portal My Home: Point of Sale"
+              inherit_id="portal.portal_my_home"
+              customize_show="True"
+              priority="50">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="before">
+            <t t-set="portal_client_category_enable" t-value="True"/>
+        </xpath>
+        <div id="portal_client_category" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/pos_self_order_enhancement/static/src/img/portal-pos.svg'"/>
+                <t t-set="title">銷售點</t>
+                <t t-set="text">管理您的銷售收款與訂單</t>
+                <t t-set="url" t-value="'/my/pos'"/>
+                <t t-set="placeholder_count" t-value="'portal_pos_config_count'"/>
+            </t>
+        </div>
+    </template>
+
+</odoo>

@@ -1,0 +1,41 @@
+/* Combo step list rows (no image, checkbox-style indicator). */
+.enh-combo-list-row {
+    background: var(--bs-body-bg, #fff);
+    transition: all 0.15s ease;
+    cursor: pointer;
+    position: relative;
+}
+.enh-combo-list-row:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.enh-combo-list-check {
+    display: inline-block;
+    width: 1.2rem;
+    height: 1.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.enh-combo-list-check::before {
+    content: "\25CB"; /* empty circle */
+    font-size: 1.1rem;
+    color: #adb5bd;
+}
+
+.enh-combo-list-row-selected {
+    border-color: var(--bs-primary, #6f42c1) !important;
+    background: rgba(111, 66, 193, 0.06);
+}
+.enh-combo-list-row-selected .enh-combo-list-check::before {
+    content: "\25CF"; /* filled circle */
+    color: var(--bs-primary, #6f42c1);
+}
+
+.enh-combo-list-price {
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.enh-combo-step + .enh-combo-step {
+    margin-top: 0.5rem;
+}

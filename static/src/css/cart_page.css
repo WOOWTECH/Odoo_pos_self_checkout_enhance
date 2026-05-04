@@ -1,0 +1,19 @@
+/* Sent items section - visually muted to distinguish from new items */
+.sent-items-section .product-card-item {
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+}
+
+.sent-items-section .o_self_order_item_card_image_wrapper {
+    display: none;
+}
+
+/* Section header styling */
+.cart-section-header {
+    font-size: 0.8rem;
+}
+
+/* Opacity utility for sent items */
+.opacity-65 {
+    opacity: 0.65;
+}

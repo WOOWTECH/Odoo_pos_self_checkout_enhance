@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="portal_pos_picker" name="Portal POS Shop Picker">
+        <t t-call="portal.portal_layout">
+            <t t-set="my_details" t-value="False"/>
+            <div class="o_portal_my_home">
+                <!-- Spinner placeholder (required by PortalHomeCounters widget) -->
+                <div class="o_portal_doc_spinner spinner-border text-o-color-2 d-none"/>
+
+                <!-- Breadcrumb -->
+                <div class="d-flex align-items-center gap-2 mb-4">
+                    <a href="/my" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa fa-arrow-left"/> 返回
+                    </a>
+                    <span class="text-muted">/</span>
+                    <a href="/my/home" class="text-muted"><i class="fa fa-home"/></a>
+                    <span class="text-muted">/</span>
+                    <span class="text-muted">銷售點</span>
+                </div>
+
+                <!-- Empty state -->
+                <t t-if="not configs">
+                    <div class="text-center py-5 text-muted">
+                        <p class="mb-0">目前沒有指派給您的營業點</p>
+                    </div>
+                </t>
+
+                <!-- Shop cards (Office-Assistant style) -->
+                <t t-foreach="configs" t-as="config">
+                    <div class="d-flex align-items-center bg-white rounded-3 shadow-sm p-3 mb-3">
+                        <!-- Icon circle (links to POS) -->
+                        <a t-att-href="'/pos/ui?config_id=%s' % config.id"
+                           class="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0 text-decoration-none"
+                           style="width: 56px; height: 56px; background-color: #F3EDF2;">
+                            <img src="/pos_self_order_enhancement/static/src/img/portal-pos.svg"
+                                 alt="POS" style="width: 32px; height: 32px;"/>
+                        </a>
+                        <!-- Title + status (links to POS) -->
+                        <a t-att-href="'/pos/ui?config_id=%s' % config.id"
+                           class="flex-grow-1 text-decoration-none text-reset">
+                            <div class="fw-bold" style="font-size: 1.05rem;">
+                                <t t-out="config.name"/>
+                            </div>
+                            <div t-if="config.has_active_session" class="text-success small">
+                                <i class="fa fa-circle small"/> 營業中
+                            </div>
+                            <div t-else="" class="text-muted small">
+                                <i class="fa fa-circle small"/> 已關閉
+                            </div>
+                        </a>
+                        <!-- KDS badge (separate link, right side) -->
+                        <a t-if="config.kds_enabled and config.kds_access_token"
+                           t-att-href="'/pos-kds/%s?token=%s' % (config.id, config.kds_access_token)"
+                           class="badge rounded-pill text-dark text-decoration-none ms-2 flex-shrink-0"
+                           style="background-color: #FFC107; padding: 8px 12px;"
+                           title="廚房螢幕">
+                            <i class="fa fa-cutlery"/> KDS
+                        </a>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </template>
+
+</odoo>

@@ -2,12 +2,15 @@
 from odoo import http
 from odoo.http import request
 import re
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class PaymentRedirectController(http.Controller):
     """
     Controller to handle redirects from payment confirmation page
-    back to POS Self Order with proper access token
+    back to POS Self Order with proper access token.
     """
 
     @http.route('/pos-self-order/return-to-order', type='http', auth='public', website=True)
@@ -16,40 +19,43 @@ class PaymentRedirectController(http.Controller):
         Redirect to POS Self Order page with access token.
         Extracts config_id from order reference and builds proper URL.
 
-        Reference format: "Self-Order XXXXX-YYY-ZZZZ" where XXXXX is config related
+        Reference format: "Self-Order SSSSS-CCC-NNNN"
+        where SSSSS=session_id, CCC=config_id, NNNN=sequence.
         """
-        # Default config_id
-        config_id = 1
-        access_token = None
+        pos_config = None
+        company = request.env.company
 
         # Try to find config from reference
         if reference:
-            # Reference format: "Self-Order 00003-001-0048-3"
-            # The first number group might be related to config
             match = re.search(r'(\d+)-(\d+)-(\d+)', reference)
             if match:
-                # Try to find the POS config
-                config_num = int(match.group(1))
+                config_num = int(match.group(2))
+                # Use config_num to find the specific POS config
                 pos_config = request.env['pos.config'].sudo().search([
+                    ('id', '=', config_num),
                     ('self_ordering_mode', 'in', ['mobile', 'kiosk']),
+                    ('company_id', '=', company.id),
                 ], limit=1)
-                if pos_config:
-                    config_id = pos_config.id
-                    access_token = pos_config.access_token
 
-        # If no reference, try to get from session or find default config
-        if not access_token:
+        # Fallback: find any self-ordering config for this company
+        if not pos_config:
             pos_config = request.env['pos.config'].sudo().search([
                 ('self_ordering_mode', 'in', ['mobile', 'kiosk']),
+                ('company_id', '=', company.id),
             ], limit=1)
-            if pos_config:
-                config_id = pos_config.id
-                access_token = pos_config.access_token
+
+        if not pos_config:
+            _logger.warning(
+                "No self-ordering POS config found for payment redirect (reference=%s)",
+                reference,
+            )
+            return request.not_found()
 
         # Build redirect URL
+        access_token = pos_config.access_token
         if access_token:
-            redirect_url = f'/pos-self/{config_id}?access_token={access_token}'
+            redirect_url = f'/pos-self/{pos_config.id}?access_token={access_token}'
         else:
-            redirect_url = f'/pos-self/{config_id}/products'
+            redirect_url = f'/pos-self/{pos_config.id}/products'
 
         return request.redirect(redirect_url)

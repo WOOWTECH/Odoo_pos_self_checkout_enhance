@@ -1,0 +1,690 @@
+/* KDS - Kitchen Display Screen */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+
+.kds-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: #16213e;
+    border-bottom: 2px solid #0f3460;
+    height: 56px;
+}
+
+.kds-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.kds-logo {
+    font-size: 28px;
+}
+
+.kds-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.kds-header-right {
+    display: flex;
+    gap: 8px;
+}
+
+/* ── Buttons ────────────────────────────────────────── */
+
+.kds-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    touch-action: manipulation;
+}
+
+.kds-btn-header {
+    background: #0f3460;
+    color: #e0e0e0;
+}
+
+.kds-btn-header:hover,
+.kds-btn-header:active {
+    background: #1a5276;
+}
+
+.kds-btn-lang {
+    background: transparent;
+    color: #7f8c8d;
+    border: 1px solid #0f3460;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.kds-btn-lang:hover,
+.kds-btn-lang:active {
+    background: #0f3460;
+    color: #e0e0e0;
+}
+
+/* ── Sound Overlay ─────────────────────────────────── */
+
+.kds-sound-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    animation: overlayFadeIn 0.3s ease;
+}
+
+.kds-sound-overlay-dismiss {
+    animation: overlayFadeOut 0.3s ease forwards;
+}
+
+.kds-sound-overlay-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.kds-sound-overlay-icon {
+    font-size: 80px;
+    margin-bottom: 24px;
+    animation: overlayBell 2s ease-in-out infinite;
+}
+
+.kds-sound-overlay-text {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.6;
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes overlayFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes overlayBell {
+    0%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(14deg); }
+    20% { transform: rotate(-14deg); }
+    30% { transform: rotate(8deg); }
+    40% { transform: rotate(-8deg); }
+    50% { transform: rotate(0deg); }
+}
+
+.kds-btn-header.active {
+    background: #e94560;
+    color: #fff;
+}
+
+.kds-btn-bump {
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    background: #27ae60;
+    color: #fff;
+    min-height: 52px;
+}
+
+.kds-btn-bump:hover,
+.kds-btn-bump:active {
+    background: #219a52;
+}
+
+.kds-btn-recall {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    background: #2980b9;
+    color: #fff;
+}
+
+.kds-btn-recall:hover,
+.kds-btn-recall:active {
+    background: #2471a3;
+}
+
+/* ── View Wrapper ──────────────────────────────────── */
+
+.kds-view,
+.kds-allday,
+.kds-completed-view {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.kds-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.kds-view-header h2 {
+    font-size: 22px;
+    color: #ecf0f1;
+}
+
+/* ── Grid ───────────────────────────────────────────── */
+
+.kds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    align-content: start;
+}
+
+/* ── Order Card ─────────────────────────────────────── */
+
+.kds-card {
+    background: #16213e;
+    border-radius: 12px;
+    border: 2px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease;
+    min-width: 0;
+}
+
+.kds-card.state-new {
+    border-color: #3498db;
+}
+
+.kds-card.state-progress {
+    border-color: #f39c12;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.kds-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid #0f3460;
+}
+
+.kds-location {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.kds-takeaway {
+    background: #e67e22;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.kds-timer {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 50px;
+    text-align: right;
+}
+
+.timer-green { color: #2ecc71; }
+.timer-yellow { color: #f1c40f; }
+.timer-red { color: #e74c3c; }
+
+/* ── Card Body (Lines) ──────────────────────────────── */
+
+.kds-card-body {
+    padding: 8px 14px;
+    flex: 1;
+}
+
+.kds-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 4px;
+}
+
+.kds-line:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.kds-line:last-child {
+    border-bottom: none;
+}
+
+/* line-done: opacity on the container, but strikethrough only on direct
+   child spans — NOT on .kds-combo-children, so held combo children are
+   never under a text-decorated ancestor (CSS text-decoration paints on
+   the parent box and cannot be overridden by descendants). */
+.kds-line.line-done {
+    opacity: 0.4;
+}
+.kds-line.line-done > .kds-line-check,
+.kds-line.line-done > .kds-line-qty,
+.kds-line.line-done > .kds-line-name,
+.kds-line.line-done > .kds-line-note {
+    text-decoration: line-through;
+}
+
+.kds-line-check {
+    font-size: 22px;
+    min-width: 32px;
+    text-align: center;
+    color: #7f8c8d;
+    transition: color 0.2s;
+}
+
+.line-done .kds-line-check {
+    color: #2ecc71;
+}
+
+.kds-line-qty {
+    font-size: 18px;
+    font-weight: 700;
+    color: #3498db;
+    min-width: 40px;
+}
+
+.line-done .kds-line-qty {
+    color: #7f8c8d;
+}
+
+.kds-line-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ecf0f1;
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.kds-line-note {
+    width: 100%;
+    font-size: 14px;
+    color: #f39c12;
+    padding-left: 72px;
+    font-style: italic;
+}
+
+.kds-general-note {
+    margin: 0 0 10px 0;
+    padding: 10px 12px;
+    background: #fff3cd;
+    border: 2px solid #f39c12;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #7a4a00;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.kds-general-note::before {
+    content: "NOTE";
+    display: inline-block;
+    background: #f39c12;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 8px;
+    vertical-align: 2px;
+}
+
+/* ── Card Footer ────────────────────────────────────── */
+
+.kds-card-footer {
+    padding: 8px;
+}
+
+/* ── Empty State ────────────────────────────────────── */
+
+.kds-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 12px;
+}
+
+.kds-empty-icon {
+    font-size: 72px;
+}
+
+.kds-empty-text {
+    font-size: 28px;
+    font-weight: 600;
+    color: #7f8c8d;
+}
+
+.kds-empty-sub {
+    font-size: 18px;
+    color: #566573;
+}
+
+/* ── Items View ─────────────────────────────────────── */
+
+.kds-allday-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+}
+
+.kds-allday-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+    background: #16213e;
+    border-radius: 10px;
+    border: 1px solid #0f3460;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.kds-allday-item:hover:not(.allday-done) {
+    background: #1a3a5c;
+    border-color: #27ae60;
+}
+
+.kds-allday-item.allday-done {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.kds-allday-check {
+    font-size: 24px;
+    min-width: 32px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.allday-done .kds-allday-check {
+    color: #2ecc71;
+}
+
+.kds-allday-qty {
+    font-size: 32px;
+    font-weight: 800;
+    color: #3498db;
+    min-width: 50px;
+    text-align: center;
+}
+
+.kds-allday-name {
+    font-size: 20px;
+    font-weight: 600;
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.kds-allday-name .kds-line-note {
+    padding-left: 0;
+    font-size: 13px;
+    margin-top: 2px;
+}
+
+.kds-allday-progress {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-left: auto;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #0f3460;
+    border-radius: 4px;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+
+@media (max-width: 600px) {
+    .kds-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kds-title {
+        font-size: 14px;
+    }
+
+    .kds-header {
+        padding: 6px 10px;
+    }
+
+    .kds-btn-header {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .kds-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
+
+/* ── Remake / Send-Back Styling ──────────────────────── */
+
+.kds-card.remake {
+    border-color: #e74c3c;
+    border-width: 3px;
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
+}
+
+.kds-remake-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-left: 8px;
+    animation: remakePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes remakePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.kds-line-remake-reason {
+    width: 100%;
+    font-size: 13px;
+    color: #e74c3c;
+    padding-left: 72px;
+    font-weight: 600;
+}
+
+/* ── Course Headers & Hold/Fire ────────────────────── */
+
+.kds-course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    margin-top: 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kds-course-header:first-child {
+    margin-top: 0;
+}
+
+.kds-course-header.course-fired {
+    background: rgba(39, 174, 96, 0.15);
+    color: #2ecc71;
+}
+
+.kds-course-header.course-held {
+    background: rgba(127, 140, 141, 0.1);
+    color: #7f8c8d;
+}
+
+.kds-course-name {
+    font-size: 13px;
+}
+
+.kds-course-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.kds-course-badge.badge-fired {
+    background: rgba(39, 174, 96, 0.2);
+    color: #2ecc71;
+}
+
+.kds-course-badge.badge-done {
+    background: rgba(39, 174, 96, 0.3);
+    color: #2ecc71;
+}
+
+.kds-course-badge.badge-held {
+    background: rgba(127, 140, 141, 0.2);
+    color: #95a5a6;
+}
+
+.kds-btn-fire {
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #e67e22;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.kds-btn-fire:hover,
+.kds-btn-fire:active {
+    background: #d35400;
+}
+
+/* Held course items — dimmed and non-interactive */
+.kds-line.course-held {
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+/* Combo children (rendered under combo parent, non-interactive) */
+.kds-combo-children {
+    margin-left: 2.2rem;
+    font-size: 1em;
+    margin-top: 0.2rem;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.kds-combo-child {
+    line-height: 1.4;
+    white-space: normal;
+}
+
+/* Held combo children — dimmed and non-interactive, mirrors .kds-line.course-held.
+   !important on text-decoration overrides inherited line-through from parent .line-done
+   so held children stay visually distinct even after partial-done on the parent. */
+.kds-combo-child.course-held {
+    opacity: 0.25;
+    pointer-events: none;
+    text-decoration: none !important;
+}
+
+/* Badges inside combo children */
+.kds-combo-child .kds-course-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    margin-left: 6px;
+    vertical-align: 1px;
+}
+
+/* Done combo children inherit parent's line-done strikethrough */
+.kds-combo-child.line-done {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+/* "Waiting: Desserts" hint above the bump button in partial-done state */
+.kds-waiting-hint {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f39c12;
+    padding: 4px 8px;
+}
+
+/* In the Items tile, combo children render inside .kds-allday-name and
+   should align with the parent product name (no extra left indent). */
+.kds-allday-name .kds-combo-children {
+    margin-left: 0;
+    margin-top: 0.1rem;
+}

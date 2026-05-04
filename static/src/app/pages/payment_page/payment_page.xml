@@ -2,141 +2,272 @@
 <templates xml:space="preserve">
 
     <t t-name="pos_self_order_enhancement.PaymentPage">
-        <div class="o_self_order_payment_page d-flex flex-column h-100 bg-light">
-            <!-- Header -->
-            <div class="payment-header bg-white border-bottom p-3 d-flex align-items-center">
-                <button class="btn btn-link text-dark p-0 me-3" t-on-click="goBack">
-                    <i class="fa fa-arrow-left fa-lg"></i>
-                </button>
-                <h4 class="mb-0 fw-bold">付款</h4>
-            </div>
-
-            <!-- Content -->
-            <div class="payment-content flex-grow-1 overflow-auto p-3">
-                <!-- Loading State -->
-                <t t-if="state.loading">
-                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="text-muted">處理中，請稍候...</p>
-                    </div>
-                </t>
-
-                <!-- Error State -->
-                <t t-elif="state.error">
-                    <div class="alert alert-danger" role="alert">
-                        <i class="fa fa-exclamation-circle me-2"></i>
-                        <t t-esc="state.error"/>
-                    </div>
-                </t>
-
-                <!-- Payment Options -->
-                <t t-else="">
-                    <!-- Order Summary - Grouped by ordering session -->
-                    <div class="order-summary bg-white rounded-3 shadow-sm p-3 mb-3">
-                        <h6 class="fw-bold mb-3 text-muted">
-                            <i class="fa fa-list-alt me-2"></i>
-                            訂單摘要
-                        </h6>
-
-                        <!-- Grouped Order Lines -->
-                        <t t-foreach="groupedOrderLines" t-as="group" t-key="group.index">
-                            <!-- Group Header (only show if multiple sessions) -->
-                            <t t-if="!group.single">
-                                <div class="group-header d-flex justify-content-between align-items-center bg-light rounded-2 px-3 py-2 mb-2 mt-3">
-                                    <span class="fw-semibold text-secondary">
-                                        <i class="fa fa-cutlery me-1"></i>
-                                        第 <t t-esc="group.index"/> 次點餐
-                                    </span>
-                                    <span class="badge bg-secondary">
-                                        <t t-esc="formatCurrency(group.subtotal)"/>
-                                    </span>
-                                </div>
+        <!-- Kiosk Mode: delegate to original kiosk payment flow -->
+        <t t-if="isKioskMode">
+            <div class="d-flex flex-column h-100 bg-white">
+                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-4">
+                    <t t-if="state.kioskSelection">
+                        <h3 class="mb-4 fw-bold">Select Payment Method</h3>
+                        <div class="d-flex flex-column gap-3 w-100" style="max-width: 400px;">
+                            <t t-foreach="kioskPaymentMethods" t-as="method" t-key="method.id">
+                                <button class="btn btn-lg btn-outline-primary py-3"
+                                        t-on-click="() => this.selectKioskMethod(method.id)">
+                                    <t t-esc="method.name"/>
+                                </button>
                             </t>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="text-center">
+                            <t t-if="selfOrder.paymentError">
+                                <i class="fa fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                                <h4 class="text-danger">Payment Error</h4>
+                                <button class="btn btn-primary mt-3" t-on-click="() => this.startKioskPayment()">
+                                    Retry
+                                </button>
+                            </t>
+                            <t t-else="">
+                                <div class="spinner-border text-primary mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <h4>Processing Payment...</h4>
+                                <p class="text-muted" t-if="selectedKioskPaymentMethod">
+                                    <t t-esc="selectedKioskPaymentMethod.name"/>
+                                </p>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
 
-                            <!-- Order Lines in this group -->
-                            <div class="order-lines">
-                                <t t-foreach="group.lines" t-as="line" t-key="line.uuid || line.id">
-                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                                        <div>
-                                            <span t-esc="line.full_product_name || line.product_id?.name"/>
-                                            <span class="text-muted ms-2">x<t t-esc="line.qty"/></span>
-                                        </div>
-                                        <span class="fw-semibold">
-                                            <t t-esc="formatCurrency(line.price_subtotal_incl || 0)"/>
+        <!-- Mobile Mode: custom payment UI -->
+        <t t-else="">
+            <div class="o_self_order_payment_page d-flex flex-column h-100 bg-light">
+                <!-- Header -->
+                <div class="payment-header bg-white border-bottom p-3 d-flex align-items-center">
+                    <button class="btn btn-link text-dark p-0 me-3" t-on-click="goBack">
+                        <i class="fa fa-arrow-left fa-lg"></i>
+                    </button>
+                    <h4 class="mb-0 fw-bold">Payment</h4>
+                </div>
+
+                <!-- Content -->
+                <div class="payment-content flex-grow-1 overflow-auto p-3">
+                    <!-- Loading State -->
+                    <t t-if="state.loading">
+                        <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted">Processing, please wait...</p>
+                        </div>
+                    </t>
+
+                    <!-- Counter Payment Confirmed -->
+                    <t t-elif="state.counterPaymentConfirmed">
+                        <div class="d-flex flex-column justify-content-center align-items-center h-100 text-center p-4">
+                            <i class="fa fa-check-circle fa-4x text-success mb-4"></i>
+                            <h4 class="fw-bold mb-3">Order Received!</h4>
+                            <p class="text-muted fs-5 mb-2">
+                                Please go to the counter to pay.
+                            </p>
+                            <p class="fw-bold fs-4 text-primary mb-4">
+                                Total: <t t-esc="formatCurrency(totalAmount)"/>
+                            </p>
+                            <p class="text-muted mb-4">
+                                Order: <t t-esc="orderReference"/>
+                            </p>
+                            <button class="btn btn-primary btn-lg w-100 py-3" t-on-click="goToHome">
+                                <i class="fa fa-home me-2"></i>
+                                Back to Home
+                            </button>
+                        </div>
+                    </t>
+
+                    <!-- Payment Options -->
+                    <t t-if="!state.loading and !state.counterPaymentConfirmed">
+                        <!-- Error State (dismissable, shown above payment options) -->
+                        <div t-if="state.error" class="alert alert-danger alert-dismissible" role="alert">
+                            <i class="fa fa-exclamation-circle me-2"></i>
+                            <t t-esc="state.error"/>
+                            <button type="button" class="btn-close" t-on-click="() => this.state.error = null"></button>
+                        </div>
+                        <!-- Order Summary - Grouped by ordering session -->
+                        <div class="order-summary bg-white rounded-3 shadow-sm p-3 mb-3">
+                            <h6 class="fw-bold mb-3 text-muted">
+                                <i class="fa fa-list-alt me-2"></i>
+                                Order Summary
+                            </h6>
+
+                            <!-- Grouped Order Lines -->
+                            <t t-foreach="groupedOrderLines" t-as="group" t-key="group.index">
+                                <!-- Group Header (only show if multiple sessions) -->
+                                <t t-if="!group.single">
+                                    <div class="group-header d-flex justify-content-between align-items-center bg-light rounded-2 px-3 py-2 mb-2 mt-3">
+                                        <span class="fw-semibold text-secondary">
+                                            <i class="fa fa-cutlery me-1"></i>
+                                            Order #<t t-esc="group.index"/>
+                                        </span>
+                                        <span class="badge bg-secondary">
+                                            <t t-esc="formatCurrency(group.subtotal)"/>
                                         </span>
                                     </div>
                                 </t>
-                            </div>
-                        </t>
 
-                        <!-- Total Section -->
-                        <div class="total-section pt-3 mt-2 border-top">
-                            <!-- Current Session Amount (if multiple sessions) -->
-                            <t t-if="hasMultipleSessions">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="text-muted">
-                                        <i class="fa fa-plus-circle me-1"></i>
-                                        本次加點
-                                    </span>
-                                    <span class="fw-semibold text-info">
-                                        <t t-esc="formatCurrency(currentSessionAmount)"/>
-                                    </span>
-                                </div>
-                            </t>
-                            <!-- Grand Total -->
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold fs-5">總計</span>
-                                <span class="fw-bold fs-4 text-primary">
-                                    <t t-esc="formatCurrency(totalAmount)"/>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Method Selection -->
-                    <div class="payment-methods bg-white rounded-3 shadow-sm p-3 mb-3">
-                        <h6 class="fw-bold mb-3 text-muted">
-                            <i class="fa fa-credit-card me-2"></i>
-                            選擇付款方式
-                        </h6>
-                        <div class="d-flex flex-column gap-2">
-                            <!-- Counter Payment Option (現場結帳) - Display only, no action -->
-                            <div class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
-                                 style="cursor: default; pointer-events: none;">
-                                <i class="fa fa-money me-3 fs-4 text-success"></i>
-                                <div class="text-start">
-                                    <span class="fw-bold text-success">現場結帳</span>
-                                    <small class="d-block text-muted">至櫃台付款</small>
-                                </div>
-                            </div>
-
-                            <!-- Online Payment Options (線上支付) -->
-                            <t t-if="hasOnlinePayment">
-                                <t t-foreach="onlinePaymentMethods" t-as="method" t-key="method.id">
-                                    <button class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3"
-                                            t-on-click="() => this.selectOnlinePayment(method.id)">
-                                        <i class="fa fa-globe me-3 fs-4"></i>
-                                        <div class="text-start">
-                                            <span class="fw-bold" t-esc="method.name"/>
-                                            <small class="d-block text-muted">線上支付</small>
+                                <!-- Order Lines in this group -->
+                                <div class="order-lines">
+                                    <t t-foreach="group.lines" t-as="line" t-key="line.uuid || line.id">
+                                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                            <div>
+                                                <span t-esc="line.full_product_name || line.product_id?.name"/>
+                                                <span class="text-muted ms-2">x<t t-esc="line.qty"/></span>
+                                            </div>
+                                            <span class="fw-semibold">
+                                                <t t-esc="formatCurrency(line.price_subtotal_incl || 0)"/>
+                                            </span>
                                         </div>
-                                    </button>
-                                </t>
+                                    </t>
+                                </div>
                             </t>
-                        </div>
-                    </div>
 
-                    <!-- Back to Home Button -->
-                    <button class="btn btn-secondary btn-lg w-100 py-3"
-                            t-on-click="goToHome">
-                        <i class="fa fa-home me-2"></i>
-                        回到主頁
-                    </button>
-                </t>
+                            <!-- Total Section -->
+                            <div class="total-section pt-3 mt-2 border-top">
+                                <!-- Current Session Amount (if multiple sessions) -->
+                                <t t-if="hasMultipleSessions">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted">
+                                            <i class="fa fa-plus-circle me-1"></i>
+                                            Current Session
+                                        </span>
+                                        <span class="fw-semibold text-info">
+                                            <t t-esc="formatCurrency(currentSessionAmount)"/>
+                                        </span>
+                                    </div>
+                                </t>
+                                <!-- Grand Total -->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold fs-5">Total</span>
+                                    <span class="fw-bold fs-4 text-primary">
+                                        <t t-esc="formatCurrency(totalAmount)"/>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E-Invoice Settings -->
+                        <div class="einvoice-settings bg-white rounded-3 shadow-sm p-3 mb-3"
+                             t-if="showEinvoiceForm">
+                            <h6 class="fw-bold mb-3 text-muted">
+                                <i class="fa fa-file-text-o me-2"></i>
+                                Invoice / 電子發票
+                            </h6>
+
+                            <div class="d-flex flex-column gap-2 mb-2">
+                                <div class="form-check" t-on-click="() => this.setCarrierType('print')">
+                                    <input type="radio" name="carrier_type" value="print"
+                                           t-att-checked="invoiceState.carrierType === 'print'" class="form-check-input"/>
+                                    <label class="form-check-label">列印 / Print</label>
+                                </div>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('mobile')">
+                                    <input type="radio" name="carrier_type" value="mobile"
+                                           t-att-checked="invoiceState.carrierType === 'mobile'" class="form-check-input"/>
+                                    <label class="form-check-label">Mobile Barcode / 手機條碼</label>
+                                </div>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('donation')">
+                                    <input type="radio" name="carrier_type" value="donation"
+                                           t-att-checked="invoiceState.carrierType === 'donation'" class="form-check-input"/>
+                                    <label class="form-check-label">Donation / 捐贈</label>
+                                </div>
+                                <div class="form-check" t-on-click="() => this.setCarrierType('b2b')">
+                                    <input type="radio" name="carrier_type" value="b2b"
+                                           t-att-checked="invoiceState.carrierType === 'b2b'" class="form-check-input"/>
+                                    <label class="form-check-label">Tax ID / 統一編號</label>
+                                </div>
+                            </div>
+
+                            <!-- Conditional Inputs -->
+                            <div t-if="invoiceState.carrierType === 'mobile'" class="mt-2">
+                                <input type="text" class="form-control"
+                                       placeholder="/ABC+123"
+                                       t-att-value="invoiceState.carrierNum"
+                                       t-on-input="(ev) => this.invoiceState.carrierNum = ev.target.value.toUpperCase()"
+                                       maxlength="8" inputmode="text" autocapitalize="characters"/>
+                                <small class="text-muted">/ + 7 chars (e.g. /ABC+123)</small>
+                            </div>
+                            <div t-if="invoiceState.carrierType === 'donation'" class="mt-2">
+                                <input type="text" class="form-control"
+                                       placeholder="Love Code / 愛心碼"
+                                       t-att-value="invoiceState.loveCode"
+                                       t-on-input="(ev) => this.invoiceState.loveCode = ev.target.value"
+                                       maxlength="7" inputmode="numeric"/>
+                                <small class="text-muted">3~7 digits</small>
+                            </div>
+                            <div t-if="invoiceState.carrierType === 'b2b'" class="mt-2">
+                                <input type="text" class="form-control"
+                                       placeholder="Tax ID / 統一編號"
+                                       t-att-value="invoiceState.buyerTaxId"
+                                       t-on-input="onTaxIdInput"
+                                       maxlength="8" inputmode="numeric"/>
+                                <small class="text-muted">8 digits</small>
+                                <div t-if="invoiceState.lookingUp" class="text-muted small mt-1">
+                                    查詢中... Looking up...
+                                </div>
+                                <input type="text" class="form-control mt-2"
+                                       placeholder="Company Name / 公司名稱"
+                                       t-att-value="invoiceState.buyerName"
+                                       t-on-input="(ev) => this.invoiceState.buyerName = ev.target.value"/>
+                            </div>
+
+                            <!-- Validation Error -->
+                            <div t-if="invoiceState.validationError" class="alert alert-danger mt-2 mb-0 py-2">
+                                <small><t t-esc="invoiceState.validationError"/></small>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Selection -->
+                        <div class="payment-methods bg-white rounded-3 shadow-sm p-3 mb-3">
+                            <h6 class="fw-bold mb-3 text-muted">
+                                <i class="fa fa-credit-card me-2"></i>
+                                Select Payment Method
+                            </h6>
+                            <div class="d-flex flex-column gap-2">
+                                <!-- Counter Payment Option -->
+                                <button class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
+                                        t-on-click="selectCounterPayment">
+                                    <i class="fa fa-money me-3 fs-4 text-success"></i>
+                                    <div class="text-start">
+                                        <span class="fw-bold text-success">Pay at Counter</span>
+                                        <small class="d-block text-muted">Pay at the cashier</small>
+                                    </div>
+                                </button>
+
+                                <!-- Online Payment Options -->
+                                <t t-if="hasOnlinePayment">
+                                    <t t-foreach="onlinePaymentMethods" t-as="method" t-key="method.id">
+                                        <button class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3"
+                                                t-on-click="() => this.selectOnlinePayment(method.id)">
+                                            <i class="fa fa-credit-card me-3 fs-4"></i>
+                                            <div class="text-start">
+                                                <span class="fw-bold">線上支付</span>
+                                                <small class="d-block text-muted">支援信用卡</small>
+                                            </div>
+                                        </button>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Back to Home Button -->
+                        <button class="btn btn-secondary btn-lg w-100 py-3"
+                                t-on-click="goToHome">
+                            <i class="fa fa-home me-2"></i>
+                            Back to Home
+                        </button>
+                    </t>
+                </div>
             </div>
-        </div>
+        </t>
     </t>
 
 </templates>

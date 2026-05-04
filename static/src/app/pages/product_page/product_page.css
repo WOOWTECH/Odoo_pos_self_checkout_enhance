@@ -1,0 +1,72 @@
+/* Flatten the AttributeSelection Bootstrap grid into a single-column list. */
+.self_order_attribute_selection .row {
+    flex-direction: column !important;
+    gap: 0.5rem;
+}
+.self_order_attribute_selection .row > .col {
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+}
+
+/* Turn each option card into a horizontal row. */
+.self_order_attribute_selection_option {
+    aspect-ratio: auto !important;
+    min-height: 0 !important;
+    padding: 0.75rem 1rem !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    cursor: pointer;
+    position: relative;
+}
+/* Bootstrap .ratio uses a ::before pseudo-element to enforce aspect ratio.
+   Disable it so the label sizes to content. */
+.self_order_attribute_selection_option.ratio::before {
+    display: none !important;
+}
+
+.self_order_attribute_selection_option .name {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding: 0 !important;
+    text-align: left !important;
+    gap: 0.5rem;
+}
+.self_order_attribute_selection_option .name > span:nth-child(2) {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-left: auto;
+    padding-right: 1.75rem; /* leave room for the check indicator */
+}
+
+/* Round check indicator on the right of each row. */
+.self_order_attribute_selection_option::after {
+    content: "\25CB"; /* empty circle */
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    color: #adb5bd;
+    line-height: 1;
+}
+.self_order_attribute_selection_option.active {
+    /* Match combo_page row-selected look: light tint + dark text, not the
+       stock text-bg-primary dark fill. */
+    transform: none !important;
+    background-color: rgba(111, 66, 193, 0.06) !important;
+    color: inherit !important;
+    border-color: var(--bs-primary, #6f42c1) !important;
+}
+/* Keep the inner name + price on dark text, overriding text-bg-primary. */
+.self_order_attribute_selection_option.active .name,
+.self_order_attribute_selection_option.active .name > span {
+    color: inherit !important;
+}
+.self_order_attribute_selection_option.active .name > span:nth-child(2) {
+    color: #6c757d !important;
+}
+.self_order_attribute_selection_option.active::after {
+    content: "\25CF"; /* filled circle */
+    color: var(--bs-primary, #6f42c1);
+}

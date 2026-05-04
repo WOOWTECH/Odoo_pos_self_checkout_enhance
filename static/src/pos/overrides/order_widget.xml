@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!--
+        Hoist the order-level general note from the bottom of the order
+        container to the very top, with a bold + boxed banner style so
+        kitchen / cashier staff cannot miss it. See also:
+        pos_self_order_enhancement/static/src/pos/overrides/order_change_receipt.xml
+    -->
+    <t t-name="pos_self_order_enhancement.OrderWidget"
+       t-inherit="point_of_sale.OrderWidget"
+       t-inherit-mode="extension">
+
+        <!-- Remove the original bottom-of-list general-note block -->
+        <xpath expr="//div[@t-if='props.generalNote']" position="replace"/>
+
+        <!-- Inject a prominent banner above the line items -->
+        <xpath expr="//t[@t-foreach='props.lines']" position="before">
+            <div class="general-note-banner mb-2"
+                 t-att-class="props.screenName == 'ReceiptScreen' ? 'p-1 border-bottom' : 'p-2 border border-2 border-dark rounded bg-warning-subtle'"
+                 t-if="props.generalNote">
+                <b class="fw-bolder text-uppercase small d-block mb-1">General Note</b>
+                <t t-foreach="props.generalNote.split('\n')" t-as="subNote" t-key="subNote_index">
+                    <div class="fw-bolder">• <t t-esc="subNote"/></div>
+                </t>
+            </div>
+        </xpath>
+    </t>
+</templates>

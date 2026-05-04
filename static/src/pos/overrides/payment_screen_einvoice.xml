@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Extend PaymentScreenButtons to add E-Invoice carrier input section -->
+    <t t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('payment-buttons')]" position="inside">
+            <div t-if="pos.config.ecpay_einvoice_enabled"
+                 class="einvoice-section border rounded p-2 mt-2 bg-view">
+                <div class="fw-bold mb-1 small text-muted">電子發票 E-Invoice</div>
+                <div class="d-flex gap-1 mb-2 flex-wrap">
+                    <button class="btn btn-sm"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'mobile', 'btn-outline-secondary': einvState.einvCarrierType !== 'mobile'}"
+                        t-on-click="() => this.setEinvCarrierType('mobile')">
+                        手機條碼
+                    </button>
+                    <button class="btn btn-sm"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'donation', 'btn-outline-secondary': einvState.einvCarrierType !== 'donation'}"
+                        t-on-click="() => this.setEinvCarrierType('donation')">
+                        捐贈
+                    </button>
+                    <button class="btn btn-sm"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'print', 'btn-outline-secondary': einvState.einvCarrierType !== 'print'}"
+                        t-on-click="() => this.setEinvCarrierType('print')">
+                        列印
+                    </button>
+                    <button class="btn btn-sm"
+                        t-att-class="{'btn-primary': einvState.einvCarrierType === 'b2b', 'btn-outline-secondary': einvState.einvCarrierType !== 'b2b'}"
+                        t-on-click="() => this.setEinvCarrierType('b2b')">
+                        統編
+                    </button>
+                </div>
+                <input t-if="einvState.einvCarrierType === 'mobile'"
+                    class="form-control form-control-sm"
+                    placeholder="/XXXXXXX (手機條碼)"
+                    t-ref="einvCarrierInput"
+                    t-on-change="(ev) => this.einvState.einvCarrierNum = ev.target.value"
+                    t-att-value="einvState.einvCarrierNum"/>
+                <input t-if="einvState.einvCarrierType === 'donation'"
+                    class="form-control form-control-sm"
+                    placeholder="愛心碼 Love Code (e.g. 168001)"
+                    t-on-change="(ev) => this.einvState.einvLoveCode = ev.target.value"
+                    t-att-value="einvState.einvLoveCode"/>
+                <div t-if="einvState.einvCarrierType === 'b2b'" class="d-flex flex-column gap-1">
+                    <input class="form-control form-control-sm"
+                        placeholder="統一編號 Tax ID (8 digits)"
+                        t-on-input="_onTaxIdInput"
+                        t-att-value="einvState.einvBuyerTaxId"
+                        maxlength="8"
+                        inputmode="numeric"/>
+                    <div t-if="einvState.einvLookingUp" class="text-muted small">
+                        查詢中...
+                    </div>
+                    <input class="form-control form-control-sm"
+                        placeholder="公司名稱 Company Name"
+                        t-on-change="(ev) => this.einvState.einvBuyerName = ev.target.value"
+                        t-att-value="einvState.einvBuyerName"/>
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+</templates>

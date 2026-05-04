@@ -1,6 +1,6 @@
 {
     "name": "POS Self Order Enhancement",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.3.0",
     "category": "Sales/Point of Sale",
     "summary": "Enhanced POS self-ordering with continue ordering, pay per order mode, and friendly UI",
     "description": """
@@ -40,6 +40,21 @@ Features | 功能特色
    - Simplified customer interface
    - 移除稅金資訊，簡化介面
 
+6. **Kitchen Display Screen (KDS) | 廚房顯示螢幕**
+   - Real-time kitchen order display on any browser
+   - Item-level strikethrough, bump, recall, all-day view
+   - Audio chime on new orders, timer color escalation
+   - Token-based auth, no login required
+   - 即時廚房訂單顯示，支援任何瀏覽器
+   - 品項劃線、完成出餐、召回、總覽功能
+
+7. **ESC/POS Network Printer | 網路出單機支援**
+   - Use any generic ESC/POS network printer as preparation printer
+   - No IoT Box or Epson printer required
+   - Lightweight print proxy server included
+   - 支援任何 ESC/POS 網路出單機作為備餐印表機
+   - 不需要 IoT Box 或 Epson 印表機
+
 Technical Details | 技術細節
 ----------------------------
 - OWL (Odoo Web Library) components
@@ -50,16 +65,32 @@ Technical Details | 技術細節
 GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     """,
     "author": "WoowTech",
-    "website": "https://www.woowtech.com",
+    "website": "https://aiot.woowtech.io/",
     "license": "LGPL-3",
-    "depends": ["pos_self_order", "payment"],
+    "depends": ["pos_self_order", "payment", "ecpay_invoice_tw", "portal"],
+    "external_dependencies": {
+        "python": ["PIL"],
+    },
     "data": [
         "views/payment_templates.xml",
+        "views/kds_templates.xml",
+        "views/pos_config_view.xml",
+        "views/pos_dashboard_kds.xml",
+        "views/pos_printer_views.xml",
+        "views/pos_category_view.xml",
+        "views/pos_config_einvoice_view.xml",
+        "views/res_partner_views.xml",
+        "views/portal_templates.xml",
+        "views/portal_pos_picker_templates.xml",
     ],
     "assets": {
         "pos_self_order.assets": [
             "pos_self_order_enhancement/static/src/app/**/*",
             "pos_self_order_enhancement/static/src/css/**/*",
+        ],
+        "point_of_sale._assets_pos": [
+            "pos_self_order_enhancement/static/src/printer/**/*",
+            "pos_self_order_enhancement/static/src/pos/**/*",
         ],
         "web.assets_backend": [
             "pos_self_order_enhancement/static/src/fields/**/*",
