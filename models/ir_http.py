@@ -18,6 +18,12 @@ for the duration of the current request. This means:
   identifies the user as the portal user.
 - The portal user cannot escalate to backend access via URL manipulation.
 - Security is enforced by the proxy user's own ACLs and record rules.
+
+Security note
+~~~~~~~~~~~~~
+The ``self_ordering_default_user_id`` proxy user MUST be configured with
+the minimum permissions required (i.e. only ``point_of_sale.group_pos_user``).
+Do NOT assign administration or accounting rights to this user.
 """
 
 from odoo import models
@@ -31,54 +37,25 @@ _POS_SWAP_EXACT_PATHS = frozenset({
 })
 
 _POS_SWAP_PREFIXES = (
-    '/pos/',                # POS page + our own /pos-self-order/, /pos-kds/...
-    '/pos-self/',           # self-order pages
-    '/pos-self-order/',     # self-order controller endpoints
-    '/pos-kds/',            # kitchen display
-    '/web/webclient/',      # load_menus, translations, qweb, version_info
-    '/web/image/',          # product images used inside the POS UI
-    '/web/content/',        # static content (attachments referenced by POS)
-    '/web/static/',         # static assets
-    '/longpolling/',        # bus notifications
-    '/websocket',           # bus websocket
-)
-
-# Narrower set: /web/dataset/ and /report/ require extra validation
-# because they handle arbitrary model RPC calls.
-_POS_SWAP_RPC_PREFIXES = (
+    '/pos/',            # POS page + our own /pos-self-order/, /pos-kds/...
+    '/pos-self/',       # self-order pages
+    '/pos-self-order/', # self-order controller endpoints
+    '/pos-kds/',        # kitchen display
     '/web/dataset/',    # call_kw, call_button, resequence
+    '/web/webclient/',  # load_menus, translations, qweb, version_info
+    '/web/image/',      # product images used inside the POS UI
+    '/web/content/',    # static content (attachments referenced by POS)
+    '/web/static/',     # static assets
+    '/longpolling/',    # bus notifications
+    '/websocket',       # bus websocket
     '/report/',         # receipt/report rendering
 )
-
-# Models that the portal POS proxy user is allowed to access via RPC.
-_POS_ALLOWED_MODELS = frozenset({
-    'pos.order', 'pos.order.line', 'pos.session', 'pos.config',
-    'pos.payment', 'pos.payment.method', 'pos.category',
-    'product.product', 'product.template', 'product.pricelist',
-    'product.pricelist.item', 'account.tax', 'account.tax.group',
-    'res.currency', 'res.company', 'res.country', 'res.lang',
-    'restaurant.table', 'restaurant.floor',
-    'stock.picking.type', 'decimal.precision',
-    'pos.printer', 'pos.combo', 'pos.combo.line',
-    'ir.ui.view', 'ir.attachment',
-})
 
 
 def _path_allows_swap(path):
     if path in _POS_SWAP_EXACT_PATHS:
         return True
-    if any(path.startswith(p) for p in _POS_SWAP_PREFIXES):
-        return True
-    # For broad RPC prefixes, allow swap but the caller must also
-    # validate the target model (see _pos_portal_swap_user).
-    if any(path.startswith(p) for p in _POS_SWAP_RPC_PREFIXES):
-        return True
-    return False
-
-
-def _is_pos_rpc_path(path):
-    """Return True if the path hits a broad RPC prefix that needs model validation."""
-    return any(path.startswith(p) for p in _POS_SWAP_RPC_PREFIXES)
+    return any(path.startswith(p) for p in _POS_SWAP_PREFIXES)
 
 
 class IrHttp(models.AbstractModel):
@@ -107,22 +84,8 @@ class IrHttp(models.AbstractModel):
         if not user._is_portal():
             return
 
-        path = request.httprequest.path
-        if not _path_allows_swap(path):
+        if not _path_allows_swap(request.httprequest.path):
             return
-
-        # For broad RPC paths (/web/dataset/, /report/), validate that
-        # the target model is POS-related to prevent privilege escalation
-        # to non-POS models.
-        if _is_pos_rpc_path(path):
-            try:
-                data = request.get_json_data() or {}
-                params = data.get('params', {})
-                model = params.get('model', '') or params.get('args', [''])[0] if isinstance(params.get('args'), list) else ''
-                if model and model not in _POS_ALLOWED_MODELS:
-                    return
-            except Exception:
-                pass  # If we can't parse, let the normal auth handle it
 
         active_id = request.session.get('portal_pos_active_config_id')
         if not active_id:
