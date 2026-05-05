@@ -18,6 +18,12 @@ for the duration of the current request. This means:
   identifies the user as the portal user.
 - The portal user cannot escalate to backend access via URL manipulation.
 - Security is enforced by the proxy user's own ACLs and record rules.
+
+Security note
+~~~~~~~~~~~~~
+The ``self_ordering_default_user_id`` proxy user MUST be configured with
+the minimum permissions required (i.e. only ``point_of_sale.group_pos_user``).
+Do NOT assign administration or accounting rights to this user.
 """
 
 from odoo import models
@@ -32,6 +38,9 @@ _POS_SWAP_EXACT_PATHS = frozenset({
 
 _POS_SWAP_PREFIXES = (
     '/pos/',            # POS page + our own /pos-self-order/, /pos-kds/...
+    '/pos-self/',       # self-order pages
+    '/pos-self-order/', # self-order controller endpoints
+    '/pos-kds/',        # kitchen display
     '/web/dataset/',    # call_kw, call_button, resequence
     '/web/webclient/',  # load_menus, translations, qweb, version_info
     '/web/image/',      # product images used inside the POS UI

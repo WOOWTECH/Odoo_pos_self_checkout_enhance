@@ -349,17 +349,36 @@ patch(PosStore.prototype, {
     },
 
     /**
-     * Patch upstream's per-printer category filter so that any combo child
-     * whose parent passes is also admitted, regardless of the child's own
-     * pos_categ_ids. Without this, combo "choices" silently disappear from
-     * kitchen tickets when their products live in non-printer categories.
+     * Patch upstream's per-printer category filter with two enhancements:
+     *
+     * 1. Products WITHOUT a POS category are sent to ALL printers (inclusive
+     *    default).  Products WITH categories still follow normal routing.
+     *
+     * 2. Any combo child whose *parent* passes the filter is also admitted,
+     *    regardless of the child's own pos_categ_ids.  Without this, combo
+     *    "choices" silently disappear from kitchen tickets when their
+     *    products live in non-printer categories.
      */
     _getPrintingCategoriesChanges(categories, currentOrderChange) {
-        const base = super._getPrintingCategoriesChanges(categories, currentOrderChange);
+        // --- Enhancement 1: uncategorized products pass through ---
+        const filterFn = (change) => {
+            const product = this.models["product.product"].get(change["product_id"]);
+            const categoryIds = product?.parentPosCategIds;
+            // No category = belongs to every printer (inclusive default)
+            if (!categoryIds || categoryIds.length === 0) return true;
+            return categoryIds.some((id) => categories.includes(id));
+        };
+        const base = {
+            new: currentOrderChange["new"].filter(filterFn),
+            cancelled: currentOrderChange["cancelled"].filter(filterFn),
+            noteUpdated: currentOrderChange["noteUpdated"].filter(filterFn),
+        };
+
+        // --- Enhancement 2: combo-child augmentation ---
         const maps = this._comboMaps;
         if (!maps || !maps.childUuidsByParent.size) return base;
 
-        // Collect uuids of parents that survived the standard filter in any bucket.
+        // Collect uuids of parents that survived the filter in any bucket.
         const passingParentUuids = new Set();
         for (const bucket of [base.new, base.cancelled, base.noteUpdated]) {
             for (const c of bucket) {
@@ -584,23 +603,7 @@ patch(PosStore.prototype, {
         }
     },
 
-    /**
-     * Override: products WITHOUT a POS category are sent to ALL printers
-     * (inclusive default).  Products WITH categories still follow normal
-     * routing to matching printers only.
-     */
-    _getPrintingCategoriesChanges(categories, currentOrderChange) {
-        const filterFn = (change) => {
-            const product = this.models["product.product"].get(change["product_id"]);
-            const categoryIds = product?.parentPosCategIds;
-            // No category = belongs to every printer (inclusive default)
-            if (!categoryIds || categoryIds.length === 0) return true;
-            return categoryIds.some((id) => categories.includes(id));
-        };
-        return {
-            new: currentOrderChange["new"].filter(filterFn),
-            cancelled: currentOrderChange["cancelled"].filter(filterFn),
-            noteUpdated: currentOrderChange["noteUpdated"].filter(filterFn),
-        };
-    },
+    // NOTE: _getPrintingCategoriesChanges is defined earlier in this patch
+    // (combo-child augmentation + uncategorized product routing).
+    // Do NOT add a duplicate here — JS object literals silently drop the first.
 });

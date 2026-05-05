@@ -48,8 +48,12 @@ class PosConfig(models.Model):
     @api.model
     def _load_pos_self_data_fields(self, config_id):
         params = super()._load_pos_self_data_fields(config_id)
-        params.append('ecpay_einvoice_enabled')
-        params.append('einvoice_printer_id')
+        # When params is empty, search_read returns ALL fields (Odoo convention).
+        # Only append our fields if the parent already specified a field list;
+        # otherwise, returning a partial list would suppress every other field.
+        if params:
+            params.append('ecpay_einvoice_enabled')
+            params.append('einvoice_printer_id')
         return params
 
     def _compute_selection_pay_after(self):
@@ -62,7 +66,9 @@ class PosConfig(models.Model):
             ('each', _('Each Order')),
         ]
 
-    def read_config_open_orders(self, domain, record_ids=[]):
+    def read_config_open_orders(self, domain, record_ids=None):
+        if record_ids is None:
+            record_ids = []
         """Include paid payment-gated orders in POS sync.
 
         POS JS only requests state='draft' orders. Payment-gated orders

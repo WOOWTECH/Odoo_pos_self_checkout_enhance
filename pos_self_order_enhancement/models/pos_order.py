@@ -229,12 +229,15 @@ class PosOrder(models.Model):
                 % ', '.join(blocked.mapped('name'))
             )
 
-        vals = {'kds_sent_to_kitchen': True}
-        for order in self:
-            if not order.kds_state:
-                vals['kds_state'] = 'new'
-                break
-        self.write(vals)
+        # Set kds_sent_to_kitchen on all orders, but only set kds_state
+        # on orders that don't already have one (avoids resetting
+        # in_progress/done orders back to 'new' in batch writes).
+        need_state = self.filtered(lambda o: not o.kds_state)
+        already_has_state = self - need_state
+        if need_state:
+            need_state.write({'kds_sent_to_kitchen': True, 'kds_state': 'new'})
+        if already_has_state:
+            already_has_state.write({'kds_sent_to_kitchen': True})
 
         # Initialize / merge course fire state for each order.
         # Preserve any categories already fired by staff — only add newly
@@ -377,7 +380,9 @@ class PosOrder(models.Model):
         config_ids = order_ids.config_id
         for config in config_ids:
             if config.kds_enabled:
-                kitchen_orders = order_ids.filtered(lambda o: o.kds_sent_to_kitchen)
+                kitchen_orders = order_ids.filtered(
+                    lambda o, c=config: o.kds_sent_to_kitchen and o.config_id == c
+                )
                 if kitchen_orders:
                     config._notify('KDS_ORDER_UPDATE', {})
 

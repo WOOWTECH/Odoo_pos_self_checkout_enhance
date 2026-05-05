@@ -135,12 +135,20 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         if not order.exists() or not consteq(order.access_token, order_access_token):
             raise MissingError(_("Order not found"))
 
-        # Validate carrier_type
-        allowed_types = ('cloud', 'print', 'mobile', 'donation', 'b2b')
+        # Validate carrier_type (must match Selection field values)
+        allowed_types = ('print', 'mobile', 'donation', 'b2b')
         if carrier_type not in allowed_types:
-            carrier_type = 'cloud'
+            carrier_type = 'print'
 
-        # Validate conditional fields
+        # Validate required sub-fields for each carrier type
+        if carrier_type == 'mobile' and not carrier_num:
+            return {'success': False, 'error': '請輸入手機條碼 (Mobile barcode is required)'}
+        if carrier_type == 'donation' and not love_code:
+            return {'success': False, 'error': '請輸入愛心碼 (Love code is required)'}
+        if carrier_type == 'b2b' and not buyer_tax_id:
+            return {'success': False, 'error': '請輸入統一編號 (Tax ID is required)'}
+
+        # Validate format of conditional fields
         if carrier_type == 'mobile' and carrier_num:
             if not re.match(r'^/[0-9A-Z+\-.]{7}$', carrier_num):
                 return {'success': False, 'error': '手機條碼格式錯誤 (格式: / + 7碼英數字)'}

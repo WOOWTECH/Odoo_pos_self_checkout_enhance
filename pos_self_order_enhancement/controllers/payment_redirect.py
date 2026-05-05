@@ -19,7 +19,8 @@ class PaymentRedirectController(http.Controller):
         Redirect to POS Self Order page with access token.
         Extracts config_id from order reference and builds proper URL.
 
-        Reference format: "Self-Order XXXXX-YYY-ZZZZ" where XXXXX is config related.
+        Reference format: "Self-Order SSSSS-CCC-NNNN"
+        where SSSSS=session_id, CCC=config_id, NNNN=sequence.
         """
         pos_config = None
         company = request.env.company
@@ -28,7 +29,7 @@ class PaymentRedirectController(http.Controller):
         if reference:
             match = re.search(r'(\d+)-(\d+)-(\d+)', reference)
             if match:
-                config_num = int(match.group(1))
+                config_num = int(match.group(2))
                 # Use config_num to find the specific POS config
                 pos_config = request.env['pos.config'].sudo().search([
                     ('id', '=', config_num),

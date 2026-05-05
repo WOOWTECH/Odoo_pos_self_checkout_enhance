@@ -136,13 +136,16 @@ patch(CartPage.prototype, {
             }
 
             this.selfOrder.rpcLoading = true;
-            const result = await this.selfOrder.sendDraftOrderToServer();
-            this.selfOrder.rpcLoading = false;
-
-            if (result) {
-                // Navigate to confirmation page (same as base confirmOrder in meal mode)
-                const device = this.selfOrder.config.self_ordering_mode;
-                this.selfOrder.confirmationPage("order", device, result.access_token);
+            try {
+                const result = await this.selfOrder.sendDraftOrderToServer();
+                if (result) {
+                    const device = this.selfOrder.config.self_ordering_mode;
+                    this.selfOrder.confirmationPage("order", device, result.access_token);
+                }
+            } catch (error) {
+                console.error("Failed to send order:", error);
+            } finally {
+                this.selfOrder.rpcLoading = false;
             }
             return;
         }

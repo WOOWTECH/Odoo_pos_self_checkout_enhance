@@ -356,6 +356,7 @@ export class PaymentPage extends Component {
      * In pay-per-order mode, this makes the order visible to the cashier.
      */
     async selectCounterPayment() {
+        if (this.state.loading) return;
         const order = this.currentOrder;
         if (!order?.id) {
             return;
@@ -408,6 +409,7 @@ export class PaymentPage extends Component {
      * Uses /pos/pay/{order_id} endpoint which supports public (anonymous) access.
      */
     async selectOnlinePayment(paymentMethodId) {
+        if (this.state.loading) return;
         // Validate e-invoice data before proceeding
         if (this.showEinvoiceForm && !this.validateInvoiceData()) {
             return;
@@ -459,7 +461,7 @@ export class PaymentPage extends Component {
 
                 let table = "";
                 if (this.selfOrder.currentTable) {
-                    table = `&table_identifier=${this.selfOrder.currentTable.identifier}`;
+                    table = `&table_identifier=${encodeURIComponent(this.selfOrder.currentTable.identifier)}`;
                 }
                 exitRouteUrl += `?access_token=${this.selfOrder.access_token}${table}`;
 

@@ -416,7 +416,7 @@
         } else if (order.table_name) {
             locationLabel = `${escapeHtml(t("table"))} ${escapeHtml(order.table_name)}`;
         } else {
-            locationLabel = order.name;
+            locationLabel = escapeHtml(order.name);
         }
 
         // Group lines by category name (supports both H&F and non-H&F)
