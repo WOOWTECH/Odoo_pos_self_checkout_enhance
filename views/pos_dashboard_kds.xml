@@ -8,10 +8,11 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="kds_enabled" invisible="1"/>
                 <field name="kds_url" invisible="1"/>
+                <field name="module_pos_restaurant" invisible="1"/>
                 <a class="badge text-bg-warning o_kanban_inline_block me-2"
                    t-att-href="record.kds_url.raw_value"
                    target="_blank"
-                   invisible="not kds_enabled"
+                   invisible="not kds_enabled or not module_pos_restaurant"
                    title="Open Kitchen Display Screen">
                     🍳 KDS
                 </a>

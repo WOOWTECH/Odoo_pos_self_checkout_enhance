@@ -7,7 +7,8 @@
         <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@groups='base.group_system']" position="before">
-                <setting string="Kitchen Display Screen (KDS)" help="Real-time kitchen order display on any browser">
+                <setting string="Kitchen Display Screen (KDS)" help="Real-time kitchen order display on any browser"
+                         invisible="not module_pos_restaurant">
                     <div class="content-group">
                         <div class="row">
                             <div class="col-lg-5 o_light_label">

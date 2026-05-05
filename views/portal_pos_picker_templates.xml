@@ -49,8 +49,8 @@
                                 <i class="fa fa-circle small"/> 已關閉
                             </div>
                         </a>
-                        <!-- KDS badge (separate link, right side) -->
-                        <a t-if="config.kds_enabled and config.kds_access_token"
+                        <!-- KDS badge (separate link, right side) — restaurant only -->
+                        <a t-if="config.kds_enabled and config.kds_access_token and config.module_pos_restaurant"
                            t-att-href="'/pos-kds/%s?token=%s' % (config.id, config.kds_access_token)"
                            class="badge rounded-pill text-dark text-decoration-none ms-2 flex-shrink-0"
                            style="background-color: #FFC107; padding: 8px 12px;"
