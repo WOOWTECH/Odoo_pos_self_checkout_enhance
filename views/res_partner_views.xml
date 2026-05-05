@@ -1,49 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <record id="view_partner_form_portal_pos" model="ir.ui.view">
-        <field name="name">res.partner.form.portal.pos</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//page[@name='internal_notes']" position="before">
-                <page string="Portal POS" name="portal_pos" invisible="not user_ids">
-                    <group>
-                        <field name="portal_pos_config_ids"
-                               widget="many2many_tags"
-                               options="{'no_create': True, 'no_open': True}"/>
-                    </group>
-                    <div class="text-muted">
-                        <p>
-                            Tag one or more POS configurations to grant this
-                            portal user access to those shops from their
-                            <strong>My Account</strong> page.
-                        </p>
-                        <ul>
-                            <li>
-                                Single shop → the "Point of Sale" card on
-                                <em>/my</em> opens the POS directly.
-                            </li>
-                            <li>
-                                Multiple shops → the card opens a picker at
-                                <em>/my/pos</em> where the user chooses which
-                                shop to run.
-                            </li>
-                            <li>
-                                Remove a tag to revoke access immediately;
-                                the user's next request will drop the elevated
-                                session.
-                            </li>
-                        </ul>
-                        <p>
-                            Each selected POS config must have a
-                            <strong>Default User</strong> configured under
-                            <em>POS Settings → Self-Ordering</em>.
-                        </p>
-                    </div>
-                </page>
-            </xpath>
-        </field>
-    </record>
-
+    <!-- Portal POS tab removed: access is now derived from
+         hr.employee + pos.config employee-login settings. -->
 </odoo>
