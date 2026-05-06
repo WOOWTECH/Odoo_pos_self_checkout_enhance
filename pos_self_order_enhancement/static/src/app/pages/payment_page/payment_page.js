@@ -28,17 +28,6 @@ export class PaymentPage extends Component {
             kioskPaymentMethodId: null,
         });
 
-        // E-Invoice carrier preferences
-        this.invoiceState = useState({
-            carrierType: "print",
-            carrierNum: "",
-            loveCode: "",
-            buyerTaxId: "",
-            buyerName: "",
-            lookingUp: false,
-            validationError: null,
-        });
-
         onMounted(() => {
             this.state.loading = false;
             this.state.error = null;
@@ -244,109 +233,6 @@ export class PaymentPage extends Component {
         return currency.symbol + ' ' + amount.toFixed(currency.decimal_places || 0);
     }
 
-    // ── E-Invoice ──
-
-    get showEinvoiceForm() {
-        return (
-            !this.isKioskMode &&
-            this.selfOrder.config.ecpay_einvoice_enabled
-        );
-    }
-
-    setCarrierType(type) {
-        this.invoiceState.carrierType = type;
-        this.invoiceState.carrierNum = "";
-        this.invoiceState.loveCode = "";
-        this.invoiceState.buyerTaxId = "";
-        this.invoiceState.buyerName = "";
-        this.invoiceState.validationError = null;
-    }
-
-    validateInvoiceData() {
-        const { carrierType, carrierNum, loveCode, buyerTaxId } = this.invoiceState;
-        this.invoiceState.validationError = null;
-
-        if (carrierType === "mobile") {
-            if (!carrierNum) {
-                this.invoiceState.validationError = _t("Please enter mobile barcode");
-                return false;
-            }
-            if (!/^\/[0-9A-Z+\-.]{7}$/.test(carrierNum)) {
-                this.invoiceState.validationError = _t("Invalid mobile barcode format (e.g. /ABC+123)");
-                return false;
-            }
-        }
-        if (carrierType === "donation") {
-            if (!loveCode) {
-                this.invoiceState.validationError = _t("Please enter love code");
-                return false;
-            }
-            if (!/^([xX][0-9]{2,6}|[0-9]{3,7})$/.test(loveCode)) {
-                this.invoiceState.validationError = _t("Invalid love code format (3-7 digits)");
-                return false;
-            }
-        }
-        if (carrierType === "b2b") {
-            if (!buyerTaxId) {
-                this.invoiceState.validationError = _t("Please enter tax ID");
-                return false;
-            }
-            if (!/^[0-9]{8}$/.test(buyerTaxId)) {
-                this.invoiceState.validationError = _t("Invalid tax ID format (8 digits)");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    async onTaxIdInput(ev) {
-        const val = ev.target.value.replace(/\D/g, "");
-        this.invoiceState.buyerTaxId = val;
-        if (val.length === 8) {
-            this.invoiceState.lookingUp = true;
-            try {
-                const res = await rpc("/pos-self-order/lookup-tax-id", {
-                    access_token: this.selfOrder.access_token,
-                    tax_id: val,
-                });
-                if (res?.success && res.name) {
-                    this.invoiceState.buyerName = res.name;
-                }
-            } catch (e) {
-                console.warn("Tax ID lookup failed:", e);
-            }
-            this.invoiceState.lookingUp = false;
-        }
-    }
-
-    async saveInvoiceData() {
-        const order = this.currentOrder;
-        if (!order?.id || !order.access_token) {
-            return;
-        }
-        try {
-            const result = await rpc("/pos-self-order/save-einvoice-data", {
-                access_token: this.selfOrder.access_token,
-                order_id: order.id,
-                order_access_token: order.access_token,
-                carrier_type: this.invoiceState.carrierType,
-                carrier_num: this.invoiceState.carrierNum,
-                love_code: this.invoiceState.loveCode,
-                buyer_tax_id: this.invoiceState.buyerTaxId,
-                buyer_name: this.invoiceState.buyerName,
-            });
-            if (result && !result.success) {
-                this.invoiceState.validationError = result.error;
-                return false;
-            }
-        } catch (error) {
-            console.error("Save invoice data error:", error);
-            this.invoiceState.validationError = _t("Failed to save invoice data. Please try again.");
-            return false;
-        }
-        return true;
-    }
-
     goBack() {
         this.router.navigate("cart");
     }
@@ -362,11 +248,6 @@ export class PaymentPage extends Component {
             return;
         }
 
-        // Validate e-invoice data before proceeding
-        if (this.showEinvoiceForm && !this.validateInvoiceData()) {
-            return;
-        }
-
         this.state.loading = true;
         this.state.error = null;
 
@@ -374,15 +255,6 @@ export class PaymentPage extends Component {
             // Ensure order is on the server
             if (!order.access_token) {
                 await this.selfOrder.sendDraftOrderToServer();
-            }
-
-            // Save e-invoice preferences
-            if (this.showEinvoiceForm) {
-                const saved = await this.saveInvoiceData();
-                if (saved === false) {
-                    this.state.loading = false;
-                    return;
-                }
             }
 
             // Notify POS that customer will pay at counter
@@ -410,10 +282,6 @@ export class PaymentPage extends Component {
      */
     async selectOnlinePayment(paymentMethodId) {
         if (this.state.loading) return;
-        // Validate e-invoice data before proceeding
-        if (this.showEinvoiceForm && !this.validateInvoiceData()) {
-            return;
-        }
 
         this.state.loading = true;
         this.state.error = null;
@@ -436,15 +304,6 @@ export class PaymentPage extends Component {
             // Ensure order is sent to server and has access_token
             if (!order.access_token) {
                 order = await this.selfOrder.sendDraftOrderToServer();
-            }
-
-            // Save e-invoice preferences before redirecting to payment
-            if (this.showEinvoiceForm) {
-                const saved = await this.saveInvoiceData();
-                if (saved === false) {
-                    this.state.loading = false;
-                    return;
-                }
             }
 
             if (order.state === "draft") {

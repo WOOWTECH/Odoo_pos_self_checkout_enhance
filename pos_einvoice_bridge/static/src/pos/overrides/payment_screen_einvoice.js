@@ -5,7 +5,7 @@ import { patch } from "@web/core/utils/patch";
 import { useState, useRef } from "@odoo/owl";
 import { loadAllImages } from "@point_of_sale/utils";
 import { _t } from "@web/core/l10n/translation";
-import { selectEinvoicePrinter } from "@pos_self_order_enhancement/printer/select_einvoice_printer";
+import { selectEinvoicePrinter } from "@pos_einvoice_bridge/printer/select_einvoice_printer";
 
 patch(PaymentScreen.prototype, {
     setup() {
@@ -63,7 +63,6 @@ patch(PaymentScreen.prototype, {
         const result = await super._finalizeValidation(...arguments);
 
         // Issue e-invoice after order is synced to server
-        // State can be "paid" (no invoice toggle) or "invoiced" (invoice toggle ON)
         if (
             this.pos.config.ecpay_einvoice_enabled &&
             ["paid", "invoiced", "done"].includes(this.currentOrder.state)
@@ -118,9 +117,6 @@ patch(PaymentScreen.prototype, {
     },
 
     async _printTwInvoiceReceipt() {
-        // Print Taiwan invoice receipt to ESC/POS preparation printer.
-        // Uses the ecpay_invoice_tw QWeb report template (server-side rendered)
-        // to ensure the format matches the official government-compliant format.
         const escposPrinter = selectEinvoicePrinter(this.pos);
         if (!escposPrinter) {
             console.warn("No ESC/POS printer found for invoice printing");
@@ -136,7 +132,6 @@ patch(PaymentScreen.prototype, {
             );
             if (!res?.html) return;
 
-            // Create DOM element from server-rendered HTML
             const container = document.createElement("div");
             container.innerHTML = res.html;
             container.style.position = "fixed";
@@ -156,7 +151,6 @@ patch(PaymentScreen.prototype, {
                 );
             }
         } catch (e) {
-            // Non-blocking: e-invoice is already issued via ECPay
             console.warn("Taiwan invoice print failed:", e);
         }
     },

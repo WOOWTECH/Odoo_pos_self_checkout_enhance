@@ -14,7 +14,7 @@ import { Component } from "@odoo/owl";
  *   sellerTaxId - seller's 統一編號
  */
 export class TwInvoiceReceipt extends Component {
-    static template = "pos_self_order_enhancement.TwInvoiceReceipt";
+    static template = "pos_einvoice_bridge.TwInvoiceReceipt";
     static props = {
         order: Object,
         invoiceData: Object,
