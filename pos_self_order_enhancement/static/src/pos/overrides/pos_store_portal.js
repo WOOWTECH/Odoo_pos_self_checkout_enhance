@@ -15,7 +15,7 @@ import { session } from "@web/session";
 patch(PosStore.prototype, {
     redirectToBackend() {
         if (session.portal_pos_mode) {
-            window.location = "/my";
+            window.location = "/my/pos";
             return;
         }
         return super.redirectToBackend(...arguments);

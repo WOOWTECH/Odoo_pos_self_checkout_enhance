@@ -3,18 +3,19 @@
 Adds three pieces:
 
 1. Override of ``PosController.pos_web`` (``/pos/ui`` / ``/pos/web``) so
-   portal users whose partner has any entry in ``portal_pos_config_ids``
-   can load the POS cashier interface. The target shop is picked via
-   ``?config_id=N``; if the user has exactly one assigned shop, that
-   config is used implicitly.  Internal users continue to use the stock
-   Odoo behaviour.
+   portal users who have an ``hr.employee`` record authorised on the
+   target POS config can load the POS cashier interface.  The target shop
+   is picked via ``?config_id=N``; if the user has exactly one authorised
+   shop, that config is used implicitly.  Internal users continue to use
+   the stock Odoo behaviour.
 
 2. New ``/my/pos`` route that renders the shop picker page showing all
-   assigned POS shops with session status and KDS access.
+   authorised POS shops with session status and KDS access.
 
 3. Extension of ``CustomerPortal._prepare_home_portal_values`` so the
    "My Account" portal home page can render a "Point of Sale" card
    whose subtitle reflects how many shops the user has access to.
+   The card is hidden entirely when the count is zero.
 """
 
 import logging
@@ -46,8 +47,7 @@ class PosPortalController(PosController):
         if not session_user._is_portal():
             return request.not_found()
 
-        partner = session_user.partner_id
-        configs = partner.portal_pos_config_ids.filtered('active')
+        configs = session_user._get_portal_pos_configs()
         if not configs:
             return request.not_found()
 
@@ -59,7 +59,7 @@ class PosPortalController(PosController):
                 return request.not_found()
             target = configs.filtered(lambda c: c.id == requested_id)
             if not target:
-                # Config is either unknown or not assigned to this partner.
+                # Config is either unknown or not authorised for this user.
                 return request.not_found()
         elif len(configs) == 1:
             target = configs
@@ -137,9 +137,9 @@ class PortalHomePosCard(CustomerPortal):
 
     @http.route(['/my/pos'], type='http', auth='user', website=True)
     def portal_my_pos(self, **kw):
-        user = request.env.user
-        partner = user.sudo().partner_id
-        configs = partner.portal_pos_config_ids.filtered('active')
+        session_uid = request.session.uid
+        session_user = request.env['res.users'].sudo().browse(session_uid)
+        configs = session_user._get_portal_pos_configs()
 
         return request.render(
             'pos_self_order_enhancement.portal_pos_picker',
@@ -156,7 +156,8 @@ class PortalHomePosCard(CustomerPortal):
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         if not counters or 'portal_pos_config_count' in counters:
-            partner = request.env.user.sudo().partner_id
-            configs = partner.portal_pos_config_ids.filtered('active')
+            session_uid = request.session.uid
+            session_user = request.env['res.users'].sudo().browse(session_uid)
+            configs = session_user._get_portal_pos_configs()
             values['portal_pos_config_count'] = len(configs)
         return values

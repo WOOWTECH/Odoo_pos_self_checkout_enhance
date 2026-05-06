@@ -1,9 +1,10 @@
 """Per-request user context swap for portal users accessing the POS UI.
 
-When a portal user has a ``portal_pos_config_ids`` assignment on their
-partner and they make a request to a POS-related path, the request
-environment is transparently elevated to the currently-active config's
-``self_ordering_default_user_id`` (an internal user with POS permissions).
+When a portal user has an ``hr.employee`` record authorised on the
+target POS config (via employee-login settings) and they make a request
+to a POS-related path, the request environment is transparently elevated
+to the currently-active config's ``self_ordering_default_user_id`` (an
+internal user with POS permissions).
 
 The "currently-active" config is pinned on the HTTP session under
 ``portal_pos_active_config_id`` by the ``/pos/ui`` controller. This
@@ -95,12 +96,12 @@ class IrHttp(models.AbstractModel):
             # an AccessError, which is the correct behaviour.
             return
 
-        partner = user.sudo().partner_id
-        pos_config = partner.portal_pos_config_ids.filtered(
-            lambda c: c.id == active_id and c.active
-        )
+        # Validate the pinned config is still authorised for this user
+        # via the employee-based access logic.
+        configs = user._get_portal_pos_configs()
+        pos_config = configs.filtered(lambda c: c.id == active_id)
         if not pos_config:
-            # Config was unassigned or archived since it was pinned.
+            # Employee no longer authorised or config archived/changed.
             # Drop the stale key so we don't keep re-validating it.
             request.session.pop('portal_pos_active_config_id', None)
             return
