@@ -6,7 +6,7 @@
         Per 財政部「電子發票實施作業要點」附件一 (112年修正)
         Layout follows 圖1-1 (B2C) / 圖1-2 (B2B)
     -->
-    <t t-name="pos_self_order_enhancement.TwInvoiceReceipt">
+    <t t-name="pos_einvoice_bridge.TwInvoiceReceipt">
         <!-- 57mm thermal paper = 455px at 203 DPI -->
         <div class="tw-invoice-receipt" style="width:455px; font-family:monospace; font-size:15px; padding:8px; background:#fff; color:#000;">
 
