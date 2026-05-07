@@ -35,9 +35,8 @@ class PosConfig(models.Model):
     )
     ecpay_einvoice_enabled = fields.Boolean('E-Invoice (電子發票)', default=False)
     ecpay_seller_tax_id = fields.Char(
-        related='company_id.seller_Identifier',
         string='Seller Tax ID (賣方統編)',
-        readonly=True,
+        compute='_compute_ecpay_seller_tax_id',
     )
     einvoice_printer_id = fields.Many2one(
         'pos.printer',
@@ -48,6 +47,13 @@ class PosConfig(models.Model):
              "Leave kitchen-routed printers (those with Printed Product Categories) "
              "unselected here so kitchen tickets and invoices land on separate devices.",
     )
+
+    def _compute_ecpay_seller_tax_id(self):
+        for record in self:
+            seller_id = ''
+            if hasattr(record.company_id, 'seller_Identifier'):
+                seller_id = record.company_id.seller_Identifier or ''
+            record.ecpay_seller_tax_id = seller_id
 
     def _compute_is_ecpay_installed(self):
         module = self.env['ir.module.module'].sudo().search(
