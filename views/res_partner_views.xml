@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Portal POS tab removed: access is now derived from
+         hr.employee + pos.config employee-login settings. -->
+</odoo>
