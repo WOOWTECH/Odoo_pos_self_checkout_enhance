@@ -59,7 +59,9 @@ class PosOrder(models.Model):
        help='Controls when POS/KDS is notified about self-order orders in pay-per-order mode.')
 
     # ── E-Invoice (電子發票) ─────────────────────────────────
-    ecpay_invoice_id = fields.Many2one('uniform.invoice', string='統一發票', readonly=True, copy=False)
+    # Stored as plain Integer (record ID) so the module does NOT hard-depend
+    # on ecpay_invoice_tw.  Browse via _get_ecpay_invoice_record().
+    ecpay_invoice_id = fields.Integer(string='統一發票 Record ID', readonly=True, copy=False)
     tw_invoice_number = fields.Char('Invoice Number (發票號碼)')
     tw_invoice_random_code = fields.Char('Random Code (隨機碼)')
     tw_carrier_type = fields.Selection([
@@ -114,6 +116,39 @@ class PosOrder(models.Model):
                 _logger.debug("GCIS lookup failed for %s", tax_id, exc_info=True)
 
         return {'success': False, 'error': 'Company not found'}
+
+    # ── ECPay optional helpers ────────────────────────────
+
+    def _ensure_ecpay_sdk(self):
+        """Try to import the ECPay SDK.
+
+        Returns ``(EcpayInvoice_class, None)`` on success, or
+        ``(None, error_dict)`` when ecpay_invoice_tw is not installed.
+        """
+        try:
+            from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
+            return EcpayInvoice, None
+        except (ImportError, ModuleNotFoundError):
+            return None, {
+                'success': False,
+                'error': 'ecpay_invoice_tw 模組未安裝，無法使用電子發票功能。',
+            }
+
+    def _get_ecpay_invoice_record(self):
+        """Browse the linked uniform.invoice record (if ecpay is installed).
+
+        Returns a recordset or *None* when the model is unavailable or the
+        record no longer exists.
+        """
+        self.ensure_one()
+        if not self.ecpay_invoice_id:
+            return None
+        try:
+            rec = self.env['uniform.invoice'].browse(self.ecpay_invoice_id)
+            return rec if rec.exists() else None
+        except KeyError:
+            # 'uniform.invoice' model not registered (ecpay not installed)
+            return None
 
     def _get_line_hold_fire_category(self, line):
         """Return (category_id, category_name) for the line's effective Hold & Fire category.
@@ -587,6 +622,10 @@ class PosOrder(models.Model):
                 'pos_barcode': self.tw_pos_barcode or '',
             }
 
+        EcpayInvoice, sdk_err = self._ensure_ecpay_sdk()
+        if sdk_err:
+            return sdk_err
+
         company = self.env.company
         if not company.ecpay_MerchantID or not company.ecpay_HashKey or not company.ecpay_HashIV:
             return {'success': False, 'error': '綠界電子發票連線設定不完整 ECPay credentials not configured'}
@@ -596,8 +635,6 @@ class PosOrder(models.Model):
         love_code = carrier_data.get('love_code', '')
         buyer_tax_id = carrier_data.get('buyer_tax_id', '')
         buyer_name = carrier_data.get('buyer_name', '')
-
-        from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
 
         invoice_sdk = EcpayInvoice()
 
@@ -728,7 +765,9 @@ class PosOrder(models.Model):
         """
         import datetime as _dt
 
-        from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
+        EcpayInvoice, sdk_err = self._ensure_ecpay_sdk()
+        if sdk_err:
+            return
 
         inv = EcpayInvoice()
         self.env['account.move'].ecpay_invoice_init(
@@ -771,7 +810,11 @@ class PosOrder(models.Model):
         if self.tw_invoice_status != 'issued' or not self.ecpay_invoice_id:
             return {'success': False, 'error': 'No issued invoice to void'}
 
-        from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
+        EcpayInvoice, sdk_err = self._ensure_ecpay_sdk()
+        if sdk_err:
+            return sdk_err
+
+        ui_record = self._get_ecpay_invoice_record()
 
         inv = EcpayInvoice()
         self.env['account.move'].ecpay_invoice_init(
@@ -781,8 +824,8 @@ class PosOrder(models.Model):
 
         inv.Send['InvoiceNo'] = self.tw_invoice_number
         inv.Send['InvoiceDate'] = (
-            self.ecpay_invoice_id.IIS_Create_Date.strftime('%Y/%m/%d')
-            if self.ecpay_invoice_id.IIS_Create_Date
+            ui_record.IIS_Create_Date.strftime('%Y/%m/%d')
+            if ui_record and ui_record.IIS_Create_Date
             else self.date_order.strftime('%Y/%m/%d')
         )
         inv.Send['Reason'] = (reason or 'POS order voided')[:200]
@@ -795,10 +838,11 @@ class PosOrder(models.Model):
         if result.get('RtnCode') == 1:
             self.write({'tw_invoice_status': 'voided'})
             # Refresh uniform.invoice status
-            try:
-                self._pos_query_invoice_info(self.ecpay_invoice_id)
-            except Exception:
-                pass
+            if ui_record:
+                try:
+                    self._pos_query_invoice_info(ui_record)
+                except Exception:
+                    pass
             return {'success': True}
         return {'success': False, 'error': result.get('RtnMsg', 'Unknown error')}
 
@@ -812,10 +856,19 @@ class PosOrder(models.Model):
         if not self.ecpay_invoice_id:
             return {'html': ''}
 
+        # Check QWeb template exists (ecpay_invoice_tw may not be installed)
+        tmpl = self.env.ref('ecpay_invoice_tw.invoice', raise_if_not_found=False)
+        if not tmpl:
+            return {'html': ''}
+
+        ui_record = self._get_ecpay_invoice_record()
+        if not ui_record:
+            return {'html': ''}
+
         try:
             html = self.env['ir.qweb']._render('ecpay_invoice_tw.invoice', {
-                'docs': self.ecpay_invoice_id,
-                'doc': self.ecpay_invoice_id,
+                'docs': ui_record,
+                'doc': ui_record,
                 'user': self.env.user,
                 'company': self.env.company,
             })

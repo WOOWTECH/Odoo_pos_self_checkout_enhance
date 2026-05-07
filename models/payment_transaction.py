@@ -51,6 +51,8 @@ class PaymentTransaction(models.Model):
         order = self.pos_order_id
         if not order or not order.config_id.ecpay_einvoice_enabled:
             return
+        if not order.config_id.is_ecpay_installed:
+            return
         if order.ecpay_invoice_id or order.tw_invoice_status == 'issued':
             return
 

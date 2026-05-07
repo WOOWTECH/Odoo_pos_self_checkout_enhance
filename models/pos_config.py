@@ -29,6 +29,10 @@ class PosConfig(models.Model):
         self.kds_access_token = uuid.uuid4().hex[:16]
 
     # ── E-Invoice (電子發票) ────────────────────────────────
+    is_ecpay_installed = fields.Boolean(
+        'ECPay Module Installed',
+        compute='_compute_is_ecpay_installed',
+    )
     ecpay_einvoice_enabled = fields.Boolean('E-Invoice (電子發票)', default=False)
     ecpay_seller_tax_id = fields.Char(
         related='company_id.seller_Identifier',
@@ -45,6 +49,15 @@ class PosConfig(models.Model):
              "unselected here so kitchen tickets and invoices land on separate devices.",
     )
 
+    def _compute_is_ecpay_installed(self):
+        module = self.env['ir.module.module'].sudo().search(
+            [('name', '=', 'ecpay_invoice_tw'), ('state', '=', 'installed')],
+            limit=1,
+        )
+        installed = bool(module)
+        for record in self:
+            record.is_ecpay_installed = installed
+
     @api.model
     def _load_pos_self_data_fields(self, config_id):
         params = super()._load_pos_self_data_fields(config_id)
@@ -54,6 +67,7 @@ class PosConfig(models.Model):
         if params:
             params.append('ecpay_einvoice_enabled')
             params.append('einvoice_printer_id')
+            params.append('is_ecpay_installed')
         return params
 
     def _compute_selection_pay_after(self):
