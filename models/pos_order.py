@@ -526,13 +526,13 @@ class PosOrder(models.Model):
             if tables:
                 gated.send_table_count_notification(tables)
 
-            # Auto-fire paid orders to kitchen — ONLY for meal mode.
-            # In meal mode, payment confirmation = kitchen starts immediately.
-            # In each mode, staff must manually click Order to send to kitchen.
+            # Auto-fire paid orders to kitchen after online payment.
+            # Both meal and each mode: payment confirmation = send to kitchen.
+            # Counter-payment orders don't reach here (handled by write()
+            # override + manual staff "Order" button in POS frontend).
             to_fire = gated.filtered(
                 lambda o: not o.kds_sent_to_kitchen
                           and o.config_id.kds_enabled
-                          and o.config_id.self_ordering_pay_after == 'meal'
             )
             if to_fire:
                 to_fire.mark_sent_to_kitchen()
