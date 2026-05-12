@@ -59,6 +59,26 @@ patch(PaymentScreen.prototype, {
         }
     },
 
+    async afterOrderValidation() {
+        const result = await super.afterOrderValidation(...arguments);
+
+        // Base Odoo skips kitchen printing in restaurant mode (expects
+        // staff to click "Order" first). Override: when the cashier pays
+        // directly without pressing "Order", send unsent items to the
+        // kitchen now — payment IS order confirmation.
+        if (
+            this.pos.config.module_pos_restaurant &&
+            this.currentOrder &&
+            !this.currentOrder.kds_sent_to_kitchen
+        ) {
+            await this.pos.checkPreparationStateAndSentOrderInPreparation(
+                this.currentOrder
+            );
+        }
+
+        return result;
+    },
+
     async _finalizeValidation() {
         const result = await super._finalizeValidation(...arguments);
 
