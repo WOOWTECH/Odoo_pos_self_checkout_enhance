@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="pos_self_order_enhancement.PosProductCard" t-inherit="point_of_sale.ProductCard" t-inherit-mode="extension">
+        <!-- Grey-out overlay for sold-out products -->
         <xpath expr="//div[hasclass('product-content')]" position="after">
-            <span t-if="props.product.is_sold_out"
-                class="position-absolute bottom-0 start-0 w-100 text-center text-white fw-bold py-2"
-                style="background: rgba(220, 53, 69, 0.9); font-size: 13px; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
-                Sold Out for QR Order, but available for staff order
-            </span>
+            <div t-if="props.product.is_sold_out"
+                class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded-3"
+                style="background: rgba(0,0,0,0.45); z-index: 2; pointer-events: none;">
+                <span class="text-white fw-bold fs-5" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">售完</span>
+            </div>
         </xpath>
     </t>
 </templates>

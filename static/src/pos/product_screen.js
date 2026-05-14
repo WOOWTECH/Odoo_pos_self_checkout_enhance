@@ -165,4 +165,11 @@ patch(ProductScreen.prototype, {
     async onFireCourse(categoryId) {
         await handleFireCourse(this.pos, categoryId);
     },
+    async addProductToOrder(product) {
+        if (product && product.is_sold_out) {
+            this.notification.add(_t("此產品已售完"), { type: "warning" });
+            return;
+        }
+        return super.addProductToOrder(...arguments);
+    },
 });

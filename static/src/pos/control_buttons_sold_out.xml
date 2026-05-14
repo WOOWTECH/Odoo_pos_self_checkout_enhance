@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.ControlButtonsSoldOut" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <!-- Insert "產品售完管理" button in the Actions popup (showRemainingButtons=true) -->
+        <xpath expr="//div[hasclass('control-buttons-modal')]" position="inside">
+            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.onClickSoldOutManagement()">
+                <i class="fa fa-ban me-1" role="img" aria-label="Sold Out Management" title="Sold Out Management" />
+                產品售完管理
+            </button>
+        </xpath>
+    </t>
+</templates>
