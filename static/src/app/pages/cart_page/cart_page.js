@@ -155,29 +155,27 @@ patch(CartPage.prototype, {
             this.selfOrder.currentTable = order.table_id;
         }
 
-        // Resolve table from URL if selfOrder.currentTable is not yet set.
-        // The self-order service resolves table_identifier asynchronously,
-        // so it may not be ready when pay() is called.
+        // Detect dine-in vs takeaway from URL.
         const urlParams = new URL(window.location.href).searchParams;
         const tableIdent = urlParams.get("table_identifier");
-        if (tableIdent && !this.selfOrder.currentTable) {
-            const table = this.selfOrder.models["restaurant.table"]?.find(
-                (t) => t.identifier === tableIdent
-            );
-            if (table) {
-                this.selfOrder.currentTable = table;
-                order.update({ table_id: table });
+
+        if (!tableIdent) {
+            // No table_identifier = takeaway order. Set takeaway flag
+            // to skip the table selection popup in super.pay().
+            if (!order.takeaway) {
+                order.takeaway = true;
             }
+            return super.pay();
         }
 
-        // Auto-detect takeaway: no table_identifier in URL = takeaway order.
-        // This skips the table selection popup in super.pay() for takeaway
-        // customers who enter via the takeaway QR code / link.
-        if (!tableIdent && !this.selfOrder.currentTable && !order.takeaway) {
-            order.takeaway = true;
+        // Has table_identifier = dine-in. Skip super.pay()'s table
+        // popup by handling the flow directly (same as base pay() but
+        // without the !currentTable popup check).
+        if (this.selfOrder.rpcLoading || !this.selfOrder.verifyCart() || !this.selfOrder.verifyPriceLoading()) {
+            return;
         }
-
-        // Delegate to original pay() for all other cases
-        return super.pay();
+        this.selfOrder.rpcLoading = true;
+        await this.selfOrder.confirmOrder();
+        this.selfOrder.rpcLoading = false;
     },
 });
