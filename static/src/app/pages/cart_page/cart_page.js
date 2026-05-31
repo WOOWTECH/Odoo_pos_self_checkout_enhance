@@ -158,7 +158,10 @@ patch(CartPage.prototype, {
         // Auto-detect takeaway: no table_identifier in URL = takeaway order.
         // This skips the table selection popup in super.pay() for takeaway
         // customers who enter via the takeaway QR code / link.
-        if (!this.selfOrder.currentTable && !order.takeaway) {
+        // Check URL for table_identifier (not selfOrder.currentTable which
+        // may not be resolved yet).
+        const hasTableInUrl = new URL(window.location.href).searchParams.has("table_identifier");
+        if (!hasTableInUrl && !this.selfOrder.currentTable && !order.takeaway) {
             order.takeaway = true;
         }
 

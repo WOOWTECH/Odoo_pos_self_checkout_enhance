@@ -66,6 +66,12 @@ export class PaymentPage extends Component {
         return this.selfOrder.config.self_ordering_mode === "kiosk";
     }
 
+    get isDineIn() {
+        // Check URL for table_identifier OR selfOrder.currentTable
+        const url = new URL(window.location.href);
+        return url.searchParams.has("table_identifier") || !!this.selfOrder.currentTable;
+    }
+
     // ── Kiosk Mode ──
 
     get kioskPaymentMethods() {
