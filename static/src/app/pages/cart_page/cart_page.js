@@ -155,13 +155,25 @@ patch(CartPage.prototype, {
             this.selfOrder.currentTable = order.table_id;
         }
 
+        // Resolve table from URL if selfOrder.currentTable is not yet set.
+        // The self-order service resolves table_identifier asynchronously,
+        // so it may not be ready when pay() is called.
+        const urlParams = new URL(window.location.href).searchParams;
+        const tableIdent = urlParams.get("table_identifier");
+        if (tableIdent && !this.selfOrder.currentTable) {
+            const table = this.selfOrder.models["restaurant.table"]?.find(
+                (t) => t.identifier === tableIdent
+            );
+            if (table) {
+                this.selfOrder.currentTable = table;
+                order.update({ table_id: table });
+            }
+        }
+
         // Auto-detect takeaway: no table_identifier in URL = takeaway order.
         // This skips the table selection popup in super.pay() for takeaway
         // customers who enter via the takeaway QR code / link.
-        // Check URL for table_identifier (not selfOrder.currentTable which
-        // may not be resolved yet).
-        const hasTableInUrl = new URL(window.location.href).searchParams.has("table_identifier");
-        if (!hasTableInUrl && !this.selfOrder.currentTable && !order.takeaway) {
+        if (!tableIdent && !this.selfOrder.currentTable && !order.takeaway) {
             order.takeaway = true;
         }
 
