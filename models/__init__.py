@@ -2,6 +2,7 @@ from . import ir_http
 from . import payment_transaction
 from . import pos_category
 from . import pos_config
+from . import res_config_settings
 from . import pos_order
 from . import pos_printer
 from . import pos_session

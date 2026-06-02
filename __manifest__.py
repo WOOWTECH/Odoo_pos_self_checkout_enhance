@@ -1,6 +1,6 @@
 {
     "name": "POS Self Order Enhancement",
-    "version": "18.0.1.4.0",
+    "version": "18.0.1.5.0",
     "category": "Sales/Point of Sale",
     "summary": "Enhanced POS self-ordering with continue ordering, pay per order mode, and friendly UI",
     "description": """
@@ -75,6 +75,7 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
         "views/payment_templates.xml",
         "views/kds_templates.xml",
         "views/pos_config_view.xml",
+        "views/res_config_settings_views.xml",
         "views/pos_dashboard_kds.xml",
         "views/pos_printer_views.xml",
         "views/pos_category_view.xml",
