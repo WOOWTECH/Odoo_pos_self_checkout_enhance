@@ -72,6 +72,18 @@ export class PaymentPage extends Component {
         return url.searchParams.has("table_identifier") || !!this.selfOrder.currentTable;
     }
 
+    /**
+     * Determine whether to show the "Pay at Counter" button.
+     * - Dine-in: always show counter payment
+     * - Takeaway: only show if config.self_ordering_takeaway_allow_counter is enabled
+     */
+    get showCounterPayment() {
+        if (this.isDineIn) {
+            return true;
+        }
+        return !!this.selfOrder.config.self_ordering_takeaway_allow_counter;
+    }
+
     // ── Kiosk Mode ──
 
     get kioskPaymentMethods() {
