@@ -234,7 +234,7 @@
                             <div class="d-flex flex-column gap-2">
                                 <!-- Counter Payment Option: show for dine-in (has table), hide for takeaway (no table) -->
                                 <button class="btn btn-outline-success btn-lg d-flex align-items-center justify-content-start p-3"
-                                        t-if="isDineIn"
+                                        t-if="showCounterPayment"
                                         t-on-click="selectCounterPayment">
                                     <i class="fa fa-money me-3 fs-4 text-success"></i>
                                     <div class="text-start">
