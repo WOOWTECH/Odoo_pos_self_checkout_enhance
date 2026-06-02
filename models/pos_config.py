@@ -48,6 +48,15 @@ class PosConfig(models.Model):
              "unselected here so kitchen tickets and invoices land on separate devices.",
     )
 
+    # ── Takeaway Counter Payment ──────────────────────────────
+    self_ordering_takeaway_allow_counter = fields.Boolean(
+        'Allow Counter Payment for Takeaway (外帶允許現場結帳)',
+        default=False,
+        help="When enabled, self-order takeaway customers can choose "
+             "'Pay at Counter' in addition to online payment. "
+             "When disabled (default), takeaway orders can only use online payment.",
+    )
+
     def _compute_ecpay_seller_tax_id(self):
         for record in self:
             seller_id = ''
@@ -74,6 +83,7 @@ class PosConfig(models.Model):
             params.append('ecpay_einvoice_enabled')
             params.append('einvoice_printer_id')
             params.append('is_ecpay_installed')
+            params.append('self_ordering_takeaway_allow_counter')
         return params
 
     def _compute_selection_pay_after(self):
