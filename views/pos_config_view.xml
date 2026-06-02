@@ -41,4 +41,38 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Allow Counter Payment for Takeaway Orders -->
+    <record id="pos_config_view_form_takeaway_counter" model="ir.ui.view">
+        <field name="name">pos.config.form.takeaway.counter</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@groups='base.group_system']" position="before">
+                <setting string="Takeaway Counter Payment (外帶現場結帳)"
+                         help="Allow self-order takeaway customers to pay at counter / 允許自助點餐外帶客人選擇現場結帳"
+                         invisible="not module_pos_restaurant">
+                    <div class="content-group">
+                        <div class="row">
+                            <div class="col-lg-5 o_light_label">
+                                <label string="Allow Counter Payment / 允許現場結帳" for="self_ordering_takeaway_allow_counter"/>
+                            </div>
+                            <div class="col-lg-7">
+                                <field name="self_ordering_takeaway_allow_counter"/>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-2" invisible="not self_ordering_takeaway_allow_counter">
+                            When enabled, self-order takeaway customers see both "Pay at Counter" and "Online Payment" options.
+                            <br/>
+                            啟用後，自助點餐的外帶客人可以選擇「現場結帳」或「線上結帳」。
+                            <br/>
+                            When disabled, takeaway customers can only use online payment.
+                            <br/>
+                            停用時，外帶客人只能使用線上結帳。
+                        </div>
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
 </odoo>
