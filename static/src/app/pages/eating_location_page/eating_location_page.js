@@ -7,10 +7,27 @@ patch(EatingLocationPage.prototype, {
         super.setup(...arguments);
         const url = new URL(window.location.href);
         this.isTakeawayUrl = !url.searchParams.has("table_identifier");
+        this.isDineInUrl = url.searchParams.has("table_identifier");
     },
 
-    /** One-tap enter for takeaway-only URL */
-    enter() {
+    /** Table info string for dine-in welcome page */
+    get tableInfo() {
+        const table = this.selfOrder.currentTable;
+        if (!table) {
+            return "";
+        }
+        const floor = table.floor_id?.name || "";
+        const num = table.table_number || "";
+        return floor ? `${floor} - ${num} 號桌` : `${num} 號桌`;
+    },
+
+    /** One-tap enter for takeaway URL */
+    enterTakeaway() {
         this.selectLocation("out");
+    },
+
+    /** One-tap enter for dine-in URL */
+    enterDineIn() {
+        this.selectLocation("in");
     },
 });
