@@ -957,3 +957,45 @@ msgstr "Portal POS"
 #: model_terms:ir.ui.view,arch_db:pos_self_order_enhancement.view_partner_form_portal_pos
 msgid "Portal POS"
 msgstr "Portal POS"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "%(floor)s - Table %(num)s"
+msgstr "%(floor)s - %(num)s 號桌"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "Table %(num)s"
+msgstr "%(num)s 號桌"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "Dine-in Ordering"
+msgstr "內用點餐"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "Takeaway Ordering"
+msgstr "外帶點餐"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "Dine In"
+msgstr "堂食"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "Take Out"
+msgstr "外賣"
+
+#. module: pos_self_order_enhancement
+#. odoo-javascript
+#: code:addons/pos_self_order_enhancement/static/src/app/pages/eating_location_page/eating_location_page.js:0
+msgid "Enter"
+msgstr "進入"
