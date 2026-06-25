@@ -1012,11 +1012,11 @@ class PosOrder(models.Model):
                 content_lines.append(('small', f"  ** {line.note}", False))
                 y += 24
 
-        # Order note
-        if self.note:
+        # Order note (Odoo 18 uses general_note, not note)
+        if self.general_note:
             content_lines.append(('sep', '', False))
             y += 10
-            content_lines.append(('small', f"備註: {self.note}", False))
+            content_lines.append(('small', f"備註: {self.general_note}", False))
             y += 24
 
         y += margin
