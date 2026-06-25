@@ -558,6 +558,21 @@ class PosOrder(models.Model):
                             'order_id': order.id,
                         })
 
+                # Server-side kitchen ticket fallback: render and print
+                # directly from the backend. This ensures tickets print
+                # even when the POS browser tab is backgrounded (which
+                # throttles requestAnimationFrame and causes html-to-image
+                # to produce blank canvases), or when CJK fonts fail to
+                # embed in the SVG foreignObject pipeline.
+                for order in to_fire:
+                    try:
+                        order._print_kitchen_ticket_server()
+                    except Exception as e:
+                        _logger.warning(
+                            "[escpos] server-side kitchen ticket failed "
+                            "for order %s: %s", order.name, e,
+                        )
+
         return super()._process_saved_order(draft)
 
     def write(self, vals):
@@ -899,3 +914,152 @@ class PosOrder(models.Model):
             import logging
             logging.getLogger(__name__).warning("Failed to render einvoice HTML: %s", e)
             return {'html': ''}
+
+    # ── Server-side kitchen ticket rendering ─────────────
+
+    def _print_kitchen_ticket_server(self):
+        """Render and print a kitchen ticket entirely server-side with Pillow.
+
+        Bypasses the browser html-to-image pipeline which can produce blank
+        images when CJK fonts fail to embed or the browser tab is
+        backgrounded (requestAnimationFrame throttling).
+
+        Only prints via cloud relay (escpos_proxy_url). Printers configured
+        for local TCP are expected to have a co-located POS browser.
+        """
+        import base64
+        import io
+        from PIL import Image, ImageDraw, ImageFont
+
+        self.ensure_one()
+        config = self.config_id
+        printers = config.printer_ids.filtered(
+            lambda p: p.printer_type == 'network_escpos' and p.escpos_proxy_url
+        )
+        if not printers:
+            return
+
+        # Gather order lines
+        lines = self.lines.filtered(lambda l: l.qty > 0)
+        if not lines:
+            return
+
+        # Determine paper dimensions
+        printer = printers[0]
+        pw = int(printer.escpos_paper_width or '80')
+        dots = {80: 576, 58: 384}.get(pw, 576)
+
+        # Try to load a CJK-capable font, fall back to default
+        font_large = font_med = font_small = None
+        for font_path in [
+            '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',
+        ]:
+            try:
+                font_large = ImageFont.truetype(font_path, 28)
+                font_med = ImageFont.truetype(font_path, 22)
+                font_small = ImageFont.truetype(font_path, 18)
+                break
+            except (OSError, IOError):
+                continue
+        if not font_large:
+            try:
+                font_large = ImageFont.load_default(size=28)
+                font_med = ImageFont.load_default(size=22)
+                font_small = ImageFont.load_default(size=18)
+            except TypeError:
+                font_large = font_med = font_small = ImageFont.load_default()
+
+        # Render to image
+        # First pass: calculate height
+        margin = 10
+        y = margin
+        content_lines = []
+
+        # Header: order reference
+        ref = self.pos_reference or self.name or ''
+        content_lines.append(('large', ref, True))
+        y += 36
+
+        # Table info
+        if self.table_id:
+            floor_name = self.table_id.floor_id.name if self.table_id.floor_id else ''
+            table_num = self.table_id.table_number or ''
+            table_str = f"{floor_name} - {table_num}" if floor_name else str(table_num)
+            content_lines.append(('med', table_str, True))
+            y += 30
+
+        # Takeaway indicator
+        if self.takeaway:
+            content_lines.append(('med', '*** 外帶 ***', True))
+            y += 30
+
+        # Separator
+        content_lines.append(('sep', '', False))
+        y += 10
+
+        # Order lines
+        for line in lines:
+            product_name = line.full_product_name or line.product_id.display_name or ''
+            qty = int(line.qty) if line.qty == int(line.qty) else line.qty
+            line_text = f"{qty}x  {product_name}"
+            content_lines.append(('med', line_text, False))
+            y += 28
+            # Note
+            if line.note:
+                content_lines.append(('small', f"  ** {line.note}", False))
+                y += 24
+
+        # Order note
+        if self.note:
+            content_lines.append(('sep', '', False))
+            y += 10
+            content_lines.append(('small', f"備註: {self.note}", False))
+            y += 24
+
+        y += margin
+
+        # Create image
+        img = Image.new('RGB', (dots, max(y, 100)), 'white')
+        draw = ImageDraw.Draw(img)
+
+        y = margin
+        for font_key, text, center in content_lines:
+            if font_key == 'sep':
+                draw.line([(margin, y + 4), (dots - margin, y + 4)], fill='black', width=2)
+                y += 10
+                continue
+
+            font = {'large': font_large, 'med': font_med, 'small': font_small}[font_key]
+            line_h = {'large': 36, 'med': 28, 'small': 24}[font_key]
+
+            if center:
+                bbox = draw.textbbox((0, 0), text, font=font)
+                tw = bbox[2] - bbox[0]
+                x = max(margin, (dots - tw) // 2)
+            else:
+                x = margin
+
+            draw.text((x, y), text, fill='black', font=font)
+            y += line_h
+
+        # Convert to JPEG base64
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=85)
+        b64_jpeg = base64.b64encode(buf.getvalue()).decode('ascii')
+
+        # Send to all relay printers
+        for printer in printers:
+            result = printer._send_via_relay(b64_jpeg)
+            if result.get('success'):
+                _logger.info(
+                    "[escpos] server-side kitchen ticket printed for %s via %s",
+                    self.name, printer.name,
+                )
+            else:
+                _logger.warning(
+                    "[escpos] server-side kitchen ticket FAILED for %s: %s",
+                    self.name, result.get('error'),
+                )

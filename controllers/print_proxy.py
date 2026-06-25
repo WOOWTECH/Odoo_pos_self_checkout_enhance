@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 import logging
 
 from odoo import http
@@ -13,6 +14,12 @@ DEFAULT_PRINTER_PORT = 9100
 # Socket timeout (seconds). Short on purpose: an offline printer must not
 # stall an Odoo HTTP worker.
 PRINTER_TIMEOUT = 3
+
+# A real kitchen ticket JPEG is typically 5–50 KB. An all-white canvas
+# rendered by html-to-image (CJK font embedding failure or background tab
+# throttling) produces a tiny JPEG of ~500–2000 bytes. We treat anything
+# below this threshold as "blank" and attempt server-side re-render.
+BLANK_IMAGE_THRESHOLD = 2500
 
 
 class PosEscPosProxy(http.Controller):
@@ -48,6 +55,20 @@ class PosEscPosProxy(http.Controller):
         printer = self._find_printer(printer_id=printer_id, printer_ip=printer_ip)
 
         if action == 'print_receipt':
+            if receipt:
+                image_bytes = self._safe_b64decode(receipt)
+                if image_bytes is not None:
+                    _logger.info(
+                        "[escpos] received image: %d bytes (b64 len=%d)",
+                        len(image_bytes), len(receipt),
+                    )
+                    if len(image_bytes) < BLANK_IMAGE_THRESHOLD:
+                        _logger.warning(
+                            "[escpos] image is suspiciously small (%d bytes < %d threshold), "
+                            "likely a blank canvas from html-to-image CJK rendering failure",
+                            len(image_bytes), BLANK_IMAGE_THRESHOLD,
+                        )
+
             if printer and printer.escpos_proxy_url:
                 return printer._send_via_relay(receipt)
             # Local TCP path: prefer the record's configured IP, fall back to
@@ -93,6 +114,14 @@ class PosEscPosProxy(http.Controller):
             )
 
         return {'success': False, 'error': f'Unknown action: {action}'}
+
+    @staticmethod
+    def _safe_b64decode(data):
+        """Decode base64 without raising on malformed input."""
+        try:
+            return base64.b64decode(data)
+        except Exception:
+            return None
 
     @staticmethod
     def _find_printer(printer_id=None, printer_ip=None):
