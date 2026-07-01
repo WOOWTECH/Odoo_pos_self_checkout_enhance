@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import io
 import logging
 
 from odoo import http
@@ -18,106 +19,213 @@ PRINTER_TIMEOUT = 3
 # A real kitchen ticket JPEG is typically 5–50 KB. An all-white canvas
 # rendered by html-to-image (CJK font embedding failure or background tab
 # throttling) produces a tiny JPEG of ~500–2000 bytes. We treat anything
-# below this threshold as "blank" and attempt server-side re-render.
+# below this threshold as "blank" and log a warning.
 BLANK_IMAGE_THRESHOLD = 2500
 
 
 class PosEscPosProxy(http.Controller):
     """In-process ESC/POS print controller.
 
-    Receives a base64-encoded JPEG receipt from the POS browser and prints
-    it either:
-      - directly via a TCP socket to the printer at port 9100 (default), or
-      - through an HTTP proxy (cloud relay mode) when the target pos.printer
-        record has `escpos_proxy_url` set.
-
-    The relay path delegates to ``pos.printer._send_via_relay`` — see the
-    model for the actual HTTP POST. Routing is invisible to the POS
-    frontend: same route, decisions made server-side per printer record.
-
-    Lookup prefers the ``printer_id`` payload field (pos.printer record id),
-    falling back to ``printer_ip`` for back-compat with cached browser
-    sessions that predate this change.
+    Two endpoints:
+      /pos-escpos/print        — browser-rendered JPEG receipt (legacy)
+      /pos-escpos/print-order  — server-side Pillow rendering (preferred)
     """
+
+    # ── Server-side rendering endpoint (preferred) ─────────
+
+    @http.route('/pos-escpos/print-order', type='json', auth='user', methods=['POST'])
+    def print_order_server_side(self, order_id, printer_id, title='New', lines=None):
+        """Render a kitchen ticket server-side with Pillow and send to printer.
+
+        Completely bypasses the browser html-to-image pipeline, avoiding
+        blank receipts from CJK font embedding failures in SVG foreignObject.
+
+        :param order_id: pos.order record id
+        :param printer_id: pos.printer record id
+        :param title: Ticket title (e.g. 'New', 'Cancelled')
+        :param lines: List of dicts with {name, quantity, note}
+        :returns: dict with 'success' boolean
+        """
+        printer = self._find_printer(printer_id=printer_id)
+        if not printer or not printer.escpos_proxy_url:
+            return {'success': False, 'error': 'No relay-configured printer found'}
+
+        Order = request.env['pos.order'].sudo()
+        order = Order.browse(int(order_id)).exists()
+        if not order:
+            return {'success': False, 'error': f'Order {order_id} not found'}
+
+        b64_jpeg = self._render_ticket_image(order, printer, title, lines or [])
+        if not b64_jpeg:
+            return {'success': False, 'error': 'Failed to render ticket image'}
+
+        return printer._send_via_relay(b64_jpeg)
+
+    @staticmethod
+    def _render_ticket_image(order, printer, title, lines):
+        """Render a kitchen ticket as a JPEG image using Pillow.
+
+        Returns base64-encoded JPEG string, or None on failure.
+        """
+        from PIL import Image, ImageDraw, ImageFont
+
+        pw = int(printer.escpos_paper_width or '80')
+        dots = {80: 576, 58: 384}.get(pw, 576)
+
+        # Load CJK font
+        font_large = font_med = font_small = None
+        for font_path in [
+            '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+        ]:
+            try:
+                font_large = ImageFont.truetype(font_path, 28)
+                font_med = ImageFont.truetype(font_path, 22)
+                font_small = ImageFont.truetype(font_path, 18)
+                break
+            except (OSError, IOError):
+                continue
+        if not font_large:
+            try:
+                font_large = ImageFont.load_default(size=28)
+                font_med = ImageFont.load_default(size=22)
+                font_small = ImageFont.load_default(size=18)
+            except TypeError:
+                font_large = font_med = font_small = ImageFont.load_default()
+
+        margin = 10
+        y = margin
+        content = []
+
+        # Header: order reference
+        ref = order.pos_reference or order.name or ''
+        content.append(('large', ref, True))
+        y += 36
+
+        # Table info
+        if order.table_id:
+            floor = order.table_id.floor_id.name if order.table_id.floor_id else ''
+            tnum = order.table_id.table_number or ''
+            table_str = f"{floor} - {tnum}" if floor else str(tnum)
+            content.append(('med', table_str, True))
+            y += 30
+
+        # Takeaway indicator
+        if order.takeaway:
+            content.append(('med', '*** 外帶 ***', True))
+            y += 30
+
+        content.append(('sep', '', False))
+        y += 10
+
+        # Use frontend-provided lines if available, otherwise fall back to order.lines
+        if lines:
+            for line in lines:
+                name = line.get('name', '')
+                qty = line.get('quantity', 1)
+                qty_str = int(qty) if qty == int(qty) else qty
+                content.append(('med', f"{qty_str}x  {name}", False))
+                y += 28
+                note = line.get('note', '')
+                if note:
+                    content.append(('small', f"  ** {note}", False))
+                    y += 24
+        else:
+            for line in order.lines.filtered(lambda l: l.qty > 0):
+                name = line.full_product_name or line.product_id.display_name or ''
+                qty = int(line.qty) if line.qty == int(line.qty) else line.qty
+                content.append(('med', f"{qty}x  {name}", False))
+                y += 28
+                line_note = getattr(line, 'note', '') or ''
+                if line_note:
+                    content.append(('small', f"  ** {line_note}", False))
+                    y += 24
+
+        # General note
+        general_note = order.general_note or ''
+        if general_note:
+            content.append(('sep', '', False))
+            y += 10
+            content.append(('small', f"備註: {general_note}", False))
+            y += 24
+
+        y += margin
+
+        # Create image
+        img = Image.new('RGB', (dots, max(y, 100)), 'white')
+        draw = ImageDraw.Draw(img)
+
+        y = margin
+        for fkey, text, center in content:
+            if fkey == 'sep':
+                draw.line([(margin, y + 4), (dots - margin, y + 4)], fill='black', width=2)
+                y += 10
+                continue
+            font = {'large': font_large, 'med': font_med, 'small': font_small}[fkey]
+            line_h = {'large': 36, 'med': 28, 'small': 24}[fkey]
+            if center:
+                bbox = draw.textbbox((0, 0), text, font=font)
+                tw = bbox[2] - bbox[0]
+                x = max(margin, (dots - tw) // 2)
+            else:
+                x = margin
+            draw.text((x, y), text, fill='black', font=font)
+            y += line_h
+
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=85)
+        _logger.info(
+            "[escpos] server-side rendered ticket for %s: %dx%d, %d bytes",
+            order.name or order.pos_reference, img.size[0], img.size[1], len(buf.getvalue()),
+        )
+        return base64.b64encode(buf.getvalue()).decode('ascii')
+
+    # ── Browser-rendered JPEG endpoint (legacy/fallback) ───
 
     @http.route('/pos-escpos/print', type='json', auth='user', methods=['POST'])
     def relay_print(self, action, printer_id=None, printer_ip=None, receipt=None):
-        """Print a receipt or kick the cash drawer.
-
-        :param action: 'print_receipt' or 'cashbox'
-        :param printer_id: pos.printer record id (preferred lookup key)
-        :param printer_ip: Target printer IP — used as a fallback lookup key
-            and as the TCP target when the record has no IP or no matching
-            record is found (legacy cached-session support).
-        :param receipt: Base64-encoded JPEG image (only for 'print_receipt')
-        :returns: dict with 'success' boolean and optional 'error' message
-        """
+        """Print a receipt or kick the cash drawer."""
         printer = self._find_printer(printer_id=printer_id, printer_ip=printer_ip)
 
         if action == 'print_receipt':
             if receipt:
                 image_bytes = self._safe_b64decode(receipt)
                 if image_bytes is not None:
-                    _logger.info(
-                        "[escpos] received image: %d bytes (b64 len=%d)",
-                        len(image_bytes), len(receipt),
-                    )
-                    if len(image_bytes) < BLANK_IMAGE_THRESHOLD:
+                    img_size = len(image_bytes)
+                    _logger.info("[escpos] browser image: %d bytes", img_size)
+                    if img_size < BLANK_IMAGE_THRESHOLD:
                         _logger.warning(
-                            "[escpos] image is suspiciously small (%d bytes < %d threshold), "
-                            "likely a blank canvas from html-to-image CJK rendering failure",
-                            len(image_bytes), BLANK_IMAGE_THRESHOLD,
+                            "[escpos] browser image suspiciously small (%d bytes < %d), "
+                            "likely blank from html-to-image CJK failure",
+                            img_size, BLANK_IMAGE_THRESHOLD,
                         )
 
             if printer and printer.escpos_proxy_url:
                 return printer._send_via_relay(receipt)
-            # Local TCP path: prefer the record's configured IP, fall back to
-            # whatever the frontend passed in.
             ip = (printer.escpos_printer_ip if printer else '') or printer_ip
             if not ip:
-                return {
-                    'success': False,
-                    'error': 'No printer IP available for local TCP print.',
-                }
+                return {'success': False, 'error': 'No printer IP available.'}
             pw = int(printer.escpos_paper_width or '80') if printer else 80
             copies = printer.escpos_print_copies if printer else 1
             _logger.info("[escpos] local TCP -> %s (paper=%dmm, copies=%d)", ip, pw, copies)
             return print_image(
-                ip,
-                DEFAULT_PRINTER_PORT,
-                receipt,
-                paper_width=pw,
-                copies=copies,
-                timeout=PRINTER_TIMEOUT,
+                ip, DEFAULT_PRINTER_PORT, receipt,
+                paper_width=pw, copies=copies, timeout=PRINTER_TIMEOUT,
             )
 
         if action == 'cashbox':
-            # Cashbox pulses are local-only — the add-on has no /cashbox
-            # endpoint. If a relay-configured printer is asked to kick the
-            # drawer, the TCP path can't reach it from the cloud either, so
-            # return a structured error early rather than time out.
             if printer and printer.escpos_proxy_url:
-                return {
-                    'success': False,
-                    'error': 'Cashbox is not supported over the cloud relay.',
-                }
+                return {'success': False, 'error': 'Cashbox not supported over cloud relay.'}
             ip = (printer.escpos_printer_ip if printer else '') or printer_ip
             if not ip:
-                return {
-                    'success': False,
-                    'error': 'No printer IP available for cashbox.',
-                }
-            return open_cashbox(
-                ip,
-                port=DEFAULT_PRINTER_PORT,
-                timeout=PRINTER_TIMEOUT,
-            )
+                return {'success': False, 'error': 'No printer IP available.'}
+            return open_cashbox(ip, port=DEFAULT_PRINTER_PORT, timeout=PRINTER_TIMEOUT)
 
         return {'success': False, 'error': f'Unknown action: {action}'}
 
     @staticmethod
     def _safe_b64decode(data):
-        """Decode base64 without raising on malformed input."""
         try:
             return base64.b64decode(data)
         except Exception:
@@ -125,17 +233,6 @@ class PosEscPosProxy(http.Controller):
 
     @staticmethod
     def _find_printer(printer_id=None, printer_ip=None):
-        """Look up the pos.printer record.
-
-        Prefers ``printer_id`` (stable identifier — works even when the
-        record's IP is empty in cloud-relay mode). Falls back to
-        ``printer_ip`` for back-compat with POS browser sessions that
-        were loaded before this change.
-
-        Returns an empty recordset if nothing matches. Uses sudo()
-        because portal / self-order flows may drive prints from users
-        that don't have direct read access to pos.printer.
-        """
         Printer = request.env['pos.printer'].sudo()
         if printer_id:
             try:
@@ -143,7 +240,5 @@ class PosEscPosProxy(http.Controller):
             except (ValueError, TypeError):
                 pass
         if printer_ip:
-            return Printer.search(
-                [('escpos_printer_ip', '=', printer_ip)], limit=1,
-            )
+            return Printer.search([('escpos_printer_ip', '=', printer_ip)], limit=1)
         return Printer

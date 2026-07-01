@@ -18,8 +18,6 @@ import { _t } from "@web/core/l10n/translation";
 export class EscPosPrinter extends BasePrinter {
     setup({ printer_id, printer_ip }) {
         super.setup(...arguments);
-        // Record id is the primary lookup key for the backend controller.
-        // IP is kept for back-compat and still used for direct local TCP.
         this.printer_id = printer_id;
         this.printer_ip = printer_ip;
     }
@@ -79,5 +77,40 @@ patch(PosStore.prototype, {
             });
         }
         return super.create_printer(...arguments);
+    },
+
+    /**
+     * For network_escpos printers: use server-side Pillow rendering
+     * instead of browser html-to-image. This avoids blank receipts
+     * caused by CJK font embedding failure in SVG foreignObject.
+     */
+    async printReceipts(order, printer, title, lines, fullReceipt = false, diningModeUpdate) {
+        if (
+            printer instanceof EscPosPrinter &&
+            order &&
+            typeof order.id === "number" &&
+            lines &&
+            lines.length > 0
+        ) {
+            try {
+                const result = await rpc("/pos-escpos/print-order", {
+                    order_id: order.id,
+                    printer_id: printer.printer_id,
+                    title: title || "New",
+                    lines: lines.map((l) => ({
+                        name: l.name || l.basic_name || "",
+                        quantity: l.quantity || 0,
+                        note: l.note || "",
+                    })),
+                });
+                if (result && result.success) {
+                    return true;
+                }
+                console.warn("[escpos] server-side print returned failure, trying browser fallback");
+            } catch (e) {
+                console.warn("[escpos] server-side print RPC failed, trying browser fallback:", e);
+            }
+        }
+        return super.printReceipts(order, printer, title, lines, fullReceipt, diningModeUpdate);
     },
 });
