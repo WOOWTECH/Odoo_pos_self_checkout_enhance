@@ -1007,9 +1007,10 @@ class PosOrder(models.Model):
             line_text = f"{qty}x  {product_name}"
             content_lines.append(('med', line_text, False))
             y += 28
-            # Note
-            if line.note:
-                content_lines.append(('small', f"  ** {line.note}", False))
+            # Note (use getattr for safety during transient order states)
+            line_note = getattr(line, 'note', '') or ''
+            if line_note:
+                content_lines.append(('small', f"  ** {line_note}", False))
                 y += 24
 
         # Order note (Odoo 18 uses general_note, not note)
