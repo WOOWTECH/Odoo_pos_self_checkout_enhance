@@ -15,6 +15,11 @@ PRODUCTION_AUTH_URL = "https://login.uber.com/oauth/v2/token"
 SANDBOX_API_URL = "https://sandbox-api.uber.com"
 PRODUCTION_API_URL = "https://api.uber.com"
 
+# Mock server URL for local testing without real Uber credentials.
+# Set by K8s service in the harumi-odoo namespace.
+MOCK_API_URL = "http://uber-direct-mock:8090"
+MOCK_AUTH_URL = "http://uber-direct-mock:8090/oauth/v2/token"
+
 REQUEST_TIMEOUT = 10  # seconds
 MAX_RETRIES = 3
 
@@ -45,12 +50,26 @@ class UberDirect(models.AbstractModel):
     def _auth_url(config):
         if config.uber_direct_env == "production":
             return PRODUCTION_AUTH_URL
+        # Use mock server if reachable (K8s local service)
+        try:
+            import requests as _req
+            _req.get(MOCK_API_URL + "/status", timeout=1)
+            return MOCK_AUTH_URL
+        except Exception:
+            pass
         return SANDBOX_AUTH_URL
 
     @staticmethod
     def _api_base(config):
         if config.uber_direct_env == "production":
             return PRODUCTION_API_URL
+        # Use mock server if reachable (K8s local service)
+        try:
+            import requests as _req
+            _req.get(MOCK_API_URL + "/status", timeout=1)
+            return MOCK_API_URL
+        except Exception:
+            pass
         return SANDBOX_API_URL
 
     @staticmethod
@@ -122,12 +141,12 @@ class UberDirect(models.AbstractModel):
         )
 
         try:
-            resp = self._request("post", auth_url, json={
+            resp = requests.post(auth_url, data={
                 "client_id": config.uber_direct_client_id,
                 "client_secret": config.uber_direct_client_secret,
                 "grant_type": "client_credentials",
                 "scope": "eats.deliveries",
-            })
+            }, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.RequestException as exc:
             msg = f"Token request failed after {MAX_RETRIES} retries: {exc}"
             _logger.error("[uber-direct] %s", msg)
