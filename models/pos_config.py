@@ -68,6 +68,15 @@ class PosConfig(models.Model):
         help="Store phone for Uber courier to contact.",
     )
 
+    # ── Takeaway Counter Payment ──────────────────────────────
+    self_ordering_takeaway_allow_counter = fields.Boolean(
+        'Allow Counter Payment for Takeaway (外帶允許現場結帳)',
+        default=False,
+        help="When enabled, self-order takeaway customers can choose "
+             "'Pay at Counter' in addition to online payment. "
+             "When disabled (default), takeaway orders can only use online payment.",
+    )
+
     # ── E-Invoice (電子發票) ────────────────────────────────
     is_ecpay_installed = fields.Boolean(
         'ECPay Module Installed',
@@ -112,6 +121,7 @@ class PosConfig(models.Model):
         # otherwise, returning a partial list would suppress every other field.
         if params:
             params.append('uber_direct_enabled')
+            params.append('self_ordering_takeaway_allow_counter')
             params.append('ecpay_einvoice_enabled')
             params.append('einvoice_printer_id')
             params.append('is_ecpay_installed')
