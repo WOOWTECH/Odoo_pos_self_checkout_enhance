@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="pos_self_order_enhancement.DeliveryQuotePage">
+        <div class="d-flex flex-column h-100 bg-light">
+            <!-- Header -->
+            <div class="bg-white border-bottom p-3 d-flex align-items-center">
+                <button class="btn btn-link text-dark p-0 me-3" t-on-click="back">
+                    <i class="fa fa-arrow-left fa-lg"></i>
+                </button>
+                <h4 class="mb-0 fw-bold" t-esc="pageTitle"/>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow-1 overflow-auto d-flex flex-column justify-content-center align-items-center p-3">
+
+                <!-- Loading State -->
+                <t t-if="state.loading">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="text-muted">查詢外送費用中...</h5>
+                        <p class="text-muted small" t-esc="deliveryAddress"/>
+                    </div>
+                </t>
+
+                <!-- Error State -->
+                <t t-elif="state.error">
+                    <div class="bg-white rounded-3 shadow-sm p-4 text-center" style="max-width: 400px; width: 100%;">
+                        <div class="mb-3">
+                            <i class="fa fa-exclamation-triangle fa-3x text-warning"></i>
+                        </div>
+                        <h5 class="fw-bold text-danger mb-2">此地址不在配送範圍內</h5>
+                        <p class="text-muted mb-1" t-esc="state.error"/>
+                        <p class="text-muted small mb-4" t-esc="deliveryAddress"/>
+
+                        <div class="d-flex flex-column gap-2">
+                            <button class="btn btn-primary btn-lg w-100" t-on-click="fetchQuote">
+                                <i class="fa fa-refresh me-2"></i>
+                                <t t-esc="retryLabel"/>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-lg w-100" t-on-click="back">
+                                <i class="fa fa-arrow-left me-2"></i>
+                                <t t-esc="backLabel"/>
+                            </button>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Success State -->
+                <t t-else="">
+                    <div class="bg-white rounded-3 shadow-sm p-4 text-center" style="max-width: 400px; width: 100%;">
+                        <!-- Delivery Icon -->
+                        <div class="mb-3">
+                            <div class="d-inline-flex justify-content-center align-items-center rounded-circle bg-primary bg-opacity-10"
+                                 style="width: 80px; height: 80px;">
+                                <i class="fa fa-motorcycle fa-2x text-primary"></i>
+                            </div>
+                        </div>
+
+                        <!-- Address -->
+                        <p class="text-muted small mb-3" t-esc="deliveryAddress"/>
+
+                        <!-- Fee -->
+                        <div class="bg-light rounded-3 p-3 mb-3">
+                            <div class="mb-2">
+                                <span class="text-muted">配送費</span>
+                            </div>
+                            <div class="fw-bold fs-2 text-primary" t-esc="formattedFee"/>
+                        </div>
+
+                        <!-- Estimated Time -->
+                        <div class="bg-light rounded-3 p-3 mb-4">
+                            <div class="mb-1">
+                                <span class="text-muted">
+                                    <i class="fa fa-clock-o me-1"></i>
+                                    預估送達時間
+                                </span>
+                            </div>
+                            <div class="fw-semibold fs-5" t-esc="formattedTime"/>
+                        </div>
+                    </div>
+                </t>
+            </div>
+
+            <!-- Footer (only shown for success state) -->
+            <div t-if="!state.loading and !state.error" class="page-buttons shadow-sm p-3 bg-view border-top">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-lg flex-shrink-0 px-4" t-on-click="back">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                    <button class="btn btn-primary btn-lg flex-grow-1 py-3" t-on-click="confirmDelivery">
+                        <i class="fa fa-check me-2"></i>
+                        <t t-esc="confirmLabel"/>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

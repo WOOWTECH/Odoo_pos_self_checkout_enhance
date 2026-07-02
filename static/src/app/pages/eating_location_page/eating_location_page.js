@@ -40,6 +40,13 @@ patch(EatingLocationPage.prototype, {
     },
 
     enter() {
+        if (!this.isDineIn && this.selfOrder.config.uber_direct_enabled) {
+            // Takeaway with Uber Direct enabled: set takeaway flag on order,
+            // then redirect to delivery option page (pickup vs delivery).
+            this.selfOrder.currentOrder.update({ takeaway: true });
+            this.router.navigate("delivery_option");
+            return;
+        }
         this.selectLocation(this.isDineIn ? "in" : "out");
     },
 });

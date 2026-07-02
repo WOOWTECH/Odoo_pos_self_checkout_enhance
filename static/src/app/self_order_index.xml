@@ -2,8 +2,11 @@
 <templates id="template" xml:space="preserve">
 
     <!--
-        Extend the self-order router to add custom route:
+        Extend the self-order router to add custom routes:
         - payment_success: Success page shown after payment
+        - delivery_option: Choose between pickup and delivery (Task 004)
+        - delivery_address: Enter delivery address (Task 005)
+        - delivery_quote: Show delivery fee quote from Uber Direct (Task 006)
 
         Note: The existing "payment" route will use our custom PaymentPage
         component automatically because we patched selfOrderIndex.components.
@@ -14,6 +17,19 @@
         <xpath expr="//Router" position="inside">
             <t t-set-slot="payment_success" route="`/pos-self/${selfOrder.config.id}/payment-success`">
                 <PaymentSuccessPage/>
+            </t>
+        </xpath>
+
+        <!-- Add delivery flow routes (Task 004/005/006) -->
+        <xpath expr="//Router" position="inside">
+            <t t-set-slot="delivery_option" route="`/pos-self/${selfOrder.config.id}/delivery-option`">
+                <DeliveryOptionPage/>
+            </t>
+            <t t-set-slot="delivery_address" route="`/pos-self/${selfOrder.config.id}/delivery-address`">
+                <DeliveryAddressPage/>
+            </t>
+            <t t-set-slot="delivery_quote" route="`/pos-self/${selfOrder.config.id}/delivery-quote`">
+                <DeliveryQuotePage/>
             </t>
         </xpath>
 

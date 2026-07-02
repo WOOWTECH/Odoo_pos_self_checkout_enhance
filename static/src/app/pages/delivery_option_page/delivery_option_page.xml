@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="pos_self_order_enhancement.DeliveryOptionPage">
+        <div class="d-flex flex-column h-100 bg-300 bg-gradient">
+            <!-- Header -->
+            <div class="text-center pt-3 pb-2">
+                <h1 class="m-0" t-esc="pageTitle"/>
+            </div>
+
+            <!-- Option Cards -->
+            <div class="container d-flex flex-wrap align-items-center justify-content-center gap-3 my-auto px-3">
+                <!-- Pickup (自取) -->
+                <div class="card p-4 text-center shadow-sm"
+                     style="min-width: 160px; max-width: 220px; cursor: pointer;"
+                     t-on-click="selectPickup"
+                     role="button"
+                     tabindex="0">
+                    <div class="mb-3">
+                        <img src="/pos_self_order/static/img/takeAway.svg"
+                             alt="Pickup"
+                             style="width: 80px; height: 80px;"/>
+                    </div>
+                    <h3 class="mb-1" t-esc="pickupLabel"/>
+                    <p class="text-muted mb-0 small" t-esc="pickupDescription"/>
+                </div>
+
+                <!-- Delivery (外送) -->
+                <div class="card p-4 text-center shadow-sm"
+                     style="min-width: 160px; max-width: 220px; cursor: pointer;"
+                     t-on-click="selectDelivery"
+                     role="button"
+                     tabindex="0">
+                    <div class="mb-3">
+                        <i class="fa fa-motorcycle fa-4x text-primary"></i>
+                    </div>
+                    <h3 class="mb-1" t-esc="deliveryLabel"/>
+                    <p class="text-muted mb-0 small" t-esc="deliveryDescription"/>
+                </div>
+            </div>
+
+            <!-- Footer with Back Button -->
+            <div class="page-buttons shadow-sm p-3 bg-view border-top text-center">
+                <button class="btn btn-secondary btn-lg px-5" t-on-click="back">
+                    <i class="fa fa-arrow-left me-2"></i>
+                    <t t-esc="_t('返回')"/>
+                </button>
+            </div>
+        </div>
+    </t>
+
+</templates>
