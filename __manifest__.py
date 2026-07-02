@@ -80,6 +80,8 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
         "views/pos_printer_views.xml",
         "views/pos_category_view.xml",
         "views/pos_config_einvoice_view.xml",
+        "views/pos_config_uber_direct_view.xml",
+        "data/uber_direct_data.xml",
     ],
     "assets": {
         "pos_self_order.assets": [

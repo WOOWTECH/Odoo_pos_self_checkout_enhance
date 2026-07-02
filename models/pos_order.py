@@ -49,6 +49,37 @@ class PosOrder(models.Model):
         help='JSON dict: {"<line_id>": true}. Tracks which items have been served to the table.',
     )
 
+    # ── Uber Direct Delivery ─────────────────────────────────
+    uber_delivery_address = fields.Char(
+        'Delivery Address (送達地址)',
+        help="Customer delivery address for Uber Direct.",
+    )
+    uber_delivery_fee = fields.Float(
+        'Delivery Fee (外送費)',
+        digits=(12, 2),
+        help="Uber Direct delivery fee charged to customer.",
+    )
+    uber_delivery_id = fields.Char(
+        'Uber Delivery ID',
+        help="Uber Direct delivery identifier.",
+        index=True,
+    )
+    uber_delivery_status = fields.Selection([
+        ('pending', 'Pending (等待中)'),
+        ('courier_assigned', 'Courier Assigned (騎手已指派)'),
+        ('en_route_pickup', 'En Route to Pickup (前往取餐)'),
+        ('at_pickup', 'At Pickup (已到店)'),
+        ('en_route_dropoff', 'En Route to Dropoff (配送中)'),
+        ('delivered', 'Delivered (已送達)'),
+        ('cancelled', 'Cancelled (已取消)'),
+        ('failed', 'Failed (失敗)'),
+    ], string='Delivery Status (配送狀態)', default=False)
+    uber_courier_name = fields.Char('Courier Name (騎手姓名)')
+    uber_courier_phone = fields.Char('Courier Phone (騎手電話)')
+    uber_tracking_url = fields.Char('Tracking URL (追蹤連結)')
+    uber_estimated_pickup = fields.Datetime('Estimated Pickup (預計取餐時間)')
+    uber_quote_id = fields.Char('Quote ID (報價 ID)')
+
     # ── Payment Gate (pay-per-order) ──────────────────────────
     self_order_payment_status = fields.Selection([
         ('none', 'No Payment Gate'),

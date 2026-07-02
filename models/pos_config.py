@@ -28,6 +28,46 @@ class PosConfig(models.Model):
         self.ensure_one()
         self.kds_access_token = uuid.uuid4().hex[:16]
 
+    # ── Uber Direct 外送 ──────────────────────────────────
+    uber_direct_enabled = fields.Boolean(
+        'Uber Direct Delivery (Uber Direct 外送)',
+        default=False,
+        help="Enable Uber Direct delivery for self-order takeaway customers.",
+    )
+    uber_direct_client_id = fields.Char(
+        'Uber Direct Client ID',
+        help="OAuth 2.0 Client ID from Uber Developer Dashboard.",
+    )
+    uber_direct_client_secret = fields.Char(
+        'Uber Direct Client Secret',
+        help="OAuth 2.0 Client Secret from Uber Developer Dashboard.",
+    )
+    uber_direct_customer_id = fields.Char(
+        'Uber Direct Customer ID',
+        help="Uber Direct Customer ID (organization identifier).",
+    )
+    uber_direct_env = fields.Selection(
+        [('sandbox', 'Sandbox (測試)'), ('production', 'Production (正式)')],
+        string='Uber Direct Environment',
+        default='sandbox',
+        help="Use Sandbox for development/testing, Production for live orders.",
+    )
+    uber_direct_pickup_address = fields.Char(
+        'Pickup Address (取餐地址)',
+        default='台北市文山區興隆路四段67號1樓',
+        help="Store address used as pickup location for Uber Direct deliveries.",
+    )
+    uber_direct_pickup_name = fields.Char(
+        'Pickup Name (取餐店名)',
+        default='春美食堂',
+        help="Store name shown to Uber courier.",
+    )
+    uber_direct_pickup_phone = fields.Char(
+        'Pickup Phone (取餐電話)',
+        default='0958-274-711',
+        help="Store phone for Uber courier to contact.",
+    )
+
     # ── E-Invoice (電子發票) ────────────────────────────────
     is_ecpay_installed = fields.Boolean(
         'ECPay Module Installed',
@@ -71,6 +111,7 @@ class PosConfig(models.Model):
         # Only append our fields if the parent already specified a field list;
         # otherwise, returning a partial list would suppress every other field.
         if params:
+            params.append('uber_direct_enabled')
             params.append('ecpay_einvoice_enabled')
             params.append('einvoice_printer_id')
             params.append('is_ecpay_installed')

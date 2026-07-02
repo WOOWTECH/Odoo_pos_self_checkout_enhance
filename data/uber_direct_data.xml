@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Delivery Fee Product -->
+        <record id="product_product_delivery_fee" model="product.product">
+            <field name="name">配送費</field>
+            <field name="detailed_type">service</field>
+            <field name="sale_ok">True</field>
+            <field name="purchase_ok">False</field>
+            <field name="available_in_pos">True</field>
+            <field name="list_price">0</field>
+            <field name="taxes_id" eval="[(5, 0, 0)]"/>
+        </record>
+
+        <!-- System parameter to reference the product -->
+        <record id="uber_direct_delivery_fee_product" model="ir.config_parameter">
+            <field name="key">uber_direct.delivery_fee_product_id</field>
+            <field name="value" ref="product_product_delivery_fee"/>
+        </record>
+    </data>
+</odoo>
