@@ -604,6 +604,42 @@ class PosOrder(models.Model):
                             "for order %s: %s", order.name, e,
                         )
 
+                # Uber Direct auto-dispatch: request a courier for
+                # delivery orders immediately after payment succeeds.
+                uber_delivery_orders = to_fire.filtered(
+                    lambda o: o.uber_delivery_address
+                              and not o.uber_delivery_id
+                              and o.config_id.uber_direct_enabled
+                )
+                for order in uber_delivery_orders:
+                    try:
+                        UberDirect = self.env['uber.direct'].sudo()
+                        result = UberDirect._create_delivery(order.config_id, order)
+                        if result.get('success'):
+                            order.write({
+                                'uber_delivery_id': result.get('delivery_id', ''),
+                                'uber_delivery_status': 'pending',
+                                'uber_courier_name': result.get('courier_name', ''),
+                                'uber_courier_phone': result.get('courier_phone', ''),
+                                'uber_tracking_url': result.get('tracking_url', ''),
+                            })
+                            _logger.info(
+                                "[uber-direct] delivery dispatched for %s: %s",
+                                order.name, result.get('delivery_id'),
+                            )
+                        else:
+                            order.write({'uber_delivery_status': 'failed'})
+                            _logger.warning(
+                                "[uber-direct] delivery dispatch failed for %s: %s",
+                                order.name, result.get('error'),
+                            )
+                    except Exception as e:
+                        order.write({'uber_delivery_status': 'failed'})
+                        _logger.warning(
+                            "[uber-direct] delivery dispatch error for %s: %s",
+                            order.name, e,
+                        )
+
         return super()._process_saved_order(draft)
 
     def write(self, vals):
@@ -1022,8 +1058,25 @@ class PosOrder(models.Model):
             content_lines.append(('med', table_str, True))
             y += 30
 
-        # Takeaway indicator
-        if self.takeaway:
+        # Takeaway / Delivery indicator
+        if self.uber_delivery_address:
+            content_lines.append(('med', '*** 外送 ***', True))
+            y += 30
+            # Delivery address (truncate to fit paper)
+            addr = self.uber_delivery_address or ''
+            if len(addr) > 30:
+                content_lines.append(('small', addr[:30], True))
+                y += 24
+                content_lines.append(('small', addr[30:60], True))
+                y += 24
+            else:
+                content_lines.append(('small', addr, True))
+                y += 24
+            # Courier info if available
+            if self.uber_courier_name:
+                content_lines.append(('small', f"騎手: {self.uber_courier_name}", True))
+                y += 24
+        elif self.takeaway:
             content_lines.append(('med', '*** 外帶 ***', True))
             y += 30
 

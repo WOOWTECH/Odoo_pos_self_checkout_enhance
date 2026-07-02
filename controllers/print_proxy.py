@@ -111,8 +111,23 @@ class PosEscPosProxy(http.Controller):
             content.append(('med', table_str, True))
             y += 30
 
-        # Takeaway indicator
-        if order.takeaway:
+        # Takeaway / Delivery indicator
+        if order.uber_delivery_address:
+            content.append(('med', '*** 外送 ***', True))
+            y += 30
+            addr = order.uber_delivery_address or ''
+            if len(addr) > 30:
+                content.append(('small', addr[:30], True))
+                y += 24
+                content.append(('small', addr[30:60], True))
+                y += 24
+            else:
+                content.append(('small', addr, True))
+                y += 24
+            if order.uber_courier_name:
+                content.append(('small', f"騎手: {order.uber_courier_name}", True))
+                y += 24
+        elif order.takeaway:
             content.append(('med', '*** 外帶 ***', True))
             y += 30
 
