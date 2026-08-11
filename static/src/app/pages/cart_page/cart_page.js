@@ -174,6 +174,20 @@ patch(CartPage.prototype, {
         if (this.selfOrder.rpcLoading || !this.selfOrder.verifyCart() || !this.selfOrder.verifyPriceLoading()) {
             return;
         }
+
+        // Resolve and persist the table on the order before confirmation.
+        // Without this, `sendDraftOrderToServer` posts an order with no
+        // table_identifier, and the backend either falls back to takeaway
+        // routing or fails the payment gate. Base `super.pay()` also
+        // performs this assignment; we replicate it because we bypass it.
+        const urlTable = this.selfOrder.models["restaurant.table"].find(
+            (t) => t.identifier === tableIdent
+        );
+        if (urlTable) {
+            this.selfOrder.currentTable = urlTable;
+            this.selfOrder.currentOrder.update({ table_id: urlTable });
+        }
+
         this.selfOrder.rpcLoading = true;
         await this.selfOrder.confirmOrder();
         this.selfOrder.rpcLoading = false;
