@@ -1076,6 +1076,24 @@ class PosOrder(models.Model):
         content_lines.append(('large', ref, True))
         y += 36
 
+        # Print timestamp (server time in the user/company timezone).
+        # Handy when a printer jams and staff have to re-sequence tickets.
+        try:
+            from odoo import fields as odoo_fields
+            import pytz
+            tz_name = (
+                self.env.user.tz
+                or self.env.company.partner_id.tz
+                or 'UTC'
+            )
+            now_local = odoo_fields.Datetime.now().replace(tzinfo=pytz.utc).astimezone(pytz.timezone(tz_name))
+            ts_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            from datetime import datetime
+            ts_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        content_lines.append(('small', ts_str, True))
+        y += 24
+
         # Table info
         if self.table_id:
             floor_name = self.table_id.floor_id.name if self.table_id.floor_id else ''
@@ -1117,9 +1135,16 @@ class PosOrder(models.Model):
             line_text = f"{qty}x  {product_name}"
             content_lines.append(('med', line_text, False))
             y += 28
-            # Note (use getattr for safety during transient order states)
+            # Notes — kiosk customers write to `customer_note`, POS staff
+            # write to `note`. Render both so kitchen never misses a
+            # kiosk-provided instruction. getattr for safety during
+            # transient order states.
+            line_cnote = getattr(line, 'customer_note', '') or ''
             line_note = getattr(line, 'note', '') or ''
-            if line_note:
+            if line_cnote:
+                content_lines.append(('small', f"  ** {line_cnote}", False))
+                y += 24
+            if line_note and line_note != line_cnote:
                 content_lines.append(('small', f"  ** {line_note}", False))
                 y += 24
 

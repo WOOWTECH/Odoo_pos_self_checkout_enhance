@@ -103,6 +103,23 @@ class PosEscPosProxy(http.Controller):
         content.append(('large', ref, True))
         y += 36
 
+        # Print timestamp (server time in user/company timezone).
+        try:
+            from odoo import fields as odoo_fields
+            import pytz
+            tz_name = (
+                request.env.user.tz
+                or request.env.company.partner_id.tz
+                or 'UTC'
+            )
+            now_local = odoo_fields.Datetime.now().replace(tzinfo=pytz.utc).astimezone(pytz.timezone(tz_name))
+            ts_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            from datetime import datetime
+            ts_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        content.append(('small', ts_str, True))
+        y += 24
+
         # Table info
         if order.table_id:
             floor = order.table_id.floor_id.name if order.table_id.floor_id else ''
@@ -142,8 +159,14 @@ class PosEscPosProxy(http.Controller):
                 qty_str = int(qty) if qty == int(qty) else qty
                 content.append(('med', f"{qty_str}x  {name}", False))
                 y += 28
+                # Accept both legacy `note` and `customer_note` keys —
+                # different callers use different shapes.
+                cnote = line.get('customer_note', '')
                 note = line.get('note', '')
-                if note:
+                if cnote:
+                    content.append(('small', f"  ** {cnote}", False))
+                    y += 24
+                if note and note != cnote:
                     content.append(('small', f"  ** {note}", False))
                     y += 24
         else:
@@ -152,8 +175,13 @@ class PosEscPosProxy(http.Controller):
                 qty = int(line.qty) if line.qty == int(line.qty) else line.qty
                 content.append(('med', f"{qty}x  {name}", False))
                 y += 28
+                # Kiosk writes customer_note; POS staff write to note. Show both.
+                line_cnote = getattr(line, 'customer_note', '') or ''
                 line_note = getattr(line, 'note', '') or ''
-                if line_note:
+                if line_cnote:
+                    content.append(('small', f"  ** {line_cnote}", False))
+                    y += 24
+                if line_note and line_note != line_cnote:
                     content.append(('small', f"  ** {line_note}", False))
                     y += 24
 
