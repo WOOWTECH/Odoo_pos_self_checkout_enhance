@@ -580,29 +580,51 @@ class PosOrder(models.Model):
                             fired[key] = True
                         order.write({'kds_fired_courses': json.dumps(fired)})
 
-                # Notify POS frontend to print kitchen ticket.
-                # Kitchen printing is frontend-controlled (sendOrderInPreparation),
-                # so we signal via bus for the POS to trigger printing.
-                for order in to_fire:
-                    for config in order.config_id:
-                        config._notify('AUTO_FIRE_PRINT', {
-                            'order_id': order.id,
-                        })
-
-                # Server-side kitchen ticket fallback: render and print
-                # directly from the backend. This ensures tickets print
-                # even when the POS browser tab is backgrounded (which
-                # throttles requestAnimationFrame and causes html-to-image
-                # to produce blank canvases), or when CJK fonts fail to
-                # embed in the SVG foreignObject pipeline.
+                # Auto-fire kitchen ticket printing after payment.
+                #
+                # Two paths exist and must not overlap:
+                #   1) Server-side render (`_print_kitchen_ticket_server`) —
+                #      handles cloud-relay printers directly from the backend,
+                #      immune to browser-tab throttling and CJK-font embedding
+                #      failures in html-to-image.
+                #   2) Frontend AUTO_FIRE_PRINT bus notification — triggers the
+                #      POS browser to run `sendOrderInPreparation`, which prints
+                #      via html-to-image for local-TCP printers (and any other
+                #      printer type not covered by server-side).
+                #
+                # Previously we ran BOTH unconditionally, causing every cloud
+                # printer to receive TWO copies per configured copy — a shop
+                # with `escpos_print_copies=2` saw 4 physical prints. We now:
+                #   - Call server-side first and record which printers it
+                #     handled (`server_printed_map`).
+                #   - Only notify the frontend when the config still has
+                #     printers the server-side path did not cover.
+                #   - Pass the covered printer IDs so the frontend can skip
+                #     them and avoid double-printing.
+                server_printed_map = {}  # {order_id: [printer_id, ...]}
                 for order in to_fire:
                     try:
-                        order._print_kitchen_ticket_server()
+                        printed_ids = order._print_kitchen_ticket_server()
+                        if printed_ids:
+                            server_printed_map[order.id] = printed_ids
                     except Exception as e:
                         _logger.warning(
                             "[escpos] server-side kitchen ticket failed "
                             "for order %s: %s", order.name, e,
                         )
+
+                for order in to_fire:
+                    handled_ids = server_printed_map.get(order.id, [])
+                    for config in order.config_id:
+                        remaining = config.printer_ids.filtered(
+                            lambda p: p.id not in handled_ids
+                        )
+                        if not remaining:
+                            continue  # server-side covered everything
+                        config._notify('AUTO_FIRE_PRINT', {
+                            'order_id': order.id,
+                            'skip_printer_ids': handled_ids,
+                        })
 
                 # Uber Direct auto-dispatch: request a courier for
                 # delivery orders immediately after payment succeeds.
@@ -993,6 +1015,10 @@ class PosOrder(models.Model):
 
         Only prints via cloud relay (escpos_proxy_url). Printers configured
         for local TCP are expected to have a co-located POS browser.
+
+        :returns: list of ``pos.printer`` IDs that successfully received the
+            job — used by ``_process_saved_order`` to skip duplicate frontend
+            notifications. Returns an empty list when nothing was printed.
         """
         import base64
         import io
@@ -1004,12 +1030,12 @@ class PosOrder(models.Model):
             lambda p: p.printer_type == 'network_escpos' and p.escpos_proxy_url
         )
         if not printers:
-            return
+            return []
 
         # Gather order lines
         lines = self.lines.filtered(lambda l: l.qty > 0)
         if not lines:
-            return
+            return []
 
         # Determine paper dimensions
         printer = printers[0]
@@ -1135,10 +1161,14 @@ class PosOrder(models.Model):
         img.save(buf, format='JPEG', quality=85)
         b64_jpeg = base64.b64encode(buf.getvalue()).decode('ascii')
 
-        # Send to all relay printers
+        # Send to all relay printers. Track successful sends so the caller
+        # can suppress a duplicate frontend AUTO_FIRE_PRINT for the same
+        # printers (see `_process_saved_order`).
+        printed_ids = []
         for printer in printers:
             result = printer._send_via_relay(b64_jpeg)
             if result.get('success'):
+                printed_ids.append(printer.id)
                 _logger.info(
                     "[escpos] server-side kitchen ticket printed for %s via %s",
                     self.name, printer.name,
@@ -1148,3 +1178,4 @@ class PosOrder(models.Model):
                     "[escpos] server-side kitchen ticket FAILED for %s: %s",
                     self.name, result.get('error'),
                 )
+        return printed_ids
