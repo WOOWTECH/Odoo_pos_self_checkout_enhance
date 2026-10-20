@@ -77,6 +77,17 @@ class PosConfig(models.Model):
              "When disabled (default), takeaway orders can only use online payment.",
     )
 
+    # ── Black Button Theme ────────────────────────────────────
+    self_ordering_black_theme = fields.Boolean(
+        'Black Button Theme (黑色按鈕主題)',
+        default=False,
+        help="When enabled, the self-order frontend renders primary buttons, "
+             "selected options and highlights in black instead of the "
+             "default Odoo purple. Existing installations upgraded from "
+             "18.0.2.1.0 or earlier are switched on by the migration so "
+             "their look stays the same.",
+    )
+
     # ── E-Invoice (電子發票) ────────────────────────────────
     is_ecpay_installed = fields.Boolean(
         'ECPay Module Installed',
@@ -122,6 +133,7 @@ class PosConfig(models.Model):
         if params:
             params.append('uber_direct_enabled')
             params.append('self_ordering_takeaway_allow_counter')
+            params.append('self_ordering_black_theme')
             params.append('ecpay_einvoice_enabled')
             params.append('einvoice_printer_id')
             params.append('is_ecpay_installed')

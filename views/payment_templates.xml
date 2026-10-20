@@ -44,7 +44,7 @@
                 </style>
             </xpath>
             <!-- Cancel button: same shape as Pay button, different color -->
-            <xpath expr="//a[contains(@class,'btn-light')]" position="attributes">
+            <xpath expr="//a[hasclass('btn-light')]" position="attributes">
                 <attribute name="class">btn btn-outline-secondary w-100 w-md-auto ms-auto px-5</attribute>
             </xpath>
         </template>

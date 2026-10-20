@@ -42,6 +42,21 @@
         </field>
     </record>
 
+    <!-- Black button theme for the self-order frontend -->
+    <record id="pos_config_view_form_black_theme" model="ir.ui.view">
+        <field name="name">pos.config.form.black.theme</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@groups='base.group_system']" position="before">
+                <setting string="Self-Order Black Buttons"
+                         help="Render self-order buttons and highlights in black instead of the default purple">
+                    <field name="self_ordering_black_theme"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Allow "Pay at Counter" for takeaway self-orders -->
     <record id="pos_config_view_form_takeaway_counter" model="ir.ui.view">
         <field name="name">pos.config.form.takeaway.counter</field>

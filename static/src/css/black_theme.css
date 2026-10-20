@@ -1,0 +1,84 @@
+/* ============================================================
+   Black button theme for the self-order frontend.
+
+   Only active when pos.config.self_ordering_black_theme is on:
+   self_order_service_patch.js puts `o_self_black_theme` on <body>.
+   Off by default, so new installs keep the stock Odoo colours.
+   (Originally a per-shop customisation; turned into an option in
+   18.0.2.2.0 and switched on by migration for existing installs.)
+   ============================================================ */
+
+body.o_self_black_theme {
+    --bs-primary: #000000;
+    --bs-primary-rgb: 0, 0, 0;
+}
+
+/* --- Base state --- */
+body.o_self_black_theme .btn-primary {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- Hover --- */
+body.o_self_black_theme .btn-primary:hover {
+    background-color: #333333 !important;
+    border-color: #333333 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- Active / Pressed --- */
+body.o_self_black_theme .btn-primary:active,
+body.o_self_black_theme .btn-primary.active,
+body.o_self_black_theme .btn-primary:first-child:active {
+    background-color: #222222 !important;
+    border-color: #222222 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- Focus ring --- */
+body.o_self_black_theme .btn-primary:focus,
+body.o_self_black_theme .btn-primary:focus-visible {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.25) !important;
+}
+
+/* --- Disabled --- */
+body.o_self_black_theme .btn-primary:disabled,
+body.o_self_black_theme .btn-primary.disabled {
+    background-color: #666666 !important;
+    border-color: #666666 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- text-bg-primary (selected attribute labels, combo badges) --- */
+body.o_self_black_theme .text-bg-primary {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- border-primary (attribute selection borders) --- */
+body.o_self_black_theme .border-primary {
+    border-color: #000000 !important;
+}
+
+/* --- Landing page buttons (inline border colour in landing_page.xml) --- */
+body.o_self_black_theme .o_pos_landing_footer .btn-secondary {
+    border-color: #000000 !important;
+}
+
+/* --- Selected rows on combo / product pages: black tint instead of purple --- */
+body.o_self_black_theme .enh-combo-list-row-selected {
+    border-color: #000000 !important;
+    background: rgba(0, 0, 0, 0.06);
+}
+body.o_self_black_theme .enh-combo-list-row-selected .enh-combo-list-check::before,
+body.o_self_black_theme .self_order_attribute_selection_option.active::after {
+    color: #000000;
+}
+body.o_self_black_theme .self_order_attribute_selection_option.active {
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    border-color: #000000 !important;
+}

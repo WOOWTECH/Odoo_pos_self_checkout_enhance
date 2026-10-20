@@ -13,6 +13,8 @@
                        invisible="printer_type != 'network_escpos'"/>
                 <field name="escpos_print_copies"
                        invisible="printer_type != 'network_escpos'"/>
+                <field name="escpos_square_ticket"
+                       invisible="printer_type != 'network_escpos'"/>
                 <field name="escpos_proxy_url"
                        invisible="printer_type != 'network_escpos'"
                        placeholder="https://print.myshop.com (leave empty for direct TCP)"/>

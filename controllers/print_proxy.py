@@ -110,7 +110,7 @@ class PosEscPosProxy(http.Controller):
             tz_name = (
                 request.env.user.tz
                 or request.env.company.partner_id.tz
-                or 'UTC'
+                or 'Asia/Taipei'
             )
             now_local = odoo_fields.Datetime.now().replace(tzinfo=pytz.utc).astimezone(pytz.timezone(tz_name))
             ts_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
@@ -195,8 +195,10 @@ class PosEscPosProxy(http.Controller):
 
         y += margin
 
-        # Create image
-        img = Image.new('RGB', (dots, max(y, 100)), 'white')
+        # Create image. With `escpos_square_ticket` the canvas is at least
+        # as tall as it is wide, so short tickets print as a square block.
+        min_height = dots if printer.escpos_square_ticket else 100
+        img = Image.new('RGB', (dots, max(y, min_height)), 'white')
         draw = ImageDraw.Draw(img)
 
         y = margin
