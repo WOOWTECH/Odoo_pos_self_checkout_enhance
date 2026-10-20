@@ -72,6 +72,19 @@ export class PaymentPage extends Component {
         return url.searchParams.has("table_identifier") || !!this.selfOrder.currentTable;
     }
 
+    /**
+     * Whether to show the "Pay at Counter" button on the payment page.
+     * - Dine-in: always allowed.
+     * - Takeaway: gated by `pos.config.self_ordering_takeaway_allow_counter`
+     *   so shops can force takeaway to pay online only.
+     */
+    get showCounterPayment() {
+        if (this.isDineIn) {
+            return true;
+        }
+        return !!this.selfOrder.config.self_ordering_takeaway_allow_counter;
+    }
+
     // ── Kiosk Mode ──
 
     get kioskPaymentMethods() {

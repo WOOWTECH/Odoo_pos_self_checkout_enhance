@@ -48,5 +48,12 @@ patch(SelfOrder.prototype, {
                 (c) => !emptyCategIds.has(Number(c.id))
             );
         }
+
+        // Black button theme (pos.config.self_ordering_black_theme): the CSS in
+        // static/src/css/black_theme.css only applies under this body class.
+        document.body.classList.toggle(
+            "o_self_black_theme",
+            !!this.config.self_ordering_black_theme
+        );
     },
 });

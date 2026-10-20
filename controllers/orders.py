@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import re
 
 from odoo import http, fields, _
@@ -7,6 +8,8 @@ from odoo.exceptions import MissingError
 from odoo.tools import consteq
 
 from odoo.addons.pos_self_order.controllers.orders import PosSelfOrderController
+
+_logger = logging.getLogger(__name__)
 
 
 class PosSelfOrderControllerEnh(PosSelfOrderController):
@@ -27,8 +30,26 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
     @http.route("/pos-self-order/process-order-args/<device_type>/", auth="public", type="json", website=True)
     def process_order_args(self, order, access_token, table_identifier, device_type, **kwargs):
         is_takeaway = order.get('takeaway')
-        pos_config, table = self._verify_authorization(access_token, table_identifier, is_takeaway)
+        # Log entry for post-mortem debugging of kiosk sync failures.
+        _logger.info(
+            "process_order_args called: access_token=%s table=%s uuid=%s id=%s",
+            access_token[:8] if access_token else None,
+            table_identifier,
+            (order.get('uuid') or 'N/A')[:12],
+            order.get('id', 'N/A'),
+        )
+        try:
+            pos_config, table = self._verify_authorization(
+                access_token, table_identifier, is_takeaway,
+            )
+        except Exception as e:
+            _logger.error("_verify_authorization FAILED: %s", e)
+            raise
         pos_session = pos_config.current_session_id
+        _logger.info(
+            "Authorization OK: config=%s session=%s(%s)",
+            pos_config.id, pos_session.id, pos_session.state,
+        )
 
         # ── Build order reference (same as base) ──
         ir_sequence_session = pos_config.env['ir.sequence'].with_context(
@@ -55,6 +76,23 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         order['user_id'] = request.session.uid
         order['date_order'] = str(fields.Datetime.now())
         order['fiscal_position_id'] = fiscal_position.id if fiscal_position else False
+
+        # ── Ensure required fields for sync_from_ui / _process_order ──
+        # The base module runs `_check_pos_order` to sanitize the payload
+        # for stock POS flows; we bypass it above (custom pos_reference
+        # generation, preparation-context flag) so we must plug the
+        # essential fields ourselves. Missing any of these caused kiosk
+        # syncs to silently fail with cryptic ORM errors depending on
+        # what other modules touched the record.
+        order['session_id'] = pos_session.id
+        order['company_id'] = pos_config.company_id.id
+        order['table_id'] = table.id if table else order.get('table_id')
+        pricelist = pos_config.pricelist_id
+        order['pricelist_id'] = pricelist.id if pricelist else False
+        order.setdefault('amount_tax', 0)
+        order.setdefault('amount_total', 0)
+        order.setdefault('amount_paid', 0)
+        order.setdefault('amount_return', 0)
 
         # ── Create order ──
         # preparation=True suppresses base point_of_sale notify_synchronisation

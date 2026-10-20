@@ -106,6 +106,10 @@ patch(PosStore.prototype, {
         // Dedup: skip if already printed by a previous notification
         if (this._autoFiredPrintedOrders.has(data.order_id)) return;
         this._autoFiredPrintedOrders.add(data.order_id);
+        // Printers already handled server-side (cloud relay) are skipped
+        // in `printReceipts` to avoid double-printing. See
+        // `_process_saved_order` in models/pos_order.py.
+        this._autoFireSkipPrinterIds = new Set(data.skip_printer_ids || []);
         // Fetch the order from server so it's in our local store
         try {
             await this.data.read("pos.order", [data.order_id]);
@@ -113,8 +117,12 @@ patch(PosStore.prototype, {
         const order = this.models["pos.order"].find(
             (o) => o.id === data.order_id
         );
-        if (order && order.kds_sent_to_kitchen) {
-            await this.sendOrderInPreparation(order, false);
+        try {
+            if (order && order.kds_sent_to_kitchen) {
+                await this.sendOrderInPreparation(order, false);
+            }
+        } finally {
+            this._autoFireSkipPrinterIds = null;
         }
     },
 
@@ -443,8 +451,19 @@ patch(PosStore.prototype, {
      * flow, so the small line at the top of the body agrees with the
      * boxed SEND BACK banner that follows. Falls through to upstream
      * behavior outside of remake.
+     *
+     * Also honors `_autoFireSkipPrinterIds` — printers already handled
+     * by the server-side auto-fire path (`_print_kitchen_ticket_server`)
+     * are skipped here so cloud printers don't get a second copy.
      */
     async printReceipts(order, printer, title, lines, fullReceipt = false, diningModeUpdate) {
+        if (
+            this._autoFireSkipPrinterIds &&
+            printer &&
+            this._autoFireSkipPrinterIds.has(printer.printer_id ?? printer.id)
+        ) {
+            return true;
+        }
         let effectiveTitle = title;
         if (order && order._remakeReason && title === "New") {
             effectiveTitle = "SEND BACK · " + this._remakeReasonLabel(order._remakeReason);

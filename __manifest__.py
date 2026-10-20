@@ -1,6 +1,6 @@
 {
     "name": "POS Self Order Enhancement",
-    "version": "18.0.2.0.0",
+    "version": "18.0.2.2.0",
     "category": "Sales/Point of Sale",
     "summary": "Enhanced POS self-ordering with continue ordering, pay per order mode, and friendly UI",
     "description": """
@@ -67,9 +67,9 @@ GitHub: https://github.com/WOOWTECH/Odoo_pos_self_checkout_enhance
     "author": "WoowTech",
     "website": "https://aiot.woowtech.io/",
     "license": "LGPL-3",
-    "depends": ["pos_self_order", "payment"],
+    "depends": ["pos_self_order", "payment", "pos_online_payment"],
     "external_dependencies": {
-        "python": ["PIL"],
+        "python": ["Pillow"],
     },
     "data": [
         "views/payment_templates.xml",

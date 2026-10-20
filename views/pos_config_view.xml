@@ -41,4 +41,49 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Black button theme for the self-order frontend -->
+    <record id="pos_config_view_form_black_theme" model="ir.ui.view">
+        <field name="name">pos.config.form.black.theme</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@groups='base.group_system']" position="before">
+                <setting string="Self-Order Black Buttons"
+                         help="Render self-order buttons and highlights in black instead of the default purple">
+                    <field name="self_ordering_black_theme"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Allow "Pay at Counter" for takeaway self-orders -->
+    <record id="pos_config_view_form_takeaway_counter" model="ir.ui.view">
+        <field name="name">pos.config.form.takeaway.counter</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@groups='base.group_system']" position="before">
+                <setting string="Takeaway Counter Payment"
+                         help="Allow self-order takeaway customers to choose 'Pay at Counter'"
+                         invisible="not module_pos_restaurant">
+                    <div class="content-group">
+                        <div class="row">
+                            <div class="col-lg-5 o_light_label">
+                                <label string="Allow Counter Payment" for="self_ordering_takeaway_allow_counter"/>
+                            </div>
+                            <div class="col-lg-7">
+                                <field name="self_ordering_takeaway_allow_counter"/>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-2" invisible="not self_ordering_takeaway_allow_counter">
+                            When enabled, self-order takeaway customers see both "Pay at Counter"
+                            and "Online Payment". When disabled, takeaway is online-payment only
+                            (dine-in customers always see both options regardless of this flag).
+                        </div>
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
 </odoo>

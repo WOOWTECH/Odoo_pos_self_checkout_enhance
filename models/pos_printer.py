@@ -71,6 +71,15 @@ class PosPrinter(models.Model):
         ),
     )
 
+    escpos_square_ticket = fields.Boolean(
+        'Square Kitchen Ticket (正方形廚房單)',
+        default=False,
+        help="Server-rendered kitchen tickets are padded so the image is at "
+             "least as tall as it is wide; short orders print as a square "
+             "block instead of a thin slip. Existing printers upgraded from "
+             "18.0.2.1.0 or earlier are switched on by the migration.",
+    )
+
     @api.constrains('escpos_print_copies')
     def _constrains_escpos_print_copies(self):
         for record in self:
