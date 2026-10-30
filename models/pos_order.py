@@ -545,23 +545,25 @@ class PosOrder(models.Model):
         gated = self.filtered(
             lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
         )
-        if gated:
-            super(PosOrder, gated).write({'self_order_payment_status': 'paid'})
-            for config in gated.config_id:
+        unpaid = gated.filtered(lambda o: not o._is_pos_order_paid())
+        confirmed = gated - unpaid
+        if confirmed:
+            super(PosOrder, confirmed).write({'self_order_payment_status': 'paid'})
+            for config in confirmed.config_id:
                 config.notify_synchronisation(
                     config.current_session_id.id,
                     self.env.context.get('login_number', 0)
                 )
                 config._notify('ORDER_STATE_CHANGED', {})
-            tables = gated.mapped('table_id')
+            tables = confirmed.mapped('table_id')
             if tables:
-                gated.send_table_count_notification(tables)
+                confirmed.send_table_count_notification(tables)
 
             # Auto-fire paid orders to kitchen after online payment.
             # Both meal and each mode: payment confirmation = send to kitchen.
             # Counter-payment orders don't reach here (handled by write()
             # override + manual staff "Order" button in POS frontend).
-            to_fire = gated.filtered(
+            to_fire = confirmed.filtered(
                 lambda o: not o.kds_sent_to_kitchen
                           and o.config_id.kds_enabled
             )
@@ -640,7 +642,11 @@ class PosOrder(models.Model):
                             order.name, e,
                         )
 
-        return super()._process_saved_order(draft)
+        # Core treats the client-side state='paid' as authoritative when
+        # draft=False. Self-order orders can arrive in that state before the
+        # POS payment rows are synchronized, so keep the order draft until
+        # Odoo confirms the amount from its persisted payment_ids.
+        return super()._process_saved_order(draft or bool(unpaid))
 
     def write(self, vals):
         """Update payment status when payment-gated orders become paid.
@@ -651,16 +657,29 @@ class PosOrder(models.Model):
         """
         completing = self.env['pos.order']
         if vals.get('state') in ('paid', 'done', 'invoiced'):
-            completing = self.filtered(
+            gated = self.filtered(
                 lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
             )
+            unpaid = gated.filtered(lambda o: not o._is_pos_order_paid())
+            if unpaid and len(unpaid) < len(self):
+                paid_orders = self - unpaid
+                paid_orders.write(vals)
+                unpaid_vals = dict(vals, state='draft')
+                unpaid.write(unpaid_vals)
+                return True
+            if unpaid:
+                vals = dict(vals, state='draft')
+            completing = gated - unpaid
 
         res = super().write(vals)
 
         if completing:
-            # Update payment status for orders not already handled by _process_saved_order
+            # Only payment records that cover the order total can complete the
+            # self-order gate. The incoming POS order state alone is not proof
+            # that the payment has settled.
             still_pending = completing.filtered(
                 lambda o: o.self_order_payment_status != 'paid'
+                          and o._is_pos_order_paid()
             )
             if still_pending:
                 super(PosOrder, still_pending).write({'self_order_payment_status': 'paid'})
