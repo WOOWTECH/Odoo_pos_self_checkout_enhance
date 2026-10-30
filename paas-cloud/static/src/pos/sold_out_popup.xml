@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.SoldOutManagementPopup">
+        <Dialog title="'產品售完管理'" bodyClass="'d-flex flex-column'" footer="false">
+            <!-- Search bar -->
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-lg"
+                    placeholder="搜尋產品..."
+                    t-att-value="state.searchTerm"
+                    t-on-input="onSearchInput" />
+            </div>
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <a class="nav-link" href="#"
+                        t-att-class="{ active: state.filter === 'all' }"
+                        t-on-click.prevent="() => this.setFilter('all')">
+                        所有品項
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"
+                        t-att-class="{ active: state.filter === 'sold_out' }"
+                        t-on-click.prevent="() => this.setFilter('sold_out')">
+                        已售完 (<t t-esc="soldOutCount"/>)
+                    </a>
+                </li>
+            </ul>
+            <!-- Product list -->
+            <div class="overflow-auto" style="max-height: 60vh;">
+                <div t-foreach="products" t-as="product" t-key="product.id"
+                    class="d-flex align-items-center py-2 px-2 border-bottom">
+                    <!-- Product image -->
+                    <img t-att-src="getProductImageUrl(product)"
+                        class="rounded me-3 flex-shrink-0"
+                        style="width: 48px; height: 48px; object-fit: cover;"
+                        onerror="this.style.display='none'"
+                        loading="lazy" />
+                    <!-- Product name -->
+                    <span class="flex-grow-1 fs-5" t-esc="product.display_name or product.name" />
+                    <!-- Toggle switch -->
+                    <div class="form-check form-switch ms-3 flex-shrink-0" style="min-width: 110px;">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                            style="width: 3em; height: 1.5em; cursor: pointer;"
+                            t-att-checked="!product.is_sold_out"
+                            t-on-click="() => this.toggleSoldOut(product)" />
+                        <label class="form-check-label ms-1 fw-bold"
+                            t-att-class="product.is_sold_out ? 'text-danger' : 'text-success'">
+                            <t t-if="product.is_sold_out">售完</t>
+                            <t t-else="">有庫存</t>
+                        </label>
+                    </div>
+                </div>
+                <div t-if="products.length === 0" class="text-center text-muted py-4 fs-5">
+                    沒有找到產品
+                </div>
+            </div>
+            <!-- Close button -->
+            <div class="mt-3 d-flex justify-content-end">
+                <button class="btn btn-primary btn-lg px-5" t-on-click="props.close">關閉</button>
+            </div>
+        </Dialog>
+    </t>
+</templates>

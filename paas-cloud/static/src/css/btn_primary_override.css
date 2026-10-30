@@ -1,0 +1,67 @@
+/* ============================================================
+   Override ALL btn-primary buttons to black bg + white text
+   to match the landing page style (春美食堂 brand).
+   Applies to the entire pos_self_order frontend.
+   ============================================================ */
+
+/* --- Base state --- */
+.btn-primary {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- Hover --- */
+.btn-primary:hover {
+    background-color: #333333 !important;
+    border-color: #333333 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- Active / Pressed --- */
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:first-child:active {
+    background-color: #222222 !important;
+    border-color: #222222 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- Focus ring --- */
+.btn-primary:focus,
+.btn-primary:focus-visible {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.25) !important;
+}
+
+/* --- Disabled --- */
+.btn-primary:disabled,
+.btn-primary.disabled {
+    background-color: #666666 !important;
+    border-color: #666666 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- text-bg-primary (selected attribute labels, combo badges) --- */
+.text-bg-primary {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+}
+
+/* --- border-primary (attribute selection borders) --- */
+.border-primary {
+    border-color: #000000 !important;
+}
+
+/* --- btn-secondary border (landing page buttons) --- */
+.o_pos_landing_footer .btn-secondary {
+    border-color: #000000 !important;
+}
+
+/* --- Fix the Bootstrap --bs-primary CSS variable for components that use it --- */
+:root {
+    --bs-primary: #000000;
+    --bs-primary-rgb: 0, 0, 0;
+}

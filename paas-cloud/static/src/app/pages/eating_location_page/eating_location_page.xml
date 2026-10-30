@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order.EatingLocationPage" t-inherit="pos_self_order.EatingLocationPage" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_kiosk_eating_location')]" position="replace">
+            <div class="o_kiosk_eating_location d-flex flex-column align-items-center flex-grow-1 bg-300 bg-gradient overflow-y-auto text-center">
+                <h1 class="pt-3 m-0" t-esc="pageTitle"/>
+                <div class="container d-flex flex-wrap align-items-center justify-content-center gap-3 my-auto">
+                    <div class="o_kiosk_eating_location_box card p-4 text-center" role="presentation">
+                        <img t-if="isDineIn" src="/pos_self_order/static/img/eatin.svg" t-att-alt="cardLabel"/>
+                        <img t-else="" src="/pos_self_order/static/img/takeAway.svg" t-att-alt="cardLabel"/>
+                        <h3 t-esc="cardLabel"/>
+                        <p t-if="isDineIn and tableInfo" class="text-muted mt-2 mb-0" t-esc="tableInfo"/>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+        <xpath expr="//div[hasclass('page-buttons')]" position="replace">
+            <div class="page-buttons shadow-sm p-3 bg-view border-top text-center">
+                <button class="btn btn-primary btn-lg px-5" t-on-click="enter" t-att-aria-label="enterAriaLabel">
+                    <t t-esc="enterLabel"/>
+                </button>
+            </div>
+        </xpath>
+    </t>
+</templates>

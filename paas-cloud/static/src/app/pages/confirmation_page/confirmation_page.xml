@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Extend ConfirmationPage for payment mode buttons -->
+    <t t-inherit="pos_self_order.ConfirmationPage" t-inherit-mode="extension">
+
+        <!-- Replace the default action button based on payment mode -->
+        <xpath expr="//div[hasclass('px-3') and hasclass('py-4')]/button[hasclass('btn-primary')]" position="replace">
+            <t t-if="showPayPerMealUI">
+                <!-- Pay per Meal mode: prompt payment only (no continue ordering) -->
+                <div class="d-flex flex-column gap-3 w-100">
+                    <p class="text-center text-muted mb-3">
+                        Your order has been sent to the kitchen.<br/>
+                        Please proceed to payment.
+                    </p>
+                    <button class="btn btn-lg btn-primary w-100" t-on-click="goToPayment">
+                        <i class="fa fa-credit-card me-2"></i>
+                        Go to Payment
+                    </button>
+                </div>
+            </t>
+            <t t-elif="showPayPerOrderUI">
+                <!-- Pay per Order mode: show navigation buttons -->
+                <div class="d-flex flex-column gap-3 w-100">
+                    <p class="text-center text-muted mb-3">
+                        Your order has been sent to the kitchen.<br/>
+                        You can continue ordering or checkout from "My Orders".
+                    </p>
+                    <button class="btn btn-lg btn-primary w-100" t-on-click="goToLanding">
+                        Back to Home
+                    </button>
+                    <button class="btn btn-lg btn-secondary w-100" t-on-click="goToMyOrders">
+                        My Orders
+                    </button>
+                </div>
+            </t>
+            <t t-else="">
+                <!-- Default behavior: show original button -->
+                <button class="btn btn-lg w-100"
+                    t-att-class="{'btn-primary': screenMode == 'mobile', 'btn-secondary text-bg-secondary': screenMode == 'kiosk'}"
+                    t-on-click="backToHome">
+                    <t t-if="screenMode == 'kiosk'">Close</t>
+                    <t t-else="">OK</t>
+                </button>
+            </t>
+        </xpath>
+
+        <!-- Conditionally show "Pay at cashier" message (not in pay-per-order/meal modes) -->
+        <xpath expr="//h3[contains(@t-if, 'state.payment') and contains(@t-if, 'paid')]" position="attributes">
+            <attribute name="t-if">!showPayPerOrderUI and !showPayPerMealUI and state.payment and confirmedOrder.state !== 'paid'</attribute>
+        </xpath>
+
+    </t>
+
+</templates>

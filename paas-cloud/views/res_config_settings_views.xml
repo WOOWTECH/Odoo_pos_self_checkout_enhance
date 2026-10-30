@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Show takeaway self-order URL when Allow Takeaway is enabled -->
+    <record id="res_config_settings_view_form_takeaway_url" model="ir.ui.view">
+        <field name="name">res.config.settings.form.takeaway.url</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="pos_self_order.res_config_settings_view_form_menu"/>
+        <field name="arch" type="xml">
+            <field name="pos_self_ordering_takeaway" position="after">
+                <div class="content-group mt-2" invisible="not pos_self_ordering_takeaway">
+                    <div class="row">
+                        <label for="pos_self_ordering_takeaway_url" class="col-lg-4" string="外賣自助連結"/>
+                        <field name="pos_self_ordering_takeaway_url" widget="CopyClipboardChar" class="col-lg-8"/>
+                    </div>
+                </div>
+            </field>
+        </field>
+    </record>
+</odoo>

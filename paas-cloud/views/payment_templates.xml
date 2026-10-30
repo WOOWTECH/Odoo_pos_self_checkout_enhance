@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Extend payment confirmation page to add "Return to Ordering" button -->
+        <template id="payment_confirm_extend" inherit_id="payment.confirm" priority="99">
+            <xpath expr="//a[@href='/my/home']" position="after">
+                <a t-attf-href="/pos-self-order/return-to-order?reference=#{tx.reference}"
+                   class="btn btn-secondary float-end me-2">
+                    <i class="fa fa-cutlery me-1"/>
+                    Return to Ordering
+                </a>
+            </xpath>
+        </template>
+
+        <!-- Style POS payment page -->
+        <template id="pos_pay_style" inherit_id="pos_online_payment.pay" priority="99">
+            <xpath expr="//div[hasclass('wrap')]" position="before">
+                <style>
+                    /* Label: never break */
+                    .o_payment_form .o_payment_option_label {
+                        white-space: nowrap !important;
+                        word-break: normal !important;
+                    }
+                    /* The label+image row (inner flex with w-100): no wrap */
+                    .o_payment_form .form-check .d-flex.w-100 {
+                        flex-wrap: nowrap !important;
+                    }
+                    /* Image: fixed small size */
+                    .o_payment_form span[data-bs-toggle="tooltip"] {
+                        width: 48px !important;
+                        height: 48px !important;
+                        flex-shrink: 0 !important;
+                    }
+                    .o_payment_form span[data-bs-toggle="tooltip"] img {
+                        width: 48px !important;
+                        height: 48px !important;
+                        object-fit: contain !important;
+                    }
+                </style>
+            </xpath>
+            <!-- Cancel button: same shape as Pay button, different color -->
+            <xpath expr="//a[contains(@class,'btn-light')]" position="attributes">
+                <attribute name="class">btn btn-outline-secondary w-100 w-md-auto ms-auto px-5</attribute>
+            </xpath>
+        </template>
+
+    </data>
+</odoo>

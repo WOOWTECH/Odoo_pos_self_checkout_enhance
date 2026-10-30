@@ -1,0 +1,156 @@
+import uuid
+
+from odoo import models, fields, api, _
+from odoo.osv.expression import OR
+
+
+class PosConfig(models.Model):
+    _inherit = 'pos.config'
+
+    kds_enabled = fields.Boolean('Kitchen Display', default=False)
+    kds_access_token = fields.Char(
+        'KDS Access Token',
+        copy=False,
+        default=lambda self: uuid.uuid4().hex[:16],
+    )
+    kds_url = fields.Char('KDS URL', compute='_compute_kds_url')
+
+    @api.depends('kds_enabled', 'kds_access_token')
+    def _compute_kds_url(self):
+        base_url = self.env['pos.session'].get_base_url()
+        for record in self:
+            if record.kds_enabled and record.kds_access_token:
+                record.kds_url = f"{base_url}/pos-kds/{record.id}?token={record.kds_access_token}"
+            else:
+                record.kds_url = ''
+
+    def action_regenerate_kds_token(self):
+        self.ensure_one()
+        self.kds_access_token = uuid.uuid4().hex[:16]
+
+    # ── Uber Direct 外送 ──────────────────────────────────
+    uber_direct_enabled = fields.Boolean(
+        'Uber Direct Delivery (Uber Direct 外送)',
+        default=False,
+        help="Enable Uber Direct delivery for self-order takeaway customers.",
+    )
+    uber_direct_client_id = fields.Char(
+        'Uber Direct Client ID',
+        help="OAuth 2.0 Client ID from Uber Developer Dashboard.",
+    )
+    uber_direct_client_secret = fields.Char(
+        'Uber Direct Client Secret',
+        help="OAuth 2.0 Client Secret from Uber Developer Dashboard.",
+    )
+    uber_direct_customer_id = fields.Char(
+        'Uber Direct Customer ID',
+        help="Uber Direct Customer ID (organization identifier).",
+    )
+    uber_direct_env = fields.Selection(
+        [('sandbox', 'Sandbox (測試)'), ('production', 'Production (正式)')],
+        string='Uber Direct Environment',
+        default='sandbox',
+        help="Use Sandbox for development/testing, Production for live orders.",
+    )
+    uber_direct_pickup_address = fields.Char(
+        'Pickup Address (取餐地址)',
+        default='台北市文山區興隆路四段67號1樓',
+        help="Store address used as pickup location for Uber Direct deliveries.",
+    )
+    uber_direct_pickup_name = fields.Char(
+        'Pickup Name (取餐店名)',
+        default='春美食堂',
+        help="Store name shown to Uber courier.",
+    )
+    uber_direct_pickup_phone = fields.Char(
+        'Pickup Phone (取餐電話)',
+        default='0958-274-711',
+        help="Store phone for Uber courier to contact.",
+    )
+
+    # ── Takeaway Counter Payment ──────────────────────────────
+    self_ordering_takeaway_allow_counter = fields.Boolean(
+        'Allow Counter Payment for Takeaway (外帶允許現場結帳)',
+        default=False,
+        help="When enabled, self-order takeaway customers can choose "
+             "'Pay at Counter' in addition to online payment. "
+             "When disabled (default), takeaway orders can only use online payment.",
+    )
+
+    # ── E-Invoice (電子發票) ────────────────────────────────
+    is_ecpay_installed = fields.Boolean(
+        'ECPay Module Installed',
+        compute='_compute_is_ecpay_installed',
+    )
+    ecpay_einvoice_enabled = fields.Boolean('E-Invoice (電子發票)', default=False)
+    ecpay_seller_tax_id = fields.Char(
+        string='Seller Tax ID (賣方統編)',
+        compute='_compute_ecpay_seller_tax_id',
+    )
+    einvoice_printer_id = fields.Many2one(
+        'pos.printer',
+        string='E-Invoice Printer (電子發票印表機)',
+        domain="[('printer_type', '=', 'network_escpos'), ('id', 'in', printer_ids)]",
+        help="ESC/POS printer used to print Taiwan 電子統一發票 receipts. "
+             "If empty, the first network ESC/POS printer on this POS is used. "
+             "Leave kitchen-routed printers (those with Printed Product Categories) "
+             "unselected here so kitchen tickets and invoices land on separate devices.",
+    )
+
+    def _compute_ecpay_seller_tax_id(self):
+        for record in self:
+            seller_id = ''
+            if hasattr(record.company_id, 'seller_Identifier'):
+                seller_id = record.company_id.seller_Identifier or ''
+            record.ecpay_seller_tax_id = seller_id
+
+    def _compute_is_ecpay_installed(self):
+        module = self.env['ir.module.module'].sudo().search(
+            [('name', '=', 'ecpay_invoice_tw'), ('state', '=', 'installed')],
+            limit=1,
+        )
+        installed = bool(module)
+        for record in self:
+            record.is_ecpay_installed = installed
+
+    @api.model
+    def _load_pos_self_data_fields(self, config_id):
+        params = super()._load_pos_self_data_fields(config_id)
+        # When params is empty, search_read returns ALL fields (Odoo convention).
+        # Only append our fields if the parent already specified a field list;
+        # otherwise, returning a partial list would suppress every other field.
+        if params:
+            params.append('uber_direct_enabled')
+            params.append('self_ordering_takeaway_allow_counter')
+            params.append('ecpay_einvoice_enabled')
+            params.append('einvoice_printer_id')
+            params.append('is_ecpay_installed')
+        return params
+
+    def _compute_selection_pay_after(self):
+        """
+        Override to remove Enterprise version restriction from 'each' option.
+        This allows Community version to use the 'Pay per Order' feature.
+        """
+        return [
+            ('meal', _('Meal')),
+            ('each', _('Each Order')),
+        ]
+
+    def read_config_open_orders(self, domain, record_ids=None):
+        if record_ids is None:
+            record_ids = []
+        """Include paid payment-gated orders in POS sync.
+
+        POS JS only requests state='draft' orders. Payment-gated orders
+        transition draft→paid before POS sees them. We inject paid gated
+        orders into the domain so POS discovers them during sync.
+        """
+        if 'pos.order' in domain:
+            paid_gated = [
+                ('state', 'in', ['paid', 'done', 'invoiced']),
+                ('self_order_payment_status', '=', 'paid'),
+                ('session_id', '=', self.current_session_id.id),
+            ]
+            domain['pos.order'] = OR([domain['pos.order'], paid_gated])
+        return super().read_config_open_orders(domain, record_ids)

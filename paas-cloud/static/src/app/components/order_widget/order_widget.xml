@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-inherit="pos_self_order.OrderWidget" t-inherit-mode="extension">
+        <!-- In meal mode with sent + new items, show "New Items" instead of "Your Order" -->
+        <xpath expr="//div[hasclass('to-order')]/span[.='Your Order']" position="replace">
+            <span t-if="selfOrder.config.self_ordering_pay_after === 'meal'
+                        and Object.keys(selfOrder.currentOrder.uiState.lineChanges).length > 0
+                        and Object.keys(selfOrder.currentOrder.changes).length > 0">New Items</span>
+            <span t-else="">Your Order</span>
+        </xpath>
+    </t>
+
+</templates>

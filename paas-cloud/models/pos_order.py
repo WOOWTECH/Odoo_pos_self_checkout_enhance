@@ -1,0 +1,1179 @@
+import json
+import logging
+import requests
+
+from odoo import models, fields, api
+from odoo.exceptions import UserError
+from odoo.osv.expression import AND, OR
+
+_logger = logging.getLogger(__name__)
+
+
+class PosOrder(models.Model):
+    _inherit = 'pos.order'
+
+    kds_state = fields.Selection([
+        ('new', 'New'),
+        ('in_progress', 'In Progress'),
+        ('done', 'Done'),
+        ('served', 'Served'),
+    ], string='Kitchen Status', default='new', index=True)
+
+    kds_done_items = fields.Text(
+        string='KDS Done Items',
+        default='{}',
+        help='JSON dict of line UUIDs marked as done on the KDS',
+    )
+
+    kds_sent_to_kitchen = fields.Boolean(
+        string='Sent to Kitchen by Staff',
+        default=False,
+        help='Set to True when FOH staff clicks the Order button to send to kitchen',
+    )
+
+    kds_remake_data = fields.Text(
+        string='KDS Remake Data',
+        default='{}',
+        help='JSON: {"<line_id>": {"count": N, "reason": "..."}}',
+    )
+
+    kds_fired_courses = fields.Text(
+        string='KDS Fired Courses',
+        default='{}',
+        help='JSON dict: {"<category_id>": true/false}. Tracks which category groups are fired.',
+    )
+
+    kds_served_items = fields.Text(
+        string='KDS Served Items',
+        default='{}',
+        help='JSON dict: {"<line_id>": true}. Tracks which items have been served to the table.',
+    )
+
+    # ── Uber Direct Delivery ─────────────────────────────────
+    uber_delivery_address = fields.Char(
+        'Delivery Address (送達地址)',
+        help="Customer delivery address for Uber Direct.",
+    )
+    uber_delivery_fee = fields.Float(
+        'Delivery Fee (外送費)',
+        digits=(12, 2),
+        help="Uber Direct delivery fee charged to customer.",
+    )
+    uber_delivery_id = fields.Char(
+        'Uber Delivery ID',
+        help="Uber Direct delivery identifier.",
+        index=True,
+    )
+    uber_delivery_status = fields.Selection([
+        ('pending', 'Pending (等待中)'),
+        ('courier_assigned', 'Courier Assigned (騎手已指派)'),
+        ('en_route_pickup', 'En Route to Pickup (前往取餐)'),
+        ('at_pickup', 'At Pickup (已到店)'),
+        ('en_route_dropoff', 'En Route to Dropoff (配送中)'),
+        ('delivered', 'Delivered (已送達)'),
+        ('cancelled', 'Cancelled (已取消)'),
+        ('failed', 'Failed (失敗)'),
+    ], string='Delivery Status (配送狀態)', default=False)
+    uber_courier_name = fields.Char('Courier Name (騎手姓名)')
+    uber_courier_phone = fields.Char('Courier Phone (騎手電話)')
+    uber_tracking_url = fields.Char('Tracking URL (追蹤連結)')
+    uber_estimated_pickup = fields.Datetime('Estimated Pickup (預計取餐時間)')
+    uber_quote_id = fields.Char('Quote ID (報價 ID)')
+
+    # ── Payment Gate (pay-per-order) ──────────────────────────
+    self_order_payment_status = fields.Selection([
+        ('none', 'No Payment Gate'),
+        ('pending_online', 'Pending Online Payment'),
+        ('pending_counter', 'Pending Counter Payment'),
+        ('paid', 'Payment Confirmed'),
+    ], string='Self-Order Payment Status', default='none',
+       help='Controls when POS/KDS is notified about self-order orders in pay-per-order mode.')
+
+    # ── E-Invoice (電子發票) ─────────────────────────────────
+    # Stored as plain Integer (record ID) so the module does NOT hard-depend
+    # on ecpay_invoice_tw.  Browse via _get_ecpay_invoice_record().
+    ecpay_invoice_id = fields.Integer(string='統一發票 Record ID', readonly=True, copy=False)
+    tw_invoice_number = fields.Char('Invoice Number (發票號碼)')
+    tw_invoice_random_code = fields.Char('Random Code (隨機碼)')
+    tw_carrier_type = fields.Selection([
+        ('print', 'Print (列印)'),
+        ('mobile', 'Mobile Barcode (手機條碼)'),
+        ('donation', 'Donation (捐贈)'),
+        ('b2b', 'B2B (統編)'),
+    ], string='Carrier Type (載具類型)')
+    tw_carrier_num = fields.Char('Carrier Number (載具號碼)')
+    tw_love_code = fields.Char('Love Code (愛心碼)')
+    tw_buyer_tax_id = fields.Char('Buyer Tax ID (買方統編)')
+    tw_buyer_name = fields.Char('Buyer Name (買方名稱)')
+    tw_b2b_print = fields.Boolean('B2B Print Paper', default=True,
+        help='When carrier type is B2B, whether to print a paper invoice')
+    tw_invoice_status = fields.Selection([
+        ('none', 'None'),
+        ('issued', 'Issued (已開立)'),
+        ('voided', 'Voided (已作廢)'),
+    ], string='Invoice Status', default='none')
+    tw_qrcode_left = fields.Text('QR Code Left')
+    tw_qrcode_right = fields.Text('QR Code Right')
+    tw_pos_barcode = fields.Text('POS Barcode')
+
+    # ── helpers ──────────────────────────────────────────────
+
+    @api.model
+    def action_lookup_tax_id(self, tax_id):
+        """Look up company name from Taiwan GCIS open data by 統一編號.
+
+        Tries the company registry first, then the business registry.
+        Returns {'success': True, 'name': '...'} or {'success': False}.
+        """
+        if not tax_id or not isinstance(tax_id, str) or len(tax_id) != 8 or not tax_id.isdigit():
+            return {'success': False, 'error': 'Invalid tax ID format'}
+
+        # Company registry (公司登記)
+        company_url = (
+            'https://data.gcis.nat.gov.tw/od/data/api/'
+            '236EE382-4942-41A9-BD03-CA0709025E7C'
+            '?$format=json&$filter=Business_Accounting_NO eq ' + tax_id
+            + '&$skip=0&$top=1'
+        )
+
+        for url, name_key in [(company_url, 'Company_Name')]:
+            try:
+                resp = requests.get(url, timeout=3)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data and isinstance(data, list) and data[0].get(name_key):
+                        return {'success': True, 'name': data[0][name_key]}
+            except Exception:
+                _logger.debug("GCIS lookup failed for %s", tax_id, exc_info=True)
+
+        return {'success': False, 'error': 'Company not found'}
+
+    # ── ECPay optional helpers ────────────────────────────
+
+    def _ensure_ecpay_sdk(self):
+        """Try to import the ECPay SDK.
+
+        Returns ``(EcpayInvoice_class, None)`` on success, or
+        ``(None, error_dict)`` when ecpay_invoice_tw is not installed.
+        """
+        try:
+            from odoo.addons.ecpay_invoice_tw.sdk.ecpay_main import EcpayInvoice
+            return EcpayInvoice, None
+        except (ImportError, ModuleNotFoundError):
+            return None, {
+                'success': False,
+                'error': 'ecpay_invoice_tw 模組未安裝，無法使用電子發票功能。',
+            }
+
+    def _get_ecpay_invoice_record(self):
+        """Browse the linked uniform.invoice record (if ecpay is installed).
+
+        Returns a recordset or *None* when the model is unavailable or the
+        record no longer exists.
+        """
+        self.ensure_one()
+        if not self.ecpay_invoice_id:
+            return None
+        try:
+            rec = self.env['uniform.invoice'].browse(self.ecpay_invoice_id)
+            return rec if rec.exists() else None
+        except KeyError:
+            # 'uniform.invoice' model not registered (ecpay not installed)
+            return None
+
+    def _get_line_hold_fire_category(self, line):
+        """Return (category_id, category_name) for the line's effective Hold & Fire category.
+
+        Checks the line's own product category first; falls back to the combo
+        parent only if the child has no H&F category of its own.  This lets
+        combo choices declare their own Hold & Fire course (e.g. a dessert
+        choice inside a non-H&F lunch set combo).
+
+        Returns (0, '') if no H&F category found (always fired).
+        """
+        candidates = [line]
+        if line.combo_parent_id:
+            candidates.append(line.combo_parent_id)
+        for candidate in candidates:
+            categs = candidate.product_id.pos_categ_ids
+            if categs and categs[0].kds_hold_fire:
+                return categs[0].id, categs[0].name
+        return 0, ''
+
+    def _compute_fired_courses(self):
+        """Build the kds_fired_courses JSON for this order.
+
+        All hold-fire categories start held — staff must manually fire each
+        category from the POS.
+        """
+        self.ensure_one()
+        categories = set()
+        for line in self.lines:
+            if line.qty <= 0:
+                continue
+            categ_id, _ = self._get_line_hold_fire_category(line)
+            if categ_id > 0:
+                categories.add(categ_id)
+
+        if not categories:
+            return '{}'
+
+        fired = {str(cid): False for cid in categories}
+        return json.dumps(fired)
+
+    # ── course actions ───────────────────────────────────────
+
+    def fire_course(self, category_id):
+        """Fire a specific category group for kitchen preparation."""
+        for order in self:
+            try:
+                fired = json.loads(order.kds_fired_courses or '{}')
+            except (json.JSONDecodeError, TypeError):
+                fired = {}
+
+            key = str(category_id)
+            if key not in fired:
+                continue
+
+            fired[key] = True
+            vals = {'kds_fired_courses': json.dumps(fired)}
+
+            # If order was done (all previous courses complete), reset to in_progress
+            if order.kds_state == 'done':
+                vals['kds_state'] = 'in_progress'
+
+            # Un-done combo parents that have a child in the just-fired
+            # category, so the KDS card reverts to active state and the
+            # newly-fired child appears at normal brightness.
+            try:
+                done_items = json.loads(order.kds_done_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                done_items = {}
+
+            changed_done = False
+            for line in order.lines:
+                if line.combo_parent_id:
+                    continue
+                has_fired_child = False
+                for child in line.combo_line_ids:
+                    child_categ_id, _ = order._get_line_hold_fire_category(child)
+                    if child_categ_id == category_id:
+                        has_fired_child = True
+                        if done_items.get(str(child.id), False):
+                            done_items[str(child.id)] = False
+                            changed_done = True
+                if has_fired_child and done_items.get(str(line.id), False):
+                    done_items[str(line.id)] = False
+                    changed_done = True
+
+            if changed_done:
+                vals['kds_done_items'] = json.dumps(done_items)
+                if order.kds_state != 'done' and 'kds_state' not in vals:
+                    vals['kds_state'] = 'in_progress'
+
+            order.write(vals)
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': vals.get('kds_state', order.kds_state),
+                        'course_fired': category_id,
+                    })
+        return True
+
+    # ── existing methods (modified) ──────────────────────────
+
+    def mark_sent_to_kitchen(self):
+        """Called by POS frontend when staff clicks Order button."""
+        # Guard: reject unpaid self-order orders
+        blocked = self.filtered(
+            lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
+        )
+        if blocked:
+            raise UserError(
+                "Cannot send to kitchen: payment not confirmed.\n%s"
+                % ', '.join(blocked.mapped('name'))
+            )
+
+        # Set kds_sent_to_kitchen on all orders, but only set kds_state
+        # on orders that don't already have one (avoids resetting
+        # in_progress/done orders back to 'new' in batch writes).
+        need_state = self.filtered(lambda o: not o.kds_state)
+        already_has_state = self - need_state
+        if need_state:
+            need_state.write({'kds_sent_to_kitchen': True, 'kds_state': 'new'})
+        if already_has_state:
+            already_has_state.write({'kds_sent_to_kitchen': True})
+
+        # Initialize / merge course fire state for each order.
+        # Preserve any categories already fired by staff — only add newly
+        # introduced categories as held.
+        for order in self:
+            try:
+                existing = json.loads(order.kds_fired_courses or '{}')
+            except (json.JSONDecodeError, TypeError):
+                existing = {}
+
+            current_categories = set()
+            for line in order.lines:
+                if line.qty <= 0:
+                    continue
+                categ_id, _ = order._get_line_hold_fire_category(line)
+                if categ_id > 0:
+                    current_categories.add(str(categ_id))
+
+            merged = dict(existing)
+            for key in current_categories:
+                if key not in merged:
+                    merged[key] = False
+
+            if merged:
+                order.write({'kds_fired_courses': json.dumps(merged)})
+
+        for order in self:
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': order.kds_state,
+                    })
+        return True
+
+    def mark_served(self):
+        """Mark done items as served. Only sets kds_state='served' when ALL items are served."""
+        for order in self:
+            try:
+                done_items = json.loads(order.kds_done_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                done_items = {}
+            try:
+                served_items = json.loads(order.kds_served_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                served_items = {}
+
+            # Mark all done-but-not-served items as served
+            for key, is_done in done_items.items():
+                if is_done and not served_items.get(key, False):
+                    served_items[key] = True
+
+            vals = {'kds_served_items': json.dumps(served_items)}
+
+            # Check if ALL items are now served
+            all_served = True
+            for line in order.lines:
+                if line.qty > 0 and not served_items.get(str(line.id), False):
+                    all_served = False
+                    break
+
+            if all_served:
+                vals['kds_state'] = 'served'
+
+            order.write(vals)
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': vals.get('kds_state', order.kds_state),
+                        'kds_served_items': json.dumps(served_items),
+                    })
+        return True
+
+    def mark_remake(self, line_ids, reason='remake'):
+        """Called by POS frontend to send items back to kitchen for remake."""
+        for order in self:
+            try:
+                remake_data = json.loads(order.kds_remake_data or '{}')
+            except (json.JSONDecodeError, TypeError):
+                remake_data = {}
+
+            done_items = {}
+            if order.kds_state in ('done', 'served'):
+                for line in order.lines:
+                    if line.qty > 0:
+                        done_items[str(line.id)] = True
+            else:
+                try:
+                    done_items = json.loads(order.kds_done_items or '{}')
+                except (json.JSONDecodeError, TypeError):
+                    done_items = {}
+
+            try:
+                served_items = json.loads(order.kds_served_items or '{}')
+            except (json.JSONDecodeError, TypeError):
+                served_items = {}
+
+            for lid in line_ids:
+                key = str(lid)
+                if key not in remake_data:
+                    remake_data[key] = {'count': 0, 'reason': ''}
+                remake_data[key]['count'] += 1
+                remake_data[key]['reason'] = reason
+                done_items[key] = False
+                served_items.pop(key, None)  # clear served status
+
+            order.write({
+                'kds_state': 'in_progress',
+                'kds_done_items': json.dumps(done_items),
+                'kds_remake_data': json.dumps(remake_data),
+                'kds_served_items': json.dumps(served_items),
+            })
+
+            for config in order.config_id:
+                if config.kds_enabled:
+                    config._notify('KDS_ORDER_UPDATE', {
+                        'order_id': order.id,
+                        'kds_state': 'new',
+                        'is_remake': True,
+                        'kds_done_items': json.dumps(done_items),
+                        'kds_remake_data': json.dumps(remake_data),
+                        'kds_served_items': json.dumps(served_items),
+                    })
+        return True
+
+    def _send_notification(self, order_ids):
+        """Extend to also notify KDS screens (only for kitchen-confirmed orders).
+
+        POS is always notified so staff can see orders. Kitchen (KDS) is only
+        notified for orders that have been sent to kitchen (kds_sent_to_kitchen=True).
+        The mark_sent_to_kitchen() guard prevents unpaid orders from reaching kitchen.
+        """
+        if self.env.context.get('suppress_self_order_notification'):
+            return
+
+        # Notify POS for ALL orders (staff needs to see them)
+        super()._send_notification(order_ids)
+
+        config_ids = order_ids.config_id
+        for config in config_ids:
+            if config.kds_enabled:
+                kitchen_orders = order_ids.filtered(
+                    lambda o, c=config: o.kds_sent_to_kitchen and o.config_id == c
+                )
+                if kitchen_orders:
+                    config._notify('KDS_ORDER_UPDATE', {})
+
+    _KDS_PROTECTED_FIELDS = (
+        'kds_state', 'kds_sent_to_kitchen', 'kds_done_items',
+        'kds_remake_data', 'kds_fired_courses', 'kds_served_items',
+        'self_order_payment_status',
+    )
+
+    _EINVOICE_PROTECTED_FIELDS = (
+        'ecpay_invoice_id',
+        'tw_invoice_number', 'tw_invoice_random_code', 'tw_invoice_status',
+        'tw_qrcode_left', 'tw_qrcode_right', 'tw_pos_barcode',
+    )
+
+    @api.model
+    def _load_pos_data_domain(self, data):
+        """Include all self-order orders (including pending) + paid gated orders."""
+        domain = super()._load_pos_data_domain(data)
+        session_id = data['pos.session']['data'][0]['id']
+        paid_gated = [
+            ('state', 'in', ['paid', 'done', 'invoiced']),
+            ('self_order_payment_status', '=', 'paid'),
+            ('session_id', '=', session_id),
+        ]
+        return OR([domain, paid_gated])
+
+    @api.model
+    def sync_from_ui(self, orders):
+        """Protect KDS and e-invoice fields from frontend overwrite."""
+        for order in orders:
+            for field in self._KDS_PROTECTED_FIELDS:
+                order.pop(field, None)
+            for field in self._EINVOICE_PROTECTED_FIELDS:
+                order.pop(field, None)
+
+        existing_order_ids = []
+        for order in orders:
+            if order.get('id') and isinstance(order['id'], int):
+                existing_order_ids.append(order['id'])
+
+        old_line_ids = {}
+        if existing_order_ids:
+            for order in self.browse(existing_order_ids).exists():
+                old_line_ids[order.id] = set(order.lines.ids)
+
+        result = super().sync_from_ui(orders)
+
+        # When new lines are added to an already-sent order, only merge any
+        # newly introduced Hold & Fire categories into kds_fired_courses.
+        # Do NOT touch kds_done_items / kds_served_items / kds_state — those
+        # are owned by the kitchen workflow and adding new lines must never
+        # un-mark previously done or served items (that would resurrect them
+        # in KDS and confuse staff).
+        if existing_order_ids:
+            updated_orders = self.browse(existing_order_ids).exists()
+            for order in updated_orders:
+                if not order.kds_sent_to_kitchen:
+                    continue
+                prev_ids = old_line_ids.get(order.id, set())
+                curr_ids = set(order.lines.ids)
+                new_lines = curr_ids - prev_ids
+                if not new_lines:
+                    continue
+
+                try:
+                    fired = json.loads(order.kds_fired_courses or '{}')
+                except (json.JSONDecodeError, TypeError):
+                    fired = {}
+
+                new_line_records = self.env['pos.order.line'].browse(list(new_lines))
+                changed = False
+                for line in new_line_records:
+                    categ_id, _ = order._get_line_hold_fire_category(line)
+                    if categ_id > 0 and str(categ_id) not in fired:
+                        fired[str(categ_id)] = False
+                        changed = True
+
+                if changed:
+                    order.write({'kds_fired_courses': json.dumps(fired)})
+
+        return result
+
+    # ── Payment Gate: detect payment completion ───────────
+
+    def _process_saved_order(self, draft):
+        """Sync payment-gated orders to POS BEFORE state changes to 'paid'.
+
+        POS can only load 'draft' orders (JS-hardcoded domain in sync).
+        We sync while still draft, then super() changes state to 'paid'.
+        read_config_open_orders override ensures paid gated orders are
+        also found during the async POS sync that follows.
+        """
+        gated = self.filtered(
+            lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
+        )
+        unpaid = gated.filtered(lambda o: not o._is_pos_order_paid())
+        confirmed = gated - unpaid
+        if confirmed:
+            super(PosOrder, confirmed).write({'self_order_payment_status': 'paid'})
+            for config in confirmed.config_id:
+                config.notify_synchronisation(
+                    config.current_session_id.id,
+                    self.env.context.get('login_number', 0)
+                )
+                config._notify('ORDER_STATE_CHANGED', {})
+            tables = confirmed.mapped('table_id')
+            if tables:
+                confirmed.send_table_count_notification(tables)
+
+            # Auto-fire paid orders to kitchen after online payment.
+            # Both meal and each mode: payment confirmation = send to kitchen.
+            # Counter-payment orders don't reach here (handled by write()
+            # override + manual staff "Order" button in POS frontend).
+            to_fire = confirmed.filtered(
+                lambda o: not o.kds_sent_to_kitchen
+                          and o.config_id.kds_enabled
+            )
+            if to_fire:
+                to_fire.mark_sent_to_kitchen()
+                # Pre-fire ALL Hold & Fire categories — in pay-per-order
+                # mode there is no cashier to sequence courses, so
+                # everything must be immediately visible to the kitchen.
+                for order in to_fire:
+                    try:
+                        fired = json.loads(order.kds_fired_courses or '{}')
+                    except (json.JSONDecodeError, TypeError):
+                        fired = {}
+                    if fired and not all(fired.values()):
+                        for key in fired:
+                            fired[key] = True
+                        order.write({'kds_fired_courses': json.dumps(fired)})
+
+                # Server-side kitchen ticket render + print.
+                # Single source of truth for auto-fire printing after
+                # payment. AUTO_FIRE_PRINT bus notification was removed
+                # because the frontend path (sendOrderInPreparation ->
+                # /pos-escpos/print-order) was rendering + relaying a
+                # SECOND time, doubling copies (4 physical prints when
+                # escpos_print_copies=2). Server-side alone works because
+                # it fires regardless of browser tab state.
+                for order in to_fire:
+                    try:
+                        order._print_kitchen_ticket_server()
+                    except Exception as e:
+                        _logger.warning(
+                            "[escpos] server-side kitchen ticket failed "
+                            "for order %s: %s", order.name, e,
+                        )
+
+                # Uber Direct auto-dispatch: request a courier for
+                # delivery orders immediately after payment succeeds.
+                uber_delivery_orders = to_fire.filtered(
+                    lambda o: o.uber_delivery_address
+                              and not o.uber_delivery_id
+                              and o.config_id.uber_direct_enabled
+                )
+                for order in uber_delivery_orders:
+                    try:
+                        UberDirect = self.env['uber.direct'].sudo()
+                        result = UberDirect._create_delivery(order.config_id, order)
+                        if result.get('success'):
+                            order.write({
+                                'uber_delivery_id': result.get('delivery_id', ''),
+                                'uber_delivery_status': 'pending',
+                                'uber_courier_name': result.get('courier_name', ''),
+                                'uber_courier_phone': result.get('courier_phone', ''),
+                                'uber_tracking_url': result.get('tracking_url', ''),
+                            })
+                            _logger.info(
+                                "[uber-direct] delivery dispatched for %s: %s",
+                                order.name, result.get('delivery_id'),
+                            )
+                        else:
+                            order.write({'uber_delivery_status': 'failed'})
+                            _logger.warning(
+                                "[uber-direct] delivery dispatch failed for %s: %s",
+                                order.name, result.get('error'),
+                            )
+                    except Exception as e:
+                        order.write({'uber_delivery_status': 'failed'})
+                        _logger.warning(
+                            "[uber-direct] delivery dispatch error for %s: %s",
+                            order.name, e,
+                        )
+
+        # Keep client-side paid orders in draft until Odoo confirms full payment
+        # from persisted payment records.
+        return super()._process_saved_order(draft or bool(unpaid))
+
+    def write(self, vals):
+        """Update payment status when payment-gated orders become paid.
+
+        Notifications are handled by _process_saved_order() (before state
+        transition).  This override just ensures the status field is updated
+        for any remaining code paths (e.g. counter payment via POS cashier).
+        """
+        completing = self.env['pos.order']
+        if vals.get('state') in ('paid', 'done', 'invoiced'):
+            gated = self.filtered(
+                lambda o: o.self_order_payment_status in ('pending_online', 'pending_counter')
+            )
+            unpaid = gated.filtered(lambda o: not o._is_pos_order_paid())
+            if unpaid and len(unpaid) < len(self):
+                paid_orders = self - unpaid
+                paid_orders.write(vals)
+                unpaid_vals = dict(vals, state='draft')
+                unpaid.write(unpaid_vals)
+                return True
+            if unpaid:
+                vals = dict(vals, state='draft')
+            completing = gated - unpaid
+
+        res = super().write(vals)
+
+        if completing:
+            # The requested state alone is not proof that payment has settled.
+            still_pending = completing.filtered(
+                lambda o: o.self_order_payment_status != 'paid'
+                          and o._is_pos_order_paid()
+            )
+            if still_pending:
+                super(PosOrder, still_pending).write({'self_order_payment_status': 'paid'})
+                for config in still_pending.config_id:
+                    config.notify_synchronisation(
+                        config.current_session_id.id,
+                        self.env.context.get('login_number', 0)
+                    )
+                    config._notify('ORDER_STATE_CHANGED', {})
+                tables = still_pending.mapped('table_id')
+                if tables:
+                    still_pending.send_table_count_notification(tables)
+
+        return res
+
+    # ── E-Invoice RPC methods ─────────────────────────────
+
+    def action_issue_einvoice(self, carrier_data):
+        """Issue e-invoice via ECPay SDK (ecpay_invoice_tw).
+
+        Creates a uniform.invoice record so the invoice appears in the
+        統一發票 admin page.  Called from POS frontend after payment.
+        """
+        import datetime as _dt
+        import logging
+        _logger = logging.getLogger(__name__)
+
+        self.ensure_one()
+        config = self.config_id
+        if not config.ecpay_einvoice_enabled:
+            return {'success': False, 'error': 'E-Invoice not enabled'}
+
+        # Skip if already issued (e.g. via account.move auto-invoice flow)
+        if self.ecpay_invoice_id or self.tw_invoice_status == 'issued':
+            return {
+                'success': True,
+                'invoice_no': self.tw_invoice_number or '',
+                'random_code': self.tw_invoice_random_code or '',
+                'qrcode_left': self.tw_qrcode_left or '',
+                'qrcode_right': self.tw_qrcode_right or '',
+                'pos_barcode': self.tw_pos_barcode or '',
+            }
+
+        EcpayInvoice, sdk_err = self._ensure_ecpay_sdk()
+        if sdk_err:
+            return sdk_err
+
+        company = self.env.company
+        if not company.ecpay_MerchantID or not company.ecpay_HashKey or not company.ecpay_HashIV:
+            return {'success': False, 'error': '綠界電子發票連線設定不完整 ECPay credentials not configured'}
+
+        carrier_type = carrier_data.get('carrier_type', 'print')
+        carrier_num = carrier_data.get('carrier_num', '')
+        love_code = carrier_data.get('love_code', '')
+        buyer_tax_id = carrier_data.get('buyer_tax_id', '')
+        buyer_name = carrier_data.get('buyer_name', '')
+
+        invoice_sdk = EcpayInvoice()
+
+        # Initialize SDK with company credentials (reuse ecpay_invoice_tw pattern)
+        self.env['account.move'].ecpay_invoice_init(
+            invoice_sdk, 'B2CInvoice/Issue', 'INVOICE', company_id=company
+        )
+
+        # Create uniform.invoice stub (auto-generates related_number)
+        ui_record = self.env['uniform.invoice'].create({
+            'company_id': company.id,
+        })
+
+        # Build items from pos.order.lines
+        # ECPay validates SalesAmount == sum(ItemAmount) and SalesAmount is int.
+        # We round each ItemAmount to int and compute ItemPrice = ItemAmount / qty
+        # to ensure perfect consistency.
+        items = []
+        items_total = 0
+        for i, line in enumerate(self.lines, 1):
+            if line.qty <= 0:
+                continue
+            qty = max(int(line.qty), 1)
+            item_amount = int(round(line.price_subtotal_incl))
+            item_price = round(item_amount / qty, 2)
+            items.append({
+                'ItemSeq': i,
+                'ItemName': (line.full_product_name or line.product_id.name or 'Item')[:30],
+                'ItemCount': qty,
+                'ItemWord': '份',
+                'ItemPrice': item_price,
+                'ItemTaxType': '1',
+                'ItemAmount': item_amount,
+                'ItemRemark': '',
+            })
+            items_total += item_amount
+
+        if not items:
+            ui_record.unlink()
+            return {'success': False, 'error': 'Order has no lines'}
+
+        sales_amount = items_total
+
+        # Determine flags
+        is_donation = carrier_type == 'donation'
+        is_b2b = carrier_type == 'b2b' and buyer_tax_id
+        print_flag = '1' if (carrier_type == 'print' or is_b2b) else '0'
+        ecpay_carrier_type = '3' if carrier_type == 'mobile' else ''
+
+        partner = self.partner_id
+        if is_b2b and buyer_name:
+            customer_name = buyer_name
+        elif partner:
+            customer_name = partner.name
+        else:
+            customer_name = '顧客'
+        invoice_sdk.Send['RelateNumber'] = ui_record.related_number
+        invoice_sdk.Send['CustomerIdentifier'] = buyer_tax_id[:8] if is_b2b else ''
+        invoice_sdk.Send['CustomerName'] = customer_name[:60]
+        invoice_sdk.Send['CustomerAddr'] = (partner.contact_address if partner else 'N/A')[:200]
+        invoice_sdk.Send['CustomerEmail'] = (partner.email if partner else 'noreply@pos.local')[:200]
+        invoice_sdk.Send['CustomerPhone'] = ((partner.phone or partner.mobile) if partner else '')[:20]
+        invoice_sdk.Send['Print'] = print_flag
+        invoice_sdk.Send['Donation'] = '1' if is_donation else '0'
+        invoice_sdk.Send['LoveCode'] = (love_code or '')[:7] if is_donation else ''
+        invoice_sdk.Send['CarrierType'] = ecpay_carrier_type
+        invoice_sdk.Send['CarrierNum'] = carrier_num if carrier_type == 'mobile' else ''
+        invoice_sdk.Send['TaxType'] = '1'
+        invoice_sdk.Send['SalesAmount'] = sales_amount
+        invoice_sdk.Send['InvType'] = '07'
+        invoice_sdk.Send['vat'] = '1'
+        invoice_sdk.Send['Items'] = items
+        invoice_sdk.Send['InvoiceRemark'] = self.pos_reference or self.name or ''
+
+        try:
+            result = invoice_sdk.Check_Out()
+        except Exception as e:
+            _logger.warning("ECPay e-invoice API error: %s", e)
+            ui_record.unlink()
+            return {'success': False, 'error': str(e)}
+
+        if result.get('RtnCode') != 1:
+            _logger.info("ECPay e-invoice ← RtnCode=%s RtnMsg=%s", result.get('RtnCode'), result.get('RtnMsg'))
+            ui_record.unlink()
+            return {'success': False, 'error': result.get('RtnMsg', 'Unknown error')}
+
+        # Store invoice number on uniform.invoice
+        ui_record.name = result.get('InvoiceNo', '')
+        _logger.info("ECPay e-invoice ← issued %s (uniform.invoice #%s)", ui_record.name, ui_record.id)
+
+        # Query full details from ECPay and populate uniform.invoice fields
+        try:
+            self._pos_query_invoice_info(ui_record)
+        except Exception as e:
+            _logger.warning("ECPay e-invoice detail query failed (non-fatal): %s", e)
+
+        # Link and store summary on pos.order
+        self.write({
+            'ecpay_invoice_id': ui_record.id,
+            'tw_invoice_number': result.get('InvoiceNo', ''),
+            'tw_invoice_random_code': result.get('RandomNumber', ''),
+            'tw_carrier_type': carrier_type,
+            'tw_carrier_num': carrier_num,
+            'tw_love_code': love_code,
+            'tw_buyer_tax_id': buyer_tax_id,
+            'tw_buyer_name': buyer_name if carrier_type == 'b2b' else '',
+            'tw_invoice_status': 'issued',
+            'tw_qrcode_left': result.get('QRCode_Left', ''),
+            'tw_qrcode_right': result.get('QRCode_Right', ''),
+            'tw_pos_barcode': result.get('PosBarCode', ''),
+        })
+
+        return {
+            'success': True,
+            'invoice_no': result.get('InvoiceNo', ''),
+            'random_code': result.get('RandomNumber', ''),
+            'qrcode_left': result.get('QRCode_Left', ''),
+            'qrcode_right': result.get('QRCode_Right', ''),
+            'pos_barcode': result.get('PosBarCode', ''),
+        }
+
+    def _pos_query_invoice_info(self, ui_record):
+        """Query ECPay for full invoice details — standalone version for POS.
+
+        uniform.invoice.get_ecpay_invoice_info() requires a linked account.move
+        which POS orders don't have.  This method calls the GetIssue API directly
+        and populates the uniform.invoice record.
+        """
+        import datetime as _dt
+
+        EcpayInvoice, sdk_err = self._ensure_ecpay_sdk()
+        if sdk_err:
+            return
+
+        inv = EcpayInvoice()
+        self.env['account.move'].ecpay_invoice_init(
+            inv, 'B2CInvoice/GetIssue', 'INVOICE_SEARCH',
+            company_id=self.env.company
+        )
+        inv.Send['RelateNumber'] = ui_record.related_number
+        result = inv.Check_Out()
+
+        if result.get('RtnCode') != 1:
+            return
+
+        processed = ui_record.process_return_info(result)
+
+        # Parse dates (same logic as uniform_invoice.get_ecpay_invoice_info)
+        invoice_create = _dt.datetime.strptime(processed['IIS_Create_Date'], '%Y-%m-%d+%H:%M:%S')
+        processed['IIS_Create_Date'] = invoice_create - _dt.timedelta(hours=8)
+        processed['IIS_Upload_Date'] = (
+            _dt.datetime.strptime(processed['IIS_Upload_Date'], '%Y-%m-%d+%H:%M:%S')
+            - _dt.timedelta(hours=8)
+        )
+        processed['IIS_Customer_Addr'] = processed.get('IIS_Customer_Addr', '').replace('\n', ' ').replace('+', ' ')
+
+        # Calculate ROC invoice month (same logic as uniform_invoice.py)
+        date = invoice_create.date()
+        month_int = int(invoice_create.strftime("%m"))
+        roc_year = date.year - 1911
+        if month_int in (11, 12):
+            ui_record.invoice_month = f'{roc_year}年11-12月'
+        elif month_int % 2 == 0:
+            ui_record.invoice_month = f'{roc_year}年{month_int - 1:02d}-{month_int:02d}月'
+        else:
+            ui_record.invoice_month = f'{roc_year}年{month_int:02d}-{month_int + 1:02d}月'
+
+        ui_record.write(processed)
+
+    def action_void_einvoice(self, reason=''):
+        """Void a previously issued e-invoice via ECPay SDK."""
+        self.ensure_one()
+        if self.tw_invoice_status != 'issued' or not self.ecpay_invoice_id:
+            return {'success': False, 'error': 'No issued invoice to void'}
+
+        EcpayInvoice, sdk_err = self._ensure_ecpay_sdk()
+        if sdk_err:
+            return sdk_err
+
+        ui_record = self._get_ecpay_invoice_record()
+
+        inv = EcpayInvoice()
+        self.env['account.move'].ecpay_invoice_init(
+            inv, 'B2CInvoice/Invalid', 'Invalid',
+            company_id=self.env.company
+        )
+
+        inv.Send['InvoiceNo'] = self.tw_invoice_number
+        inv.Send['InvoiceDate'] = (
+            ui_record.IIS_Create_Date.strftime('%Y/%m/%d')
+            if ui_record and ui_record.IIS_Create_Date
+            else self.date_order.strftime('%Y/%m/%d')
+        )
+        inv.Send['Reason'] = (reason or 'POS order voided')[:200]
+
+        try:
+            result = inv.Check_Out()
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+        if result.get('RtnCode') == 1:
+            self.write({'tw_invoice_status': 'voided'})
+            # Refresh uniform.invoice status
+            if ui_record:
+                try:
+                    self._pos_query_invoice_info(ui_record)
+                except Exception:
+                    pass
+            return {'success': True}
+        return {'success': False, 'error': result.get('RtnMsg', 'Unknown error')}
+
+    def get_einvoice_print_html(self):
+        """Render the ecpay_invoice_tw invoice report as HTML for ESC/POS printing.
+
+        Reuses the official ecpay_invoice_tw.invoice QWeb template to ensure
+        the printed receipt matches the government-compliant format exactly.
+        """
+        self.ensure_one()
+        if not self.ecpay_invoice_id:
+            return {'html': ''}
+
+        # Check QWeb template exists (ecpay_invoice_tw may not be installed)
+        tmpl = self.env.ref('ecpay_invoice_tw.invoice', raise_if_not_found=False)
+        if not tmpl:
+            return {'html': ''}
+
+        ui_record = self._get_ecpay_invoice_record()
+        if not ui_record:
+            return {'html': ''}
+
+        try:
+            html = self.env['ir.qweb']._render('ecpay_invoice_tw.invoice', {
+                'docs': ui_record,
+                'doc': ui_record,
+                'user': self.env.user,
+                'company': self.env.company,
+            })
+            if isinstance(html, bytes):
+                html = html.decode('utf-8')
+            # Inject CSS inline — ESC/POS printer won't load external stylesheets.
+            # Wrap in Markup so Python doesn't escape <style> when concatenating
+            # with the Markup HTML returned by ir.qweb._render().
+            from markupsafe import Markup
+            css = Markup("""<style>
+.invoiceContainer { font-family: monospace; }
+.invoiceContainer .invoice_inner { width: 5.7cm; font-size: 14px; background: white; display: inline-block; }
+.invoiceContainer .invoice_inner .invoice { width: 5.7cm; text-align: center; }
+.invoice h1 { font-size: 19px; line-height: 1.2; max-height: 68px; overflow: hidden; font-weight: bold; margin: 0; }
+.invoice h2 { font-size: 21px; font-weight: bold; line-height: 1; margin: 5px 0 4px; }
+.invoice h3 { font-size: 24px; margin: 0 0 2px 0; line-height: 1; font-weight: bold; }
+.invoice ul, .invoice_details ul { margin: 0; overflow: hidden; padding: 0; }
+.invoice ul li, .invoice_details ul li { color: #333; margin: 0 0 3px 0; line-height: 18px; font-size: 14px; overflow: hidden; list-style: none; width: 100%; text-align: left; }
+.invoice li span.left { float: left; }
+.invoice li span.right { float: right; text-align: right; }
+.invoiceContainer .invoice_inner .invoice_details { width: 5.7cm; padding: 5px; text-align: center; background: white; }
+.invoice_details h2 { margin: 5px 0 10px 0; font-size: 22px; font-weight: bold; }
+.invoice_details ul { border-bottom: 1px dashed #333; margin-bottom: 10px; }
+.invoice_details h4 { text-align: left; margin: 0; font-size: 14px; font-weight: bold; }
+</style>""")
+            return {'html': str(css + html)}
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to render einvoice HTML: %s", e)
+            return {'html': ''}
+
+    # ── Server-side kitchen ticket rendering ─────────────
+
+    def _print_kitchen_ticket_server(self):
+        """Render and print a kitchen ticket entirely server-side with Pillow.
+
+        Bypasses the browser html-to-image pipeline which can produce blank
+        images when CJK fonts fail to embed or the browser tab is
+        backgrounded (requestAnimationFrame throttling).
+
+        Only prints via cloud relay (escpos_proxy_url). Printers configured
+        for local TCP are expected to have a co-located POS browser.
+        """
+        import base64
+        import io
+        from PIL import Image, ImageDraw, ImageFont
+
+        self.ensure_one()
+        config = self.config_id
+        printers = config.printer_ids.filtered(
+            lambda p: p.printer_type == 'network_escpos' and p.escpos_proxy_url
+        )
+        if not printers:
+            return
+
+        # Gather order lines
+        lines = self.lines.filtered(lambda l: l.qty > 0)
+        if not lines:
+            return
+
+        # Determine paper dimensions
+        printer = printers[0]
+        pw = int(printer.escpos_paper_width or '80')
+        dots = {80: 576, 58: 384}.get(pw, 576)
+
+        # Try to load a CJK-capable font, fall back to default
+        font_large = font_med = font_small = None
+        for font_path in [
+            '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',
+        ]:
+            try:
+                font_large = ImageFont.truetype(font_path, 28)
+                font_med = ImageFont.truetype(font_path, 22)
+                font_small = ImageFont.truetype(font_path, 18)
+                break
+            except (OSError, IOError):
+                continue
+        if not font_large:
+            try:
+                font_large = ImageFont.load_default(size=28)
+                font_med = ImageFont.load_default(size=22)
+                font_small = ImageFont.load_default(size=18)
+            except TypeError:
+                font_large = font_med = font_small = ImageFont.load_default()
+
+        # Render to image
+        # First pass: calculate height
+        margin = 10
+        y = margin
+        content_lines = []
+
+        # Header: order reference
+        ref = self.pos_reference or self.name or ''
+        content_lines.append(('large', ref, True))
+        y += 36
+
+        # Print timestamp (server time in company tz, yyyy-mm-dd HH:MM:SS)
+        try:
+            from odoo import fields as odoo_fields
+            import pytz
+            tz_name = self.env.user.tz or self.env.company.partner_id.tz or 'Asia/Taipei'
+            now_local = odoo_fields.Datetime.now().replace(tzinfo=pytz.utc).astimezone(pytz.timezone(tz_name))
+            ts_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            from datetime import datetime
+            ts_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        content_lines.append(('small', ts_str, True))
+        y += 24
+
+        # Table info
+        if self.table_id:
+            floor_name = self.table_id.floor_id.name if self.table_id.floor_id else ''
+            table_num = self.table_id.table_number or ''
+            table_str = f"{floor_name} - {table_num}" if floor_name else str(table_num)
+            content_lines.append(('med', table_str, True))
+            y += 30
+
+        # Takeaway / Delivery indicator
+        if self.uber_delivery_address:
+            content_lines.append(('med', '*** 外送 ***', True))
+            y += 30
+            # Delivery address (truncate to fit paper)
+            addr = self.uber_delivery_address or ''
+            if len(addr) > 30:
+                content_lines.append(('small', addr[:30], True))
+                y += 24
+                content_lines.append(('small', addr[30:60], True))
+                y += 24
+            else:
+                content_lines.append(('small', addr, True))
+                y += 24
+            # Courier info if available
+            if self.uber_courier_name:
+                content_lines.append(('small', f"騎手: {self.uber_courier_name}", True))
+                y += 24
+        elif self.takeaway:
+            content_lines.append(('med', '*** 外帶 ***', True))
+            y += 30
+
+        # Separator
+        content_lines.append(('sep', '', False))
+        y += 10
+
+        # Order lines
+        for line in lines:
+            product_name = line.full_product_name or line.product_id.display_name or ''
+            qty = int(line.qty) if line.qty == int(line.qty) else line.qty
+            line_text = f"{qty}x  {product_name}"
+            content_lines.append(('med', line_text, False))
+            y += 28
+            # Note — kiosk writes to customer_note, POS staff writes to note.
+            # Show both. Prefer customer_note first (customer-provided) then
+            # internal note.
+            line_cnote = getattr(line, 'customer_note', '') or ''
+            line_note = getattr(line, 'note', '') or ''
+            if line_cnote:
+                content_lines.append(('small', f"  ** {line_cnote}", False))
+                y += 24
+            if line_note and line_note != line_cnote:
+                content_lines.append(('small', f"  ** {line_note}", False))
+                y += 24
+
+        # Order note (Odoo 18 uses general_note, not note)
+        if self.general_note:
+            content_lines.append(('sep', '', False))
+            y += 10
+            content_lines.append(('small', f"備註: {self.general_note}", False))
+            y += 24
+
+        y += margin
+
+        # Create image — canvas height >= width (square minimum).
+        # User requirement: height equals width so short receipts also
+        # print as a square block instead of a tiny slip.
+        img = Image.new('RGB', (dots, max(y, dots)), 'white')
+        draw = ImageDraw.Draw(img)
+
+        y = margin
+        for font_key, text, center in content_lines:
+            if font_key == 'sep':
+                draw.line([(margin, y + 4), (dots - margin, y + 4)], fill='black', width=2)
+                y += 10
+                continue
+
+            font = {'large': font_large, 'med': font_med, 'small': font_small}[font_key]
+            line_h = {'large': 36, 'med': 28, 'small': 24}[font_key]
+
+            if center:
+                bbox = draw.textbbox((0, 0), text, font=font)
+                tw = bbox[2] - bbox[0]
+                x = max(margin, (dots - tw) // 2)
+            else:
+                x = margin
+
+            draw.text((x, y), text, fill='black', font=font)
+            y += line_h
+
+        # Convert to JPEG base64
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=85)
+        b64_jpeg = base64.b64encode(buf.getvalue()).decode('ascii')
+
+        # Send to all relay printers
+        for printer in printers:
+            result = printer._send_via_relay(b64_jpeg)
+            if result.get('success'):
+                _logger.info(
+                    "[escpos] server-side kitchen ticket printed for %s via %s",
+                    self.name, printer.name,
+                )
+            else:
+                _logger.warning(
+                    "[escpos] server-side kitchen ticket FAILED for %s: %s",
+                    self.name, result.get('error'),
+                )

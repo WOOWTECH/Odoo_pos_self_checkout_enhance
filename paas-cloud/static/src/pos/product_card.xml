@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order_enhancement.PosProductCard" t-inherit="point_of_sale.ProductCard" t-inherit-mode="extension">
+        <!-- Grey-out overlay for sold-out products -->
+        <xpath expr="//div[hasclass('product-content')]" position="after">
+            <div t-if="props.product.is_sold_out"
+                class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded-3"
+                style="background: rgba(0,0,0,0.45); z-index: 2; pointer-events: none;">
+                <span class="text-white fw-bold fs-5" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">售完</span>
+            </div>
+        </xpath>
+    </t>
+</templates>

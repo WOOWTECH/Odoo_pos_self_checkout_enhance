@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="pos_self_order_enhancement.DeliveryAddressPage">
+        <div class="d-flex flex-column h-100 bg-light">
+            <!-- Header -->
+            <div class="bg-white border-bottom p-3 d-flex align-items-center">
+                <button class="btn btn-link text-dark p-0 me-3" t-on-click="back">
+                    <i class="fa fa-arrow-left fa-lg"></i>
+                </button>
+                <h4 class="mb-0 fw-bold" t-esc="pageTitle"/>
+            </div>
+
+            <!-- Form Content -->
+            <div class="flex-grow-1 overflow-auto p-3">
+                <div class="bg-white rounded-3 shadow-sm p-3">
+
+                    <!-- Error message -->
+                    <div t-if="state.error" class="alert alert-danger py-2 mb-3">
+                        <i class="fa fa-exclamation-circle me-2"></i>
+                        <t t-esc="state.error"/>
+                    </div>
+
+                    <!-- City (縣市) - dropdown -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" t-esc="cityLabel"/>
+                        <select class="form-select form-select-lg"
+                                t-on-change="onCityChange"
+                                t-att-value="state.city">
+                            <option value="">-- <t t-esc="cityLabel"/> --</option>
+                            <t t-foreach="cityOptions" t-as="city" t-key="city">
+                                <option t-att-value="city"
+                                        t-att-selected="state.city === city"
+                                        t-esc="city"/>
+                            </t>
+                        </select>
+                    </div>
+
+                    <!-- District (區) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" t-esc="districtLabel"/>
+                        <input type="text"
+                               class="form-control form-control-lg"
+                               t-att-placeholder="districtLabel"
+                               t-att-value="state.district"
+                               t-on-input="onDistrictInput"/>
+                    </div>
+
+                    <!-- Street (路段) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" t-esc="streetLabel"/>
+                        <input type="text"
+                               class="form-control form-control-lg"
+                               t-att-placeholder="streetLabel"
+                               t-att-value="state.street"
+                               t-on-input="onStreetInput"/>
+                    </div>
+
+                    <!-- Detail (詳細地址) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" t-esc="detailLabel"/>
+                        <input type="text"
+                               class="form-control form-control-lg"
+                               t-att-placeholder="detailPlaceholder"
+                               t-att-value="state.detail"
+                               t-on-input="onDetailInput"/>
+                    </div>
+
+                    <hr class="my-3"/>
+
+                    <!-- Recipient Name (收件人姓名) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" t-esc="nameLabel"/>
+                        <input type="text"
+                               class="form-control form-control-lg"
+                               t-att-placeholder="nameLabel"
+                               t-att-value="state.name"
+                               t-on-input="onNameInput"/>
+                    </div>
+
+                    <!-- Recipient Phone (收件人電話) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" t-esc="phoneLabel"/>
+                        <input type="tel"
+                               class="form-control form-control-lg"
+                               placeholder="09xx-xxx-xxx"
+                               t-att-value="state.phone"
+                               t-on-input="onPhoneInput"
+                               inputmode="tel"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="page-buttons shadow-sm p-3 bg-view border-top">
+                <button class="btn btn-primary btn-lg w-100 py-3" t-on-click="submit">
+                    <i class="fa fa-search me-2"></i>
+                    <t t-esc="submitLabel"/>
+                </button>
+            </div>
+        </div>
+    </t>
+
+</templates>
