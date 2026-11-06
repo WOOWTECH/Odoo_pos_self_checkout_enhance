@@ -69,6 +69,16 @@ Odoo 18 模組，強化並延伸內建的 POS 自助點餐 (`pos_self_order`)，
 | **設定 → 印表機 → 您的印表機** | `printer_type = "Use a network ESC/POS printer"` | — |
 | **設定 → 印表機 → 您的印表機** | `Print Copies`（份數）、`Paper Width`、`Cloud Relay URL`、`API Key`、`Printer Label` | 1 份、80mm |
 
+## 版本紀錄
+
+### 18.0.2.2.1（安全性更新）
+- **Uber Direct Webhook：** 呼叫必須帶簽章。請把 webhook 的 *Signing Key* 貼到 POS 設定；未設定時所有 webhook 一律回 401，配送狀態與騎手資料不再更新。
+- **ESC/POS 列印：** `/pos-escpos/print` 與 `/pos-escpos/print-order` 需要 POS 使用者權限，且只會送到已設定的 `network_escpos` 印表機（使用者所屬公司的 pos.printer 記錄）；不再接受瀏覽器傳來的任意 IP。POS 畫面只顯示通用錯誤訊息（細節在伺服器 log）。
+- **Uber Direct 報價：** 需要自助點餐 access token（內建自助點餐頁會自動帶入），限制地址長度並有頻率限制。
+- **自助點餐下單：** 訂單內容改由 Odoo 核心規則清洗；數量 <= 0 的品項、空訂單、操作他單明細、客戶端指定的客戶／付款紀錄、以及重送已處理的訂單都會被拒絕。總額為 0 的訂單只有在所有品項確實免費時才會直接標記已付款。
+- 付款確認頁的「Return to Ordering」連結改為綁定交易；舊連結會回 404。
+- KDS token 改用固定時間比對，並拒絕空 token。
+
 ## 授權條款
 
 LGPL-3

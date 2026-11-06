@@ -111,6 +111,29 @@ Most features are wired automatically. The pieces you might want to touch:
 | **Configuration → Printers → your printer** | `printer_type = "Use a network ESC/POS printer"` | — |
 | **Configuration → Printers → your printer** | `Print Copies`, `Paper Width`, `Cloud Relay URL`, `API Key`, `Printer Label` | 1 copy, 80mm |
 
+## Changelog
+
+### 18.0.2.2.1 (security release)
+- **Uber Direct webhook:** calls must be signed. Paste the webhook
+  *Signing Key* into the POS configuration; without it every webhook call
+  is rejected (401) and delivery status / courier details stop updating.
+- **ESC/POS printing:** `/pos-escpos/print` and `/pos-escpos/print-order`
+  now require Point of Sale user rights and a configured
+  `network_escpos` printer (pos.printer record of one of the user's
+  companies). Jobs are no longer sent to a bare IP address coming from
+  the browser; errors shown in the POS are generic (details in the
+  server log).
+- **Uber Direct quote:** requires the self-order access token (sent by
+  the bundled self-order page), limits address length and is throttled.
+- **Self-order processing:** the order payload is sanitized by Odoo's
+  core rules; lines with quantity <= 0, empty orders, line commands on
+  other orders, client-chosen customers / payments and resends of
+  already processed orders are refused. A zero-total order is only
+  marked paid when every item is genuinely free.
+- **Return to Ordering** link on the payment confirmation page is bound
+  to the transaction; old links return 404.
+- KDS token checks are constant-time and refuse empty tokens.
+
 ## License
 
 LGPL-3
