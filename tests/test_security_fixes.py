@@ -233,6 +233,89 @@ class TestSelfOrderProcessOrder(SelfOrderSecurityCommon):
         self.assertEqual(new_order.self_order_payment_status, 'pending_online')
 
 
+    def _resend(self, payload, result, lines):
+        """Resend the caller's own order (same uuid / id) with new line commands."""
+        return dict(payload, id=result['pos.order'][0]['id'], lines=lines)
+
+    def test_resend_of_paid_order_is_rejected(self):
+        payload = self._order([self._line(self.free_product, 1)])
+        result = self._process(payload, self.table_1.identifier)
+        order = self.env['pos.order'].browse(result['pos.order'][0]['id'])
+        self.env.invalidate_all()
+        self.assertEqual(order.state, 'paid')
+        status = order.self_order_payment_status
+
+        with self.assertRaises(JsonRpcException):
+            self._process(
+                self._resend(payload, result, [self._line(self.product, 1)]),
+                self.table_1.identifier,
+            )
+        self.env.invalidate_all()
+        self.assertEqual(order.state, 'paid')
+        self.assertEqual(order.self_order_payment_status, status)
+        self.assertEqual(len(order.lines), 1)
+
+    def test_empty_order_is_rejected(self):
+        before = self._session_orders()
+        with self.assertRaises(JsonRpcException):
+            self._process(self._order([]), self.table_1.identifier)
+        after = self._session_orders()
+        self.assertEqual(after, before)
+        self.assertFalse(after.filtered(lambda o: o.state == 'paid'))
+
+    def test_foreign_line_cannot_be_adopted_as_combo_child(self):
+        victim = self._create_draft_order(table=self.table_2)
+        victim_line = victim.lines
+        order = self._order([
+            self._line(self.product, 1, combo_line_ids=[victim_line.id]),
+            self._line(self.product, 1, combo_parent_id=victim_line.id),
+        ])
+        try:
+            result = self._process(order, self.table_1.identifier)
+        except JsonRpcException:
+            result = None
+        self.env.invalidate_all()
+        self.assertEqual(victim_line.order_id, victim)
+        self.assertFalse(victim_line.combo_parent_id)
+        self.assertFalse(victim_line.combo_line_ids)
+        self.assertEqual(victim.lines, victim_line)
+        if result:
+            new_order = self.env['pos.order'].browse(result['pos.order'][0]['id'])
+            self.assertNotIn(victim_line, new_order.lines.combo_line_ids)
+            self.assertFalse(new_order.lines.combo_parent_id - new_order.lines)
+
+    def test_decrement_and_remove_already_sent_lines(self):
+        # Core self-order JS never sends qty 0 for an already-sent line: the
+        # cart cannot go below the sent quantity and removing a line deletes
+        # it (DELETE command). Both must keep working on the caller's order.
+        payload = self._order([self._line(self.product, 2), self._line(self.free_product, 1)])
+        result = self._process(payload, self.table_1.identifier)
+        order = self.env['pos.order'].browse(result['pos.order'][0]['id'])
+        burger_line = order.lines.filtered(lambda l: l.product_id == self.product)
+        ketchup_line = order.lines - burger_line
+
+        result = self._process(self._resend(payload, result, [
+            [Command.UPDATE, burger_line.id, {
+                'uuid': burger_line.uuid,
+                'product_id': self.product.id,
+                'qty': 1,
+                'price_unit': 10.0,
+                'price_subtotal': 10.0,
+                'price_subtotal_incl': 10.0,
+                'full_product_name': self.product.name,
+                'attribute_value_ids': [],
+            }],
+            [Command.DELETE, ketchup_line.id],
+        ]), self.table_1.identifier)
+        self.env.invalidate_all()
+        self.assertEqual(result['pos.order'][0]['id'], order.id)
+        self.assertEqual(order.lines, burger_line)
+        self.assertEqual(burger_line.qty, 1)
+        self.assertFalse(ketchup_line.exists())
+        self.assertEqual(order.state, 'draft')
+        self.assertAlmostEqual(order.amount_total, 10.0)
+
+
 @tagged('post_install', '-at_install')
 class TestReturnToOrder(SelfOrderSecurityCommon):
 
@@ -487,3 +570,46 @@ class TestUberDirectWebhook(SelfOrderSecurityCommon):
             response = self._post({'X-Postmates-Signature': self._signature(self.SIGNING_KEY)})
             self.assertEqual(response.status_code, 200)
             write.assert_not_called()
+
+    def test_non_ascii_signature_is_rejected_not_500(self):
+        response = self._post({'X-Uber-Signature': '\u00e9' * 64})
+        self.assertEqual(response.status_code, 401)
+        self._assert_unchanged()
+
+
+@tagged('post_install', '-at_install')
+class TestKdsAndRoutingHardening(SelfOrderSecurityCommon):
+
+    def test_kds_rejects_bad_tokens_without_server_error(self):
+        self.pos_config.write({'kds_enabled': True, 'kds_access_token': 'a1b2c3d4e5f60718'})
+        route = f'/pos-kds/orders/{self.pos_config.id}'
+        for token in (None, '', 'wrong-token', '\u00e9' * 16):
+            with self.assertRaises(JsonRpcException) as ctx:
+                self.make_jsonrpc_request(route, {'token': token})
+            self.assertEqual(str(ctx.exception), 'werkzeug.exceptions.Forbidden', token)
+        result = self.make_jsonrpc_request(route, {'token': 'a1b2c3d4e5f60718'})
+        self.assertIn('orders', result)
+
+    def test_kds_rejects_empty_configured_token(self):
+        self.pos_config.write({'kds_enabled': True, 'kds_access_token': False})
+        with self.assertRaises(JsonRpcException):
+            self.make_jsonrpc_request(f'/pos-kds/orders/{self.pos_config.id}', {'token': None})
+
+    def test_write_routes_are_not_readonly(self):
+        from odoo.addons.pos_self_order_enhancement.controllers import kds, orders, uber_webhook
+        endpoints = [
+            uber_webhook.UberDirectWebhook.receive_webhook,
+            orders.PosSelfOrderControllerEnh.process_order,
+            orders.PosSelfOrderControllerEnh.process_order_args,
+            orders.PosSelfOrderControllerEnh.select_counter_payment,
+            orders.PosSelfOrderControllerEnh.save_einvoice_data,
+            kds.PosKitchenDisplay.kds_bump_order,
+            kds.PosKitchenDisplay.kds_change_state,
+            kds.PosKitchenDisplay.kds_toggle_item_done,
+            kds.PosKitchenDisplay.kds_recall_order,
+            kds.PosKitchenDisplay.kds_fire_course,
+            kds.PosKitchenDisplay.kds_batch_item_done,
+            kds.PosKitchenDisplay.kds_batch_lines_done,
+        ]
+        for endpoint in endpoints:
+            self.assertIs(endpoint.original_routing.get('readonly'), False, endpoint.__name__)
