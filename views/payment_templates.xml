@@ -5,7 +5,8 @@
         <!-- Extend payment confirmation page to add "Return to Ordering" button -->
         <template id="payment_confirm_extend" inherit_id="payment.confirm" priority="99">
             <xpath expr="//a[@href='/my/home']" position="after">
-                <a t-attf-href="/pos-self-order/return-to-order?reference=#{tx.reference}"
+                <a t-if="tx.pos_order_id"
+                   t-attf-href="/pos-self-order/return-to-order?tx_id=#{tx.id}&amp;token=#{tx._get_pos_self_return_token()}"
                    class="btn btn-secondary float-end me-2">
                     <i class="fa fa-cutlery me-1"/>
                     Return to Ordering

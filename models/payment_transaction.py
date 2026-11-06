@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import api, models
+from odoo import api, models, tools
 
 _logger = logging.getLogger(__name__)
 
 
 class PaymentTransaction(models.Model):
     _inherit = 'payment.transaction'
+
+    def _get_pos_self_return_token(self):
+        """Token proving that the caller saw this transaction's confirmation.
+
+        Embedded in the "Return to Ordering" link of the payment
+        confirmation page (only reachable with the transaction's own access
+        token) and checked by /pos-self-order/return-to-order.
+        """
+        self.ensure_one()
+        return tools.hmac(self.env(su=True), 'pos_self_order_enhancement-return-to-order', self.id)
 
     @api.model
     def _handle_notification_data(self, provider_code, notification_data):
