@@ -67,7 +67,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
 
         # ── Sanitize the client payload exactly like core ──
         # Core `_check_pos_order` keeps only whitelisted order/line fields
-        # (drops payment_ids, partner_id, discount, combo_parent_uuid, ...),
+        # (drops payment_ids, discount, combo_parent_uuid, ...),
         # forces table_id to the table resolved from `table_identifier`
         # (never the client value) and only lets the client delete lines of
         # its own order. We then add our own stricter checks and re-apply the
@@ -92,6 +92,12 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         safe_data['session_id'] = pos_session.id
         safe_data['company_id'] = pos_config.company_id.id
         safe_data['table_id'] = table.id if table else False
+        # Newer 18.0 cores pass the client partner_id through (and copy that
+        # partner's email onto the order). No self-order frontend sets a
+        # customer, so an anonymous caller must not attach an arbitrary
+        # res.partner to its order.
+        safe_data['partner_id'] = False
+        safe_data['email'] = order.get('email') if isinstance(order.get('email'), str) else False
         pricelist = pos_config.pricelist_id
         safe_data['pricelist_id'] = pricelist.id if pricelist else False
         # Self-order payloads always come in as draft: the state is decided
