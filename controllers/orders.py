@@ -51,6 +51,8 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             pos_config.id, pos_session.id, pos_session.state,
         )
 
+        self._check_existing_order(pos_config, pos_session, order)
+
         # ── Build order reference (same as base) ──
         ir_sequence_session = pos_config.env['ir.sequence'].with_context(
             company_id=pos_config.company_id.id
@@ -131,6 +133,10 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             [o['id'] for o in results['pos.order']]
         )
 
+        if not order_ids or order_ids.filtered(lambda o: o.state != 'draft'):
+            # sync_from_ui leaves non-draft orders untouched; never go on to
+            # rewrite their state / payment status below.
+            raise BadRequest("This order has already been processed")
         self._check_saved_order_lines(order_ids)
         self._verify_line_price(line_ids, pos_config)
 
@@ -163,6 +169,28 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         return self._generate_return_values(order_ids, pos_config)
 
     # ── Payload validation helpers ──
+
+    @staticmethod
+    def _check_existing_order(pos_config, pos_session, order):
+        """A resend may only target a draft order of this config's session.
+
+        Core self-order never resends a paid order (its frontend starts a
+        new one), and sync_from_ui ignores non-draft orders; without this
+        check the state/payment-status writes below would reopen a paid
+        order. Orders of another config/session are never reachable.
+        """
+        uuid = order.get('uuid')
+        if not uuid:
+            return
+        if not isinstance(uuid, str):
+            raise BadRequest("Invalid order")
+        existing_sudo = request.env['pos.order'].sudo().search([('uuid', '=', uuid)], limit=1)
+        if not existing_sudo:
+            return
+        if existing_sudo.config_id != pos_config or existing_sudo.session_id != pos_session:
+            raise Unauthorized("Order does not belong to this point of sale")
+        if existing_sudo.state != 'draft':
+            raise BadRequest("This order has already been processed")
 
     @staticmethod
     def _get_existing_line_ids(pos_config, order):
