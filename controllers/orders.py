@@ -2,10 +2,11 @@
 import logging
 import re
 
-from odoo import http, fields, _
+from odoo import Command, http, fields, _
 from odoo.http import request
 from odoo.exceptions import MissingError
 from odoo.tools import consteq
+from werkzeug.exceptions import BadRequest, Unauthorized
 
 from odoo.addons.pos_self_order.controllers.orders import PosSelfOrderController
 
@@ -61,45 +62,63 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         order_reference = self._generate_unique_id(
             pos_session.id, pos_config.id, sequence_number, device_type
         )
+        order['name'] = order_reference
+        order['pos_reference'] = order_reference
+        order['sequence_number'] = sequence_number
+
+        # ── Sanitize the client payload exactly like core ──
+        # Core `_check_pos_order` keeps only whitelisted order/line fields
+        # (drops payment_ids, partner_id, discount, combo_parent_uuid, ...),
+        # forces table_id to the table resolved from `table_identifier`
+        # (never the client value) and only lets the client delete lines of
+        # its own order. We then add our own stricter checks and re-apply the
+        # module-specific values on top of the sanitized dict.
+        self._check_foreign_line_commands(pos_config, order)
+        safe_data = pos_config.env['pos.order']._check_pos_order(pos_config, order, table)
+        if hasattr(self, '_check_records'):
+            self._check_records(pos_config, safe_data)
+        self._check_line_quantities(safe_data)
+
         fiscal_position = (
             pos_config.takeaway_fp_id
             if is_takeaway
             else pos_config.default_fiscal_position_id
         )
-
-        if 'picking_type_id' in order:
-            del order['picking_type_id']
-
-        order['name'] = order_reference
-        order['pos_reference'] = order_reference
-        order['sequence_number'] = sequence_number
-        order['user_id'] = request.session.uid
-        order['date_order'] = str(fields.Datetime.now())
-        order['fiscal_position_id'] = fiscal_position.id if fiscal_position else False
-
-        # ── Ensure required fields for sync_from_ui / _process_order ──
-        # The base module runs `_check_pos_order` to sanitize the payload
-        # for stock POS flows; we bypass it above (custom pos_reference
-        # generation, preparation-context flag) so we must plug the
-        # essential fields ourselves. Missing any of these caused kiosk
-        # syncs to silently fail with cryptic ORM errors depending on
-        # what other modules touched the record.
-        order['session_id'] = pos_session.id
-        order['company_id'] = pos_config.company_id.id
-        order['table_id'] = table.id if table else order.get('table_id')
+        safe_data['name'] = order_reference
+        safe_data['pos_reference'] = order_reference
+        safe_data['sequence_number'] = sequence_number
+        safe_data['user_id'] = request.session.uid
+        safe_data['date_order'] = str(fields.Datetime.now())
+        safe_data['fiscal_position_id'] = fiscal_position.id if fiscal_position else False
+        safe_data['session_id'] = pos_session.id
+        safe_data['company_id'] = pos_config.company_id.id
+        safe_data['table_id'] = table.id if table else False
         pricelist = pos_config.pricelist_id
-        order['pricelist_id'] = pricelist.id if pricelist else False
-        order.setdefault('amount_tax', 0)
-        order.setdefault('amount_total', 0)
-        order.setdefault('amount_paid', 0)
-        order.setdefault('amount_return', 0)
+        safe_data['pricelist_id'] = pricelist.id if pricelist else False
+        # Self-order payloads always come in as draft: the state is decided
+        # below from the server-side recomputed amounts.
+        safe_data['state'] = 'draft'
+        # Missing amounts caused kiosk syncs to fail with cryptic ORM errors.
+        for amount_field in ('amount_tax', 'amount_total', 'amount_paid', 'amount_return'):
+            if safe_data.get(amount_field) is None:
+                safe_data[amount_field] = 0
+
+        # Module-specific order fields set by the self-order frontend
+        # (Uber Direct delivery flow).
+        for char_field in ('uber_delivery_address', 'uber_quote_id'):
+            value = order.get(char_field)
+            if value and isinstance(value, str):
+                safe_data[char_field] = value[:512]
+        delivery_fee = order.get('uber_delivery_fee')
+        if isinstance(delivery_fee, (int, float)) and not isinstance(delivery_fee, bool):
+            safe_data['uber_delivery_fee'] = max(float(delivery_fee), 0.0)
 
         # ── Create order ──
         # preparation=True suppresses base point_of_sale notify_synchronisation
         # during sync_from_ui. We send our own notification after setting payment gate.
         order_model = pos_config.env['pos.order'].sudo().with_company(pos_config.company_id.id)
         order_model = order_model.with_context(preparation=True)
-        results = order_model.sync_from_ui([order])
+        results = order_model.sync_from_ui([safe_data])
         line_ids = pos_config.env['pos.order.line'].browse(
             [line['id'] for line in results['pos.order.line']]
         )
@@ -107,20 +126,29 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             [o['id'] for o in results['pos.order']]
         )
 
+        self._check_saved_order_lines(order_ids)
         self._verify_line_price(line_ids, pos_config)
 
         amount_total, amount_untaxed = self._get_order_prices(order_ids.lines)
+        # A zero total is only "free" when every line is genuinely free:
+        # positive quantities and a server-recomputed unit price of 0.
+        # Anything else (e.g. lines cancelling each other out) goes through
+        # the normal online-payment gate.
+        currency = pos_config.currency_id
+        is_free_order = currency.is_zero(amount_total) and all(
+            line.qty > 0 and currency.is_zero(line.price_unit)
+            for line in order_ids.lines
+        )
         order_ids.write({
-            'state': 'paid' if amount_total == 0 else 'draft',
+            'state': 'paid' if is_free_order else 'draft',
             'amount_tax': amount_total - amount_untaxed,
             'amount_total': amount_total,
         })
 
-        if amount_total == 0:
+        if is_free_order:
             order_ids._process_saved_order(False)
-
-        # ── Payment gate: apply to ALL self-order modes ──
-        if amount_total > 0:
+        else:
+            # ── Payment gate: apply to ALL self-order modes ──
             order_ids.write({'self_order_payment_status': 'pending_online'})
 
         # Notify POS so staff can see the order (but kitchen is blocked
@@ -128,6 +156,68 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         order_ids.send_table_count_notification(order_ids.mapped('table_id'))
 
         return self._generate_return_values(order_ids, pos_config)
+
+    # ── Payload validation helpers ──
+
+    @staticmethod
+    def _get_existing_line_ids(pos_config, order):
+        # Same lookup as core `_check_pos_order_lines`.
+        existing_order = pos_config.env['pos.order'].search(
+            [('uuid', '=', order.get('uuid'))], limit=1,
+        )
+        return set(existing_order.lines.ids)
+
+    def _check_foreign_line_commands(self, pos_config, order):
+        """Reject line commands that target lines of another order.
+
+        Core silently drops DELETE/UNLINK commands on foreign lines but lets
+        UPDATE commands through with any line id; a self-order customer may
+        only touch the lines of its own order.
+        """
+        lines = order.get('lines') or []
+        if not isinstance(lines, list):
+            raise BadRequest("Invalid order lines")
+        existing_line_ids = None
+        for command in lines:
+            if not isinstance(command, (list, tuple)) or not command:
+                raise BadRequest("Invalid order lines")
+            if command[0] in (Command.UPDATE, Command.DELETE, Command.UNLINK):
+                if existing_line_ids is None:
+                    existing_line_ids = self._get_existing_line_ids(pos_config, order)
+                if len(command) < 2 or command[1] not in existing_line_ids:
+                    raise Unauthorized("Order line does not belong to this order")
+
+    @staticmethod
+    def _check_line_quantities(safe_data):
+        """Every created/updated line must have a strictly positive quantity."""
+        for command in safe_data.get('lines', []):
+            if command[0] not in (Command.CREATE, Command.UPDATE):
+                continue
+            qty = command[2].get('qty')
+            if (
+                not isinstance(qty, (int, float))
+                or isinstance(qty, bool)
+                or qty <= 0
+            ):
+                raise BadRequest("Invalid line quantity")
+
+    @staticmethod
+    def _check_saved_order_lines(order_ids):
+        """Post-sync checks on the stored lines, before prices are recomputed."""
+        for line in order_ids.lines:
+            if line.combo_parent_id and line.combo_parent_id.order_id != line.order_id:
+                raise Unauthorized("Combo line does not belong to this order")
+            if line.combo_line_ids and (
+                line.price_unit or line.price_subtotal or line.price_subtotal_incl
+            ):
+                # The combo price is carried by the children (recomputed by
+                # core); the parent line itself is always 0, as in the
+                # self-order frontend. Never keep a client-supplied amount.
+                line.write({
+                    'price_unit': 0,
+                    'price_subtotal': 0,
+                    'price_subtotal_incl': 0,
+                })
 
     @http.route('/pos-self-order/select-counter-payment', auth='public', type='json', website=True)
     def select_counter_payment(self, access_token, order_id, order_access_token):
