@@ -33,8 +33,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         is_takeaway = order.get('takeaway')
         # Log entry for post-mortem debugging of kiosk sync failures.
         _logger.info(
-            "process_order_args called: access_token=%s table=%s uuid=%s id=%s",
-            access_token[:8] if access_token else None,
+            "process_order_args called: table=%s uuid=%s id=%s",
             table_identifier,
             (order.get('uuid') or 'N/A')[:12],
             order.get('id', 'N/A'),

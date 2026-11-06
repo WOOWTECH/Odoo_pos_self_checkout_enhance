@@ -7,6 +7,7 @@ import werkzeug
 
 from odoo import http, fields
 from odoo.http import request
+from odoo.tools import consteq
 
 _logger = logging.getLogger(__name__)
 
@@ -24,10 +25,15 @@ class PosKitchenDisplay(http.Controller):
         config = request.env['pos.config'].sudo().search([
             ('id', '=', int(config_id)),
             ('kds_enabled', '=', True),
-            ('kds_access_token', '=', token),
         ], limit=1)
 
-        if not config:
+        if (
+            not config
+            or not config.kds_access_token
+            or not token
+            or not isinstance(token, str)
+            or not consteq(config.kds_access_token, token)
+        ):
             raise werkzeug.exceptions.Forbidden()
 
         return config
@@ -417,7 +423,12 @@ class PosKitchenDisplay(http.Controller):
             return {'success': False, 'error': 'Order not found'}
 
         # Block toggling items in held courses
-        line = request.env['pos.order.line'].sudo().browse(int(line_id))
+        try:
+            line = request.env['pos.order.line'].sudo().browse(int(line_id)).exists()
+        except (TypeError, ValueError):
+            line = request.env['pos.order.line']
+        if not line or line.order_id != order:
+            return {'success': False, 'error': 'Line not found'}
         if line.exists():
             # Combo children cannot be toggled independently — the KDS does not
             # expose them as clickable rows, but guard defensively against
