@@ -4,6 +4,7 @@ import io
 import logging
 
 from odoo import http
+from odoo.exceptions import AccessError
 from odoo.http import request
 
 from ..vendor.escpos_min import print_image, open_cashbox
@@ -21,6 +22,10 @@ PRINTER_TIMEOUT = 3
 # throttling) produces a tiny JPEG of ~500–2000 bytes. We treat anything
 # below this threshold as "blank" and log a warning.
 BLANK_IMAGE_THRESHOLD = 2500
+
+# Error returned to the browser; the real cause (socket error, relay
+# response, ...) is only written to the server log.
+GENERIC_PRINT_ERROR = 'Printing failed. Check the printer and try again.'
 
 
 class PosEscPosProxy(http.Controller):
@@ -46,20 +51,23 @@ class PosEscPosProxy(http.Controller):
         :param lines: List of dicts with {name, quantity, note}
         :returns: dict with 'success' boolean
         """
+        self._check_pos_user()
         printer = self._find_printer(printer_id=printer_id)
         if not printer or not printer.escpos_proxy_url:
             return {'success': False, 'error': 'No relay-configured printer found'}
 
-        Order = request.env['pos.order'].sudo()
-        order = Order.browse(int(order_id)).exists()
-        if not order:
-            return {'success': False, 'error': f'Order {order_id} not found'}
+        try:
+            order = request.env['pos.order'].browse(int(order_id)).exists()
+        except (TypeError, ValueError):
+            order = request.env['pos.order']
+        if not order or order.sudo().company_id not in request.env.companies:
+            return {'success': False, 'error': 'Order not found'}
 
-        b64_jpeg = self._render_ticket_image(order, printer, title, lines or [])
+        b64_jpeg = self._render_ticket_image(order.sudo(), printer, title, lines or [])
         if not b64_jpeg:
             return {'success': False, 'error': 'Failed to render ticket image'}
 
-        return printer._send_via_relay(b64_jpeg)
+        return self._public_result(printer._send_via_relay(b64_jpeg))
 
     @staticmethod
     def _render_ticket_image(order, printer, title, lines):
@@ -230,8 +238,16 @@ class PosEscPosProxy(http.Controller):
 
     @http.route('/pos-escpos/print', type='json', auth='user', methods=['POST'])
     def relay_print(self, action, printer_id=None, printer_ip=None, receipt=None):
-        """Print a receipt or kick the cash drawer."""
+        """Print a receipt or kick the cash drawer.
+
+        Only printers configured as pos.printer records (and belonging to
+        one of the caller's companies) can be reached; a bare ``printer_ip``
+        is only used to look such a record up, never to open a connection.
+        """
+        self._check_pos_user()
         printer = self._find_printer(printer_id=printer_id, printer_ip=printer_ip)
+        if not printer:
+            return {'success': False, 'error': 'Printer not found'}
 
         if action == 'print_receipt':
             if receipt:
@@ -246,28 +262,44 @@ class PosEscPosProxy(http.Controller):
                             img_size, BLANK_IMAGE_THRESHOLD,
                         )
 
-            if printer and printer.escpos_proxy_url:
-                return printer._send_via_relay(receipt)
-            ip = (printer.escpos_printer_ip if printer else '') or printer_ip
+            if printer.escpos_proxy_url:
+                return self._public_result(printer._send_via_relay(receipt))
+            ip = printer.escpos_printer_ip
             if not ip:
                 return {'success': False, 'error': 'No printer IP available.'}
-            pw = int(printer.escpos_paper_width or '80') if printer else 80
-            copies = printer.escpos_print_copies if printer else 1
+            pw = int(printer.escpos_paper_width or '80')
+            copies = printer.escpos_print_copies or 1
             _logger.info("[escpos] local TCP -> %s (paper=%dmm, copies=%d)", ip, pw, copies)
-            return print_image(
+            return self._public_result(print_image(
                 ip, DEFAULT_PRINTER_PORT, receipt,
                 paper_width=pw, copies=copies, timeout=PRINTER_TIMEOUT,
-            )
+            ))
 
         if action == 'cashbox':
-            if printer and printer.escpos_proxy_url:
+            if printer.escpos_proxy_url:
                 return {'success': False, 'error': 'Cashbox not supported over cloud relay.'}
-            ip = (printer.escpos_printer_ip if printer else '') or printer_ip
+            ip = printer.escpos_printer_ip
             if not ip:
                 return {'success': False, 'error': 'No printer IP available.'}
-            return open_cashbox(ip, port=DEFAULT_PRINTER_PORT, timeout=PRINTER_TIMEOUT)
+            return self._public_result(
+                open_cashbox(ip, port=DEFAULT_PRINTER_PORT, timeout=PRINTER_TIMEOUT)
+            )
 
-        return {'success': False, 'error': f'Unknown action: {action}'}
+        return {'success': False, 'error': 'Unknown action'}
+
+    @staticmethod
+    def _check_pos_user():
+        """These routes drive shop hardware: POS users only (not portal users
+        nor internal users without Point of Sale access)."""
+        if not request.env.user.has_group('point_of_sale.group_pos_user'):
+            raise AccessError("You are not allowed to use the POS printers.")
+
+    @staticmethod
+    def _public_result(result):
+        """Strip low-level error details (OSError text, relay responses)."""
+        if isinstance(result, dict) and result.get('success'):
+            return {'success': True, 'error': None}
+        return {'success': False, 'error': GENERIC_PRINT_ERROR}
 
     @staticmethod
     def _safe_b64decode(data):
@@ -278,12 +310,26 @@ class PosEscPosProxy(http.Controller):
 
     @staticmethod
     def _find_printer(printer_id=None, printer_ip=None):
-        Printer = request.env['pos.printer'].sudo()
+        """Return the configured ESC/POS printer (sudo) or an empty recordset.
+
+        Lookup runs with the caller's rights (pos.printer is readable by
+        POS users) and is restricted to the caller's allowed companies.
+        """
+        Printer = request.env['pos.printer']
+        printer = Printer
         if printer_id:
             try:
-                return Printer.browse(int(printer_id)).exists()
+                printer = Printer.browse(int(printer_id)).exists()
             except (ValueError, TypeError):
-                pass
-        if printer_ip:
-            return Printer.search([('escpos_printer_ip', '=', printer_ip)], limit=1)
-        return Printer
+                printer = Printer
+        if not printer and printer_ip and isinstance(printer_ip, str):
+            printer = Printer.search([
+                ('escpos_printer_ip', '=', printer_ip),
+                ('company_id', 'in', request.env.companies.ids),
+            ], limit=1)
+        printer_sudo = printer.sudo()
+        if not printer_sudo or printer_sudo.printer_type != 'network_escpos':
+            return Printer
+        if printer_sudo.company_id not in request.env.companies:
+            return Printer
+        return printer_sudo
