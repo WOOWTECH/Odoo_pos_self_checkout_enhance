@@ -137,6 +137,9 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             # sync_from_ui leaves non-draft orders untouched; never go on to
             # rewrite their state / payment status below.
             raise BadRequest("This order has already been processed")
+        if not order_ids.lines:
+            # The self-order frontend never sends an order without lines.
+            raise BadRequest("An order needs at least one line")
         self._check_saved_order_lines(order_ids)
         self._verify_line_price(line_ids, pos_config)
 
@@ -146,7 +149,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         # Anything else (e.g. lines cancelling each other out) goes through
         # the normal online-payment gate.
         currency = pos_config.currency_id
-        is_free_order = currency.is_zero(amount_total) and all(
+        is_free_order = bool(order_ids.lines) and currency.is_zero(amount_total) and all(
             line.qty > 0 and currency.is_zero(line.price_unit)
             for line in order_ids.lines
         )
