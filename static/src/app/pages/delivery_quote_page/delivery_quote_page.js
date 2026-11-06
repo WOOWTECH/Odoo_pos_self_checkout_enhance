@@ -48,6 +48,7 @@ export class DeliveryQuotePage extends Component {
         this.state.error = "";
         try {
             const result = await rpc("/pos-self/uber-direct/quote", {
+                access_token: this.selfOrder.access_token,
                 config_id: this.selfOrder.config.id,
                 dropoff_address: this.selfOrder.currentOrder.uber_delivery_address,
                 dropoff_name: this.selfOrder.currentOrder.uber_delivery_name || "Customer",
