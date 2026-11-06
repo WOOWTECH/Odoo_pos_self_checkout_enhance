@@ -345,7 +345,7 @@ class PosKitchenDisplay(http.Controller):
             'has_session': bool(config.current_session_id),
         }
 
-    @http.route('/pos-kds/bump/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/bump/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_bump_order(self, config_id, token=None, order_id=None, **kwargs):
         """Mark all FIRED items as done. Held items are left untouched.
 
@@ -391,7 +391,7 @@ class PosKitchenDisplay(http.Controller):
         })
         return {'success': True, 'has_held_categories': has_held_categories}
 
-    @http.route('/pos-kds/state/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/state/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_change_state(self, config_id, token=None, order_id=None, state=None, **kwargs):
         """Change the KDS state of an order."""
         config = self._verify_kds_access(config_id, token)
@@ -409,7 +409,7 @@ class PosKitchenDisplay(http.Controller):
         })
         return {'success': True}
 
-    @http.route('/pos-kds/item-done/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/item-done/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_toggle_item_done(self, config_id, token=None, order_id=None, line_id=None, **kwargs):
         """Toggle an order line's done status on the KDS."""
         config = self._verify_kds_access(config_id, token)
@@ -484,7 +484,7 @@ class PosKitchenDisplay(http.Controller):
         config._notify('KDS_ORDER_UPDATE', notify_data)
         return {'success': True, 'all_done': all_done, 'course_completed': course_completed}
 
-    @http.route('/pos-kds/recall/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/recall/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_recall_order(self, config_id, token=None, order_id=None, **kwargs):
         """Recall a bumped order back to the active KDS."""
         config = self._verify_kds_access(config_id, token)
@@ -514,7 +514,7 @@ class PosKitchenDisplay(http.Controller):
         })
         return {'success': True, 'order_id': order.id}
 
-    @http.route('/pos-kds/fire-course/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/fire-course/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_fire_course(self, config_id, token=None, order_id=None, category_id=None, **kwargs):
         """Fire a specific category group for kitchen preparation."""
         config = self._verify_kds_access(config_id, token)
@@ -528,7 +528,7 @@ class PosKitchenDisplay(http.Controller):
         order.fire_course(int(category_id))
         return {'success': True}
 
-    @http.route('/pos-kds/batch-item-done/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/batch-item-done/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_batch_item_done(self, config_id, token=None, product_name=None, **kwargs):
         """Mark all order lines matching a product name as done across active orders."""
         config = self._verify_kds_access(config_id, token)
@@ -605,7 +605,7 @@ class PosKitchenDisplay(http.Controller):
             'bumped_order_ids': bumped_order_ids,
         }
 
-    @http.route('/pos-kds/batch-lines-done/<int:config_id>', type='json', auth='public')
+    @http.route('/pos-kds/batch-lines-done/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_batch_lines_done(self, config_id, token=None, items=None, **kwargs):
         """Mark a specific list of order lines done.
 

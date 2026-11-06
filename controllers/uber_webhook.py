@@ -62,7 +62,8 @@ class UberDirectWebhook(http.Controller):
                 matched |= config
         return matched
 
-    @http.route('/uber-direct/webhook', type='http', auth='none', methods=['POST'], csrf=False, save_session=False)
+    @http.route('/uber-direct/webhook', type='http', auth='none', methods=['POST'], csrf=False, save_session=False,
+                readonly=False)
     def receive_webhook(self, **kwargs):
         """Receive and process Uber Direct webhook events.
 

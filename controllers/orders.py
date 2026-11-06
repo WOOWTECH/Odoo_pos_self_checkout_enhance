@@ -24,11 +24,11 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
     - Each mode: staff manually fires to kitchen after payment
     """
 
-    @http.route("/pos-self-order/process-order/<device_type>/", auth="public", type="json", website=True)
+    @http.route("/pos-self-order/process-order/<device_type>/", auth="public", type="json", website=True, readonly=False)
     def process_order(self, order, access_token, table_identifier, device_type):
         return self.process_order_args(order, access_token, table_identifier, device_type, **{})
 
-    @http.route("/pos-self-order/process-order-args/<device_type>/", auth="public", type="json", website=True)
+    @http.route("/pos-self-order/process-order-args/<device_type>/", auth="public", type="json", website=True, readonly=False)
     def process_order_args(self, order, access_token, table_identifier, device_type, **kwargs):
         is_takeaway = order.get('takeaway')
         # Log entry for post-mortem debugging of kiosk sync failures.
@@ -260,7 +260,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
                     'price_subtotal_incl': 0,
                 })
 
-    @http.route('/pos-self-order/select-counter-payment', auth='public', type='json', website=True)
+    @http.route('/pos-self-order/select-counter-payment', auth='public', type='json', website=True, readonly=False)
     def select_counter_payment(self, access_token, order_id, order_access_token):
         """Customer chose to pay at counter — make order visible to POS cashier.
 
@@ -289,7 +289,7 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
 
         return {'success': True}
 
-    @http.route('/pos-self-order/save-einvoice-data', auth='public', type='json', website=True)
+    @http.route('/pos-self-order/save-einvoice-data', auth='public', type='json', website=True, readonly=False)
     def save_einvoice_data(self, access_token, order_id, order_access_token,
                            carrier_type='print', carrier_num='', love_code='', buyer_tax_id='',
                            buyer_name=''):
