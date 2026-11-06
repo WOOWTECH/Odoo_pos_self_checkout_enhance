@@ -7,7 +7,8 @@ import werkzeug
 
 from odoo import http, fields
 from odoo.http import request
-from odoo.tools import consteq
+
+from .utils import safe_token_eq
 
 _logger = logging.getLogger(__name__)
 
@@ -27,13 +28,7 @@ class PosKitchenDisplay(http.Controller):
             ('kds_enabled', '=', True),
         ], limit=1)
 
-        if (
-            not config
-            or not config.kds_access_token
-            or not token
-            or not isinstance(token, str)
-            or not consteq(config.kds_access_token, token)
-        ):
+        if not config or not safe_token_eq(config.kds_access_token, token):
             raise werkzeug.exceptions.Forbidden()
 
         return config

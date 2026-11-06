@@ -54,7 +54,11 @@ class UberDirectWebhook(http.Controller):
         matched = Config
         for config in configs:
             expected = _compute_signature(config.uber_direct_webhook_signing_key, raw_body)
-            if any(hmac.compare_digest(expected, sig) for sig in signatures):
+            # Compare bytes: compare_digest raises TypeError on non-ASCII str.
+            if any(
+                hmac.compare_digest(expected.encode('ascii'), sig.encode('utf-8', 'surrogateescape'))
+                for sig in signatures
+            ):
                 matched |= config
         return matched
 

@@ -8,7 +8,8 @@ from werkzeug.exceptions import Unauthorized
 
 from odoo import http
 from odoo.http import request
-from odoo.tools import consteq
+
+from .utils import safe_token_eq
 
 _logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class UberDirectQuote(http.Controller):
         )
         if (
             not config_sudo
-            or not consteq(config_sudo.access_token or '', access_token)
+            or not safe_token_eq(config_sudo.access_token, access_token)
             or config_sudo.self_ordering_mode not in ('mobile', 'kiosk')
             or not config_sudo.has_active_session
         ):

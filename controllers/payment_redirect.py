@@ -3,7 +3,8 @@ import logging
 
 from odoo import http
 from odoo.http import request
-from odoo.tools import consteq
+
+from .utils import safe_token_eq
 
 _logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class PaymentRedirectController(http.Controller):
             return request.not_found()
 
         tx_sudo = request.env['payment.transaction'].sudo().browse(tx_id).exists()
-        if not tx_sudo or not consteq(tx_sudo._get_pos_self_return_token(), token):
+        if not tx_sudo or not safe_token_eq(tx_sudo._get_pos_self_return_token(), token):
             return request.not_found()
 
         pos_config = tx_sudo.pos_order_id.config_id
