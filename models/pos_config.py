@@ -67,6 +67,15 @@ class PosConfig(models.Model):
         default='0958-274-711',
         help="Store phone for Uber courier to contact.",
     )
+    uber_direct_webhook_signing_key = fields.Char(
+        'Uber Direct Webhook Signing Key (Webhook 簽章金鑰)',
+        groups='base.group_system',
+        copy=False,
+        help="Signing Key of the Uber Direct webhook (Uber Developer "
+             "Dashboard > Webhooks). Every webhook call is verified against "
+             "it (HMAC-SHA256 of the request body in x-uber-signature); "
+             "without it delivery status updates from Uber are rejected.",
+    )
 
     # ── Takeaway Counter Payment ──────────────────────────────
     self_ordering_takeaway_allow_counter = fields.Boolean(

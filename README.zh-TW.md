@@ -40,6 +40,7 @@ Odoo 18 模組，強化並延伸內建的 POS 自助點餐 (`pos_self_order`)，
 - OAuth 2.0 對接 Uber Direct API，token 自動更新。
 - 付款完成且訂單有配送地址時，自動叫車。
 - 廚房單顯示 `*** 外送 ***`、送餐地址（自動兩行截斷）、騎手姓名（配對後）。
+- 配送狀態 Webhook：在 Uber Direct 後台把 webhook 指向 `https://<你的 Odoo>/uber-direct/webhook`，並把該 webhook 的 **Signing Key**（Uber Developer Dashboard > Webhooks）貼到 POS 設定的「Webhook Signing Key」（只有系統管理員看得到）。每次呼叫都會驗簽（`x-uber-signature` 為 body 的 HMAC-SHA256）；**沒有設定簽章金鑰時，所有 webhook 呼叫一律回 401**，配送狀態與騎手資料不會更新。
 
 ## 系統需求
 

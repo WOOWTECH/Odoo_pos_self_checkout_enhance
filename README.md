@@ -73,6 +73,14 @@ Odoo 18 module that hardens and extends the built-in POS self-ordering
 - Automatic courier dispatch when a paid order carries a delivery address.
 - Kitchen ticket surfaces `*** 外送 ***`, the delivery address (2-line
   truncation), and the courier name once dispatched.
+- Delivery status webhook: point the Uber Direct webhook at
+  `https://<your-odoo>/uber-direct/webhook` and paste the webhook's
+  **Signing Key** (Uber Developer Dashboard > Webhooks) into
+  *Webhook Signing Key* on the POS configuration (visible to
+  administrators only). Every call is verified (HMAC-SHA256 of the body
+  in `x-uber-signature`); **without a signing key all webhook calls are
+  rejected with 401** and delivery status / courier details are not
+  updated.
 
 ## Requirements
 

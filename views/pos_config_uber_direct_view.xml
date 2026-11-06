@@ -51,6 +51,14 @@
                                     <field name="uber_direct_customer_id"/>
                                 </div>
                             </div>
+                            <div class="row mt-2" groups="base.group_system">
+                                <div class="col-lg-5 o_light_label">
+                                    <label string="Webhook Signing Key" for="uber_direct_webhook_signing_key"/>
+                                </div>
+                                <div class="col-lg-7">
+                                    <field name="uber_direct_webhook_signing_key" password="True"/>
+                                </div>
+                            </div>
                             <div class="row mt-2">
                                 <div class="col-lg-5 o_light_label">
                                     <label string="取餐地址" for="uber_direct_pickup_address"/>
