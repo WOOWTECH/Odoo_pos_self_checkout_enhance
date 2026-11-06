@@ -228,6 +228,7 @@ class TestSelfOrderProcessOrder(SelfOrderSecurityCommon):
         self.assertFalse(new_order.payment_ids)
         self.assertEqual(new_order.amount_paid, 0)
         self.assertFalse(new_order.partner_id)
+        self.assertNotEqual(new_order.email, self.portal_user.partner_id.email)
         self.assertEqual(new_order.state, 'draft')
         self.assertEqual(new_order.self_order_payment_status, 'pending_online')
 
@@ -253,14 +254,18 @@ class TestReturnToOrder(SelfOrderSecurityCommon):
 
     def test_transaction_token_is_required(self):
         pos_order = self._create_draft_order(table=self.table_1)
+        # Same fixture order as payment.tests.common: the provider supporting
+        # the method must exist (and be enabled) before the method is activated.
         payment_method = self.env.ref('payment.payment_method_unknown')
-        payment_method.write({'active': True})
         provider = self.env['payment.provider'].create({
             'name': 'Sec Dummy Provider',
             'code': 'none',
             'state': 'test',
+            'is_published': True,
             'payment_method_ids': [Command.set(payment_method.ids)],
+            'available_currency_ids': [Command.set(self.env.company.currency_id.ids)],
         })
+        payment_method.write({'active': True})
         tx = self.env['payment.transaction'].create({
             'provider_id': provider.id,
             'payment_method_id': payment_method.id,
