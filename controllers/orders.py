@@ -243,6 +243,11 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         for line in order_ids.lines:
             if line.combo_parent_id and line.combo_parent_id.order_id != line.order_id:
                 raise Unauthorized("Combo line does not belong to this order")
+            # Core links combo children by uuid within the order, but the
+            # sanitized payload still carries client combo_line_ids ints:
+            # never accept a child line from another order.
+            if line.combo_line_ids and line.combo_line_ids.order_id != line.order_id:
+                raise Unauthorized("Combo line does not belong to this order")
             if line.combo_line_ids and (
                 line.price_unit or line.price_subtotal or line.price_subtotal_incl
             ):
