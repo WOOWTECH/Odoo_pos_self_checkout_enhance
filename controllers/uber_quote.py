@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
+import base64
+import hashlib
+import hmac
+import json
 import logging
+import math
 import threading
 import time
 from collections import deque
 
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import BadRequest, Unauthorized
 
 from odoo import http
 from odoo.http import request
@@ -27,6 +32,61 @@ _quote_lock = threading.Lock()
 
 GENERIC_QUOTE_ERROR = '無法取得外送報價，請確認地址或稍後再試'
 THROTTLED_QUOTE_ERROR = '查詢過於頻繁，請稍後再試'
+QUOTE_TTL_SECONDS = 600
+
+
+def _quote_key(env):
+    secret = env['ir.config_parameter'].sudo().get_param('database.secret')
+    if not secret:
+        raise RuntimeError('Database signing secret is unavailable')
+    return hmac.new(secret.encode(), b'pos-self-uber-direct-quote-v1', hashlib.sha256).digest()
+
+
+def _address_digest(address):
+    return hashlib.sha256(address.strip().encode('utf-8')).hexdigest()
+
+
+def _sign_quote(env, config, address, result, now=None):
+    """Issue an opaque receipt for the exact Uber quote and destination."""
+    fee = result.get('fee')
+    quote_id = result.get('quote_id')
+    currency = result.get('currency')
+    if (isinstance(fee, bool) or not isinstance(fee, (int, float))
+            or not math.isfinite(fee) or fee < 0
+            or not isinstance(quote_id, str) or not quote_id or len(quote_id) > 128
+            or currency != config.currency_id.name):
+        raise ValueError('Invalid Uber quote')
+    payload = {'v': 1, 'c': config.id, 'a': _address_digest(address),
+               'f': fee, 'u': currency, 'q': quote_id,
+               'e': int(time.time() if now is None else now) + QUOTE_TTL_SECONDS}
+    body = base64.urlsafe_b64encode(json.dumps(payload, separators=(',', ':'), sort_keys=True).encode()).rstrip(b'=')
+    signature = hmac.new(_quote_key(env), body, hashlib.sha256).hexdigest().encode()
+    return (body + b'.' + signature).decode('ascii')
+
+
+def verify_quote_receipt(env, config, address, receipt, now=None):
+    """Return trusted quote details or raise BadRequest for a stale/tampered quote."""
+    if not isinstance(receipt, str) or len(receipt) > 512 or not address or len(address) > MAX_DROPOFF_ADDRESS_LENGTH:
+        raise BadRequest('Invalid delivery quote')
+    try:
+        body, supplied = receipt.encode('ascii').split(b'.', 1)
+        expected = hmac.new(_quote_key(env), body, hashlib.sha256).hexdigest().encode()
+        if not hmac.compare_digest(supplied, expected):
+            raise ValueError('signature mismatch')
+        payload = json.loads(base64.urlsafe_b64decode(body + b'=' * (-len(body) % 4)))
+        current = int(time.time() if now is None else now)
+        fee = payload['f']
+        if (payload['v'] != 1 or payload['c'] != config.id
+                or payload['a'] != _address_digest(address)
+                or payload['u'] != config.currency_id.name
+                or payload['e'] < current or payload['e'] > current + QUOTE_TTL_SECONDS
+                or isinstance(fee, bool) or not isinstance(fee, (int, float))
+                or not math.isfinite(fee) or fee < 0
+                or not isinstance(payload['q'], str) or not payload['q']):
+            raise ValueError('invalid quote')
+    except (ValueError, KeyError, TypeError, UnicodeError):
+        raise BadRequest('Invalid delivery quote') from None
+    return {'fee': fee, 'currency': payload['u'], 'quote_id': payload['q']}
 
 
 def _quote_throttled(keys_limits, now=None):
@@ -124,10 +184,15 @@ class UberDirectQuote(http.Controller):
             # Details (Uber's raw response) are logged by _get_quote; never
             # hand them to the anonymous caller.
             return {'success': False, 'error': GENERIC_QUOTE_ERROR}
+        try:
+            receipt = _sign_quote(request.env, config, dropoff_address, result)
+        except ValueError:
+            _logger.warning('[uber-direct] invalid quote from provider for config %s', config.id)
+            return {'success': False, 'error': GENERIC_QUOTE_ERROR}
         return {
             'success': True,
             'fee': result.get('fee'),
             'currency': result.get('currency'),
             'estimated_pickup_minutes': result.get('estimated_pickup_minutes'),
-            'quote_id': result.get('quote_id'),
+            'quote_id': receipt,
         }

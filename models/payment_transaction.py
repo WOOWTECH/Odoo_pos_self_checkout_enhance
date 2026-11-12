@@ -47,7 +47,10 @@ class PaymentTransaction(models.Model):
             )
             tx._post_process()
 
-            # Auto-issue Taiwan e-invoice after payment is confirmed
+        # Authorization reserves funds but does not capture them. A later done
+        # notification must still issue the invoice even if authorization was
+        # already post-processed.
+        if tx and tx.pos_order_id and tx.state == 'done':
             tx._auto_issue_einvoice()
 
         return tx
@@ -59,6 +62,8 @@ class PaymentTransaction(models.Model):
         payment page.  Non-blocking: payment succeeds regardless of outcome.
         """
         order = self.pos_order_id
+        if self.state != 'done' or (order and order.state not in ('paid', 'done', 'invoiced')):
+            return
         if not order or not order.config_id.ecpay_einvoice_enabled:
             return
         if not order.config_id.is_ecpay_installed:

@@ -80,6 +80,39 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             self._check_records(pos_config, safe_data)
         self._check_line_quantities(safe_data)
 
+        fee_product = request.env.ref(
+            'pos_self_order_enhancement.product_product_delivery_fee', raise_if_not_found=False,
+        )
+        for command in order.get('lines') or []:
+            if (command[0] in (Command.CREATE, Command.UPDATE)
+                    and isinstance(command[2], dict)
+                    and fee_product
+                    and command[2].get('product_id') == fee_product.id):
+                raise BadRequest('Delivery fee is set by the server')
+
+        address = order.get('uber_delivery_address')
+        if address:
+            if (not isinstance(address, str) or not is_takeaway
+                    or not pos_config.uber_direct_enabled):
+                raise BadRequest('Delivery is unavailable')
+            if not fee_product:
+                raise BadRequest('Delivery fee product is unavailable')
+            from .uber_quote import verify_quote_receipt
+            quote = verify_quote_receipt(
+                request.env, pos_config, address, order.get('uber_quote_id'),
+            )
+            safe_data.update({
+                'uber_delivery_address': address.strip(),
+                'uber_delivery_fee': quote['fee'],
+                'uber_quote_id': quote['quote_id'],
+            })
+        else:
+            safe_data.update({
+                'uber_delivery_address': False,
+                'uber_delivery_fee': 0,
+                'uber_quote_id': False,
+            })
+
         fiscal_position = (
             pos_config.takeaway_fp_id
             if is_takeaway
@@ -110,16 +143,6 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             if safe_data.get(amount_field) is None:
                 safe_data[amount_field] = 0
 
-        # Module-specific order fields set by the self-order frontend
-        # (Uber Direct delivery flow).
-        for char_field in ('uber_delivery_address', 'uber_quote_id'):
-            value = order.get(char_field)
-            if value and isinstance(value, str):
-                safe_data[char_field] = value[:512]
-        delivery_fee = order.get('uber_delivery_fee')
-        if isinstance(delivery_fee, (int, float)) and not isinstance(delivery_fee, bool):
-            safe_data['uber_delivery_fee'] = max(float(delivery_fee), 0.0)
-
         # ── Create order ──
         # preparation=True suppresses base point_of_sale notify_synchronisation
         # during sync_from_ui. We send our own notification after setting payment gate.
@@ -142,6 +165,14 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
             raise BadRequest("An order needs at least one line")
         self._check_saved_order_lines(order_ids)
         self._verify_line_price(line_ids, pos_config)
+
+        if fee_product and order_ids.lines.filtered(
+            lambda line: line.product_id.id == fee_product.id
+        ):
+            raise BadRequest('Delivery fee is set by the server')
+        if address:
+            order_ids.ensure_one()
+            self._add_delivery_fee(order_ids, fee_product, quote['fee'])
 
         amount_total, amount_untaxed = self._get_order_prices(order_ids.lines)
         # A zero total is only "free" when every line is genuinely free:
@@ -170,6 +201,21 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         order_ids.send_table_count_notification(order_ids.mapped('table_id'))
 
         return self._generate_return_values(order_ids, pos_config)
+
+    @staticmethod
+    def _add_delivery_fee(order, product, amount):
+        """Add the validated courier quote once, without client controlled tax or price."""
+        product = product.sudo()
+        order.env['pos.order.line'].sudo().create({
+            'order_id': order.id,
+            'product_id': product.id,
+            'full_product_name': product.display_name,
+            'qty': 1,
+            'price_unit': amount,
+            'tax_ids': [Command.clear()],
+            'price_subtotal': amount,
+            'price_subtotal_incl': amount,
+        })
 
     # ── Payload validation helpers ──
 
@@ -274,6 +320,15 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         if not order.exists() or not consteq(order.access_token, order_access_token):
             raise MissingError(_("Order not found"))
 
+        if order.config_id != pos_config:
+            raise Unauthorized("Order does not belong to this point of sale")
+        if order.state != 'draft' or order.amount_paid or order.self_order_payment_status not in (
+            'pending_online', 'pending_counter',
+        ):
+            raise BadRequest("Order is no longer awaiting payment")
+        if order.takeaway and not pos_config.self_ordering_takeaway_allow_counter:
+            raise BadRequest("Counter payment is unavailable for takeaway")
+
         order.write({'self_order_payment_status': 'pending_counter'})
 
         # Now notify POS so cashier can see and process the order.
@@ -303,6 +358,13 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
 
         if not order.exists() or not consteq(order.access_token, order_access_token):
             raise MissingError(_("Order not found"))
+
+        if order.config_id != pos_config:
+            raise Unauthorized("Order does not belong to this point of sale")
+        if order.state != 'draft' or order.amount_paid or order.self_order_payment_status not in (
+            'pending_online', 'pending_counter',
+        ):
+            raise BadRequest("Invoice preferences cannot be changed after payment")
 
         # Validate carrier_type (must match Selection field values)
         allowed_types = ('print', 'mobile', 'donation', 'b2b')
