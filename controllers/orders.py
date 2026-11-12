@@ -166,13 +166,25 @@ class PosSelfOrderControllerEnh(PosSelfOrderController):
         self._check_saved_order_lines(order_ids)
         self._verify_line_price(line_ids, pos_config)
 
-        if fee_product and order_ids.lines.filtered(
-            lambda line: line.product_id.id == fee_product.id
-        ):
-            raise BadRequest('Delivery fee is set by the server')
+        fee_lines = order_ids.lines.filtered(
+            lambda line: fee_product and line.product_id.id == fee_product.id
+        )
         if address:
             order_ids.ensure_one()
-            self._add_delivery_fee(order_ids, fee_product, quote['fee'])
+            if len(fee_lines) > 1:
+                raise BadRequest('Invalid delivery fee lines')
+            if fee_lines:
+                fee_lines.sudo().write({
+                    'qty': 1,
+                    'price_unit': quote['fee'],
+                    'tax_ids': [Command.clear()],
+                    'price_subtotal': quote['fee'],
+                    'price_subtotal_incl': quote['fee'],
+                })
+            else:
+                self._add_delivery_fee(order_ids, fee_product, quote['fee'])
+        elif fee_lines:
+            fee_lines.sudo().unlink()
 
         amount_total, amount_untaxed = self._get_order_prices(order_ids.lines)
         # A zero total is only "free" when every line is genuinely free:
