@@ -40,6 +40,8 @@ class PosConfig(models.Model):
     )
     uber_direct_client_secret = fields.Char(
         'Uber Direct Client Secret',
+        groups='base.group_system',
+        copy=False,
         help="OAuth 2.0 Client Secret from Uber Developer Dashboard.",
     )
     uber_direct_customer_id = fields.Char(

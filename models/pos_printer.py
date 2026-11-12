@@ -54,6 +54,7 @@ class PosPrinter(models.Model):
     )
     escpos_proxy_api_key = fields.Char(
         string='Cloud Relay API Key',
+        groups='point_of_sale.group_pos_manager',
         help=(
             'Bearer token sent to the cloud relay as '
             'Authorization: Bearer <key>. Only used when Cloud Relay URL '
@@ -192,6 +193,8 @@ class PosPrinter(models.Model):
         Cloudflare tunnel + HA add-on chain.
         """
         self.ensure_one()
+        if not self.env.user.has_group('point_of_sale.group_pos_manager'):
+            raise UserError(_('Only POS managers can print a test page.'))
         if self.printer_type != 'network_escpos':
             raise UserError(_(
                 "The test print only supports the 'network ESC/POS printer' type."

@@ -33,6 +33,24 @@ class PosKitchenDisplay(http.Controller):
 
         return config
 
+    def _writable_order(self, config, order_id, states=('new', 'in_progress')):
+        """Only a sent order in this config's current session may be changed."""
+        try:
+            order_id = int(order_id)
+        except (TypeError, ValueError):
+            return request.env['pos.order']
+        session = config.current_session_id
+        if not session or order_id <= 0:
+            return request.env['pos.order']
+        return request.env['pos.order'].sudo().search([
+            ('id', '=', order_id),
+            ('config_id', '=', config.id),
+            ('session_id', '=', session.id),
+            ('state', '!=', 'cancel'),
+            ('kds_sent_to_kitchen', '=', True),
+            ('kds_state', 'in', states),
+        ], limit=1)
+
     def _get_line_course_info(self, order, line, fired_courses):
         """Get category-based course info for an order line."""
         categ_id, categ_name = order._get_line_hold_fire_category(line)
@@ -324,7 +342,6 @@ class PosKitchenDisplay(http.Controller):
             'config_id': config.id,
             'config_name': config.name,
             'access_token': config.kds_access_token,
-            'bus_token': config.access_token,
             'db': request.env.cr.dbname,
             'base_url': request.env['pos.session'].get_base_url(),
             'csrf_token': request.csrf_token(),
@@ -353,8 +370,8 @@ class PosKitchenDisplay(http.Controller):
         on the KDS — only items in fired categories get bumped.
         """
         config = self._verify_kds_access(config_id, token)
-        order = request.env['pos.order'].sudo().browse(int(order_id))
-        if not order.exists() or order.config_id.id != config.id:
+        order = self._writable_order(config, order_id)
+        if not order:
             return {'success': False, 'error': 'Order not found'}
 
         try:
@@ -398,8 +415,8 @@ class PosKitchenDisplay(http.Controller):
         if state not in ('new', 'in_progress', 'done'):
             return {'success': False, 'error': 'Invalid state'}
 
-        order = request.env['pos.order'].sudo().browse(int(order_id))
-        if not order.exists() or order.config_id.id != config.id:
+        order = self._writable_order(config, order_id)
+        if not order:
             return {'success': False, 'error': 'Order not found'}
 
         order.write({'kds_state': state})
@@ -413,8 +430,8 @@ class PosKitchenDisplay(http.Controller):
     def kds_toggle_item_done(self, config_id, token=None, order_id=None, line_id=None, **kwargs):
         """Toggle an order line's done status on the KDS."""
         config = self._verify_kds_access(config_id, token)
-        order = request.env['pos.order'].sudo().browse(int(order_id))
-        if not order.exists() or order.config_id.id != config.id:
+        order = self._writable_order(config, order_id)
+        if not order:
             return {'success': False, 'error': 'Order not found'}
 
         # Block toggling items in held courses
@@ -490,17 +507,20 @@ class PosKitchenDisplay(http.Controller):
         config = self._verify_kds_access(config_id, token)
 
         if order_id:
-            order = request.env['pos.order'].sudo().browse(int(order_id))
+            order = self._writable_order(config, order_id, states=('done',))
         else:
             session = config.current_session_id
             if not session:
                 return {'success': False, 'error': 'No active session'}
             order = request.env['pos.order'].sudo().search([
                 ('session_id', '=', session.id),
+                ('config_id', '=', config.id),
+                ('state', '!=', 'cancel'),
+                ('kds_sent_to_kitchen', '=', True),
                 ('kds_state', '=', 'done'),
             ], order='write_date desc', limit=1)
 
-        if not order.exists() or order.config_id.id != config.id:
+        if not order:
             return {'success': False, 'error': 'No order to recall'}
 
         order.write({
@@ -521,19 +541,23 @@ class PosKitchenDisplay(http.Controller):
         if not order_id or category_id is None:
             return {'success': False, 'error': 'Missing order_id or category_id'}
 
-        order = request.env['pos.order'].sudo().browse(int(order_id))
-        if not order.exists() or order.config_id.id != config.id:
+        order = self._writable_order(config, order_id, states=('new', 'in_progress', 'done'))
+        if not order:
             return {'success': False, 'error': 'Order not found'}
 
-        order.fire_course(int(category_id))
+        try:
+            category_id = int(category_id)
+        except (TypeError, ValueError):
+            return {'success': False, 'error': 'Invalid category_id'}
+        order.fire_course(category_id)
         return {'success': True}
 
     @http.route('/pos-kds/batch-item-done/<int:config_id>', type='json', auth='public', readonly=False)
     def kds_batch_item_done(self, config_id, token=None, product_name=None, **kwargs):
         """Mark all order lines matching a product name as done across active orders."""
         config = self._verify_kds_access(config_id, token)
-        if not product_name:
-            return {'success': False, 'error': 'Missing product_name'}
+        if not isinstance(product_name, str) or not product_name or len(product_name) > 256:
+            return {'success': False, 'error': 'Invalid product_name'}
 
         session = config.current_session_id
         if not session:
@@ -614,8 +638,9 @@ class PosKitchenDisplay(http.Controller):
         combos by ``(name, combo_children)`` and bump only the matching parents.
         """
         config = self._verify_kds_access(config_id, token)
-        if not items:
-            return {'success': False, 'error': 'Missing items'}
+        if (not isinstance(items, list) or not 0 < len(items) <= 200
+                or any(not isinstance(it, dict) for it in items)):
+            return {'success': False, 'error': 'Invalid items'}
 
         by_order = {}
         for it in items:
@@ -631,8 +656,8 @@ class PosKitchenDisplay(http.Controller):
         updated_count = 0
 
         for order_id, line_ids in by_order.items():
-            order = request.env['pos.order'].sudo().browse(order_id)
-            if not order.exists() or order.config_id.id != config.id:
+            order = self._writable_order(config, order_id)
+            if not order:
                 continue
 
             try:

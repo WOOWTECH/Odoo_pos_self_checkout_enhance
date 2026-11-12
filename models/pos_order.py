@@ -630,6 +630,7 @@ class PosOrder(models.Model):
                 # delivery orders immediately after payment succeeds.
                 uber_delivery_orders = to_fire.filtered(
                     lambda o: o.uber_delivery_address
+                              and o.uber_quote_id
                               and not o.uber_delivery_id
                               and o.config_id.uber_direct_enabled
                 )
@@ -638,11 +639,12 @@ class PosOrder(models.Model):
                         UberDirect = self.env['uber.direct'].sudo()
                         result = UberDirect._create_delivery(order.config_id, order)
                         if result.get('success'):
+                            courier = result.get('courier') or {}
                             order.write({
                                 'uber_delivery_id': result.get('delivery_id', ''),
                                 'uber_delivery_status': 'pending',
-                                'uber_courier_name': result.get('courier_name', ''),
-                                'uber_courier_phone': result.get('courier_phone', ''),
+                                'uber_courier_name': courier.get('name', ''),
+                                'uber_courier_phone': courier.get('phone_number', ''),
                                 'uber_tracking_url': result.get('tracking_url', ''),
                             })
                             _logger.info(
@@ -712,6 +714,8 @@ class PosOrder(models.Model):
 
         self.ensure_one()
         config = self.config_id
+        if self.state not in ('paid', 'done', 'invoiced'):
+            return {'success': False, 'error': 'Order is not paid'}
         if not config.ecpay_einvoice_enabled:
             return {'success': False, 'error': 'E-Invoice not enabled'}
 

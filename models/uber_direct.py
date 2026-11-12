@@ -1,5 +1,6 @@
 import logging
 import time
+import hashlib
 
 import requests
 
@@ -7,7 +8,8 @@ from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
-# Module-level token cache: {config_id: {"token": str, "expires_at": float}}
+# Cache identity includes database, config and credentials, so a changed secret
+# or a second database with the same config id cannot reuse a bearer token.
 _token_cache = {}
 
 SANDBOX_AUTH_URL = "https://sandbox-login.uber.com/oauth/v2/token"
@@ -28,7 +30,7 @@ class UberDirect(models.AbstractModel):
     """Uber Direct REST API client for delivery integration.
 
     This is an AbstractModel (no database table). All state is transient;
-    OAuth tokens are cached at the module level keyed by pos.config id.
+    OAuth tokens are cached at the module level by database and credentials.
 
     The pos.config record passed as ``config`` is expected to carry:
       - uber_direct_client_id
@@ -125,7 +127,16 @@ class UberDirect(models.AbstractModel):
             dict: ``{"success": True, "token": "..."}`` on success, or
                   ``{"success": False, "error": "..."}`` on failure.
         """
-        cached = _token_cache.get(config.id)
+        config = config.sudo()
+        credential_identity = '\0'.join((
+            config.uber_direct_env or '',
+            config.uber_direct_client_id or '',
+            config.uber_direct_client_secret or '',
+            config.uber_direct_customer_id or '',
+        ))
+        cache_key = (self.env.cr.dbname, config.id,
+                     hashlib.sha256(credential_identity.encode()).digest())
+        cached = _token_cache.get(cache_key)
         if cached and cached["expires_at"] > time.time():
             _logger.info(
                 "[uber-direct] Using cached token for config %s (expires in %ds)",
@@ -162,7 +173,7 @@ class UberDirect(models.AbstractModel):
         token = data.get("access_token", "")
         expires_in = data.get("expires_in", 2592000)  # default 30 days
 
-        _token_cache[config.id] = {
+        _token_cache[cache_key] = {
             "token": token,
             "expires_at": time.time() + expires_in - 60,  # 60s safety margin
         }
@@ -210,7 +221,7 @@ class UberDirect(models.AbstractModel):
         body = {
             "pickup_address": pickup_address,
             "dropoff_address": dropoff_address,
-            "pickup_name": "\u6625\u7f8e\u98df\u5802",  # 春美食堂
+            "pickup_name": config.uber_direct_pickup_name or "Store",
             "dropoff_name": "Customer",
         }
 
@@ -261,10 +272,8 @@ class UberDirect(models.AbstractModel):
             config: ``pos.config`` record with Uber Direct credentials.
             order: ``pos.order`` record (or dict-like) with delivery details.
                    Expected attributes / keys:
-                     - ``uber_direct_dropoff_address``
-                     - ``uber_direct_dropoff_name``
-                     - ``uber_direct_dropoff_phone``
-                     - ``uber_direct_quote_id``
+                     - ``uber_delivery_address``
+                     - ``uber_quote_id``
                      - ``lines`` (order lines for manifest)
                      - ``name`` (order reference)
 
@@ -298,7 +307,7 @@ class UberDirect(models.AbstractModel):
 
         body = {
             "pickup": {
-                "name": "\u6625\u7f8e\u98df\u5802",  # 春美食堂
+                "name": config.uber_direct_pickup_name or "Store",
                 "address": config.uber_direct_pickup_address
                 if hasattr(config, "uber_direct_pickup_address")
                 else "",
@@ -307,9 +316,9 @@ class UberDirect(models.AbstractModel):
                 else "",
             },
             "dropoff": {
-                "name": getattr(order, "uber_direct_dropoff_name", "Customer"),
-                "address": getattr(order, "uber_direct_dropoff_address", ""),
-                "phone_number": getattr(order, "uber_direct_dropoff_phone", ""),
+                "name": getattr(order, "partner_id", False) and order.partner_id.name or "Customer",
+                "address": order.uber_delivery_address or "",
+                "phone_number": getattr(order, "partner_id", False) and order.partner_id.phone or "",
             },
             "manifest": {
                 "reference": order_ref,
@@ -318,7 +327,7 @@ class UberDirect(models.AbstractModel):
         }
 
         # Attach quote_id if available (locks in the quoted price)
-        quote_id = getattr(order, "uber_direct_quote_id", None)
+        quote_id = order.uber_quote_id
         if quote_id:
             body["quote_id"] = quote_id
 

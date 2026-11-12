@@ -407,7 +407,7 @@ class TestUberDirectQuote(SelfOrderSecurityCommon):
             'dropoff_address': 'Somewhere 1',
         }
         with patch(UBER_GET_QUOTE, return_value={
-            'success': True, 'fee': 65, 'currency': 'TWD',
+            'success': True, 'fee': 65, 'currency': self.pos_config.currency_id.name,
             'estimated_pickup_minutes': 20, 'quote_id': 'dqt_1',
         }):
             result = self.make_jsonrpc_request('/pos-self/uber-direct/quote', params)
@@ -489,6 +489,8 @@ class TestEscPosPrintRoutes(SelfOrderSecurityCommon):
         self.assertFalse(result['success'])
 
     def test_pos_user_configured_printer_generic_error(self):
+        self.pos_config.write({'printer_ids': [Command.link(self.printer.id)]})
+        self.pos_session.write({'user_id': self.pos_user.id})
         self.authenticate('sec_pos_user', 'sec_pos_user')
         with patch(ESCPOS_SEND_BYTES, side_effect=OSError('connection refused by 10.9.8.7')) as send_bytes:
             result = self.make_jsonrpc_request('/pos-escpos/print', {

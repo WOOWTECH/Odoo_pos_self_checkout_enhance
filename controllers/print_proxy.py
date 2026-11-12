@@ -26,6 +26,10 @@ BLANK_IMAGE_THRESHOLD = 2500
 # Error returned to the browser; the real cause (socket error, relay
 # response, ...) is only written to the server log.
 GENERIC_PRINT_ERROR = 'Printing failed. Check the printer and try again.'
+MAX_TICKET_LINES = 100
+MAX_TICKET_TEXT = 256
+MAX_RECEIPT_B64 = 2_000_000
+MAX_RECEIPT_BYTES = 1_500_000
 
 
 class PosEscPosProxy(http.Controller):
@@ -62,12 +66,46 @@ class PosEscPosProxy(http.Controller):
             order = request.env['pos.order']
         if not order or order.sudo().company_id not in request.env.companies:
             return {'success': False, 'error': 'Order not found'}
+        order = order.sudo()
+        if (order.state == 'cancel' or not order.session_id
+                or order.config_id.current_session_id != order.session_id
+                or printer not in order.config_id.printer_ids):
+            return {'success': False, 'error': 'Printer not available for order'}
+        if not self._valid_ticket_input(title, lines):
+            return {'success': False, 'error': 'Invalid ticket content'}
+        if not lines and len(order.lines) > MAX_TICKET_LINES:
+            return {'success': False, 'error': 'Too many order lines'}
 
         b64_jpeg = self._render_ticket_image(order.sudo(), printer, title, lines or [])
         if not b64_jpeg:
             return {'success': False, 'error': 'Failed to render ticket image'}
 
         return self._public_result(printer._send_via_relay(b64_jpeg))
+
+    @staticmethod
+    def _valid_ticket_input(title, lines):
+        if not isinstance(title, str) or len(title) > 80:
+            return False
+        if lines is None:
+            return True
+        if not isinstance(lines, list) or len(lines) > MAX_TICKET_LINES:
+            return False
+        for line in lines:
+            if not isinstance(line, dict):
+                return False
+            if any(not isinstance(line.get(key, ''), str) or len(line.get(key, '')) > MAX_TICKET_TEXT
+                   for key in ('name', 'note', 'customer_note')):
+                return False
+            raw_qty = line.get('quantity', 1)
+            if isinstance(raw_qty, str) and len(raw_qty) > 32:
+                return False
+            try:
+                qty = float(raw_qty)
+            except (TypeError, ValueError):
+                return False
+            if not 0 <= qty <= 10000 or qty != qty:
+                return False
+        return True
 
     @staticmethod
     def _render_ticket_image(order, printer, title, lines):
@@ -248,19 +286,25 @@ class PosEscPosProxy(http.Controller):
         printer = self._find_printer(printer_id=printer_id, printer_ip=printer_ip)
         if not printer:
             return {'success': False, 'error': 'Printer not found'}
+        session = self._current_pos_session()
+        if not session or printer not in session.config_id.printer_ids:
+            return {'success': False, 'error': 'Printer not available for session'}
 
         if action == 'print_receipt':
-            if receipt:
-                image_bytes = self._safe_b64decode(receipt)
-                if image_bytes is not None:
-                    img_size = len(image_bytes)
-                    _logger.info("[escpos] browser image: %d bytes", img_size)
-                    if img_size < BLANK_IMAGE_THRESHOLD:
-                        _logger.warning(
-                            "[escpos] browser image suspiciously small (%d bytes < %d), "
-                            "likely blank from html-to-image CJK failure",
-                            img_size, BLANK_IMAGE_THRESHOLD,
-                        )
+            if not isinstance(receipt, str) or not receipt or len(receipt) > MAX_RECEIPT_B64:
+                return {'success': False, 'error': 'Invalid receipt'}
+            image_bytes = self._safe_b64decode(receipt)
+            if image_bytes is None or len(image_bytes) > MAX_RECEIPT_BYTES:
+                return {'success': False, 'error': 'Invalid receipt'}
+            if image_bytes:
+                img_size = len(image_bytes)
+                _logger.info("[escpos] browser image: %d bytes", img_size)
+                if img_size < BLANK_IMAGE_THRESHOLD:
+                    _logger.warning(
+                        "[escpos] browser image suspiciously small (%d bytes < %d), "
+                        "likely blank from html-to-image CJK failure",
+                        img_size, BLANK_IMAGE_THRESHOLD,
+                    )
 
             if printer.escpos_proxy_url:
                 return self._public_result(printer._send_via_relay(receipt))
@@ -304,7 +348,7 @@ class PosEscPosProxy(http.Controller):
     @staticmethod
     def _safe_b64decode(data):
         try:
-            return base64.b64decode(data)
+            return base64.b64decode(data, validate=True)
         except Exception:
             return None
 
@@ -322,7 +366,7 @@ class PosEscPosProxy(http.Controller):
                 printer = Printer.browse(int(printer_id)).exists()
             except (ValueError, TypeError):
                 printer = Printer
-        if not printer and printer_ip and isinstance(printer_ip, str):
+        if printer_id is None and not printer and printer_ip and isinstance(printer_ip, str):
             printer = Printer.search([
                 ('escpos_printer_ip', '=', printer_ip),
                 ('company_id', 'in', request.env.companies.ids),
@@ -333,3 +377,25 @@ class PosEscPosProxy(http.Controller):
         if printer_sudo.company_id not in request.env.companies:
             return Printer
         return printer_sudo
+
+    @staticmethod
+    def _current_pos_session():
+        Session = request.env['pos.session'].sudo()
+        session_id = request.env.context.get('pos_session_id') or request.session.get('pos_session_id')
+        if session_id:
+            try:
+                session_id = int(session_id)
+            except (TypeError, ValueError):
+                return Session
+            session = Session.browse(session_id).exists()
+            if (session and session.state == 'opened'
+                    and session.user_id == request.env.user
+                    and session.company_id in request.env.companies):
+                return session
+            return Session
+        sessions = Session.search([
+            ('user_id', '=', request.env.user.id),
+            ('state', '=', 'opened'),
+            ('company_id', 'in', request.env.companies.ids),
+        ], limit=2)
+        return sessions if len(sessions) == 1 else Session
