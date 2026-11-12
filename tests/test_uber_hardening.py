@@ -142,6 +142,40 @@ class TestUberOrderIntegration(SelfOrderSecurityCommon):
         self.assertEqual(order.state, 'draft')
         self.assertEqual(order.self_order_payment_status, 'pending_online')
 
+    def test_resend_keeps_one_trusted_delivery_fee(self):
+        payload = self._delivery_order()
+        result = self._process(payload)
+        order = self.env['pos.order'].browse(result['pos.order'][0]['id'])
+        burger = order.lines.filtered(lambda line: line.product_id == self.product)
+        payload['id'] = order.id
+        payload['lines'] = [[2, burger.id, 0]]
+        payload['lines'].append(self._line(self.product, 1))
+        resend = self._process(payload)
+        self.env.invalidate_all()
+        order = self.env['pos.order'].browse(resend['pos.order'][0]['id'])
+        fee_product = self.env.ref('pos_self_order_enhancement.product_product_delivery_fee')
+        fee_lines = order.lines.filtered(lambda line: line.product_id == fee_product)
+        self.assertEqual(len(fee_lines), 1)
+        self.assertEqual(fee_lines.price_unit, 65)
+        self.assertEqual(order.amount_total, 75)
+
+    def test_switching_delivery_order_to_pickup_removes_fee(self):
+        payload = self._delivery_order()
+        result = self._process(payload)
+        payload['id'] = result['pos.order'][0]['id']
+        order = self.env['pos.order'].browse(payload['id'])
+        burger = order.lines.filtered(lambda line: line.product_id == self.product)
+        payload['lines'] = [[2, burger.id, 0], self._line(self.product, 1)]
+        payload['uber_delivery_address'] = False
+        payload['uber_quote_id'] = False
+        self._process(payload)
+        self.env.invalidate_all()
+        order = self.env['pos.order'].browse(payload['id'])
+        fee_product = self.env.ref('pos_self_order_enhancement.product_product_delivery_fee')
+        self.assertFalse(order.lines.filtered(lambda line: line.product_id == fee_product))
+        self.assertEqual(order.amount_total, 10)
+        self.assertFalse(order.uber_delivery_address)
+
     def test_tampered_quote_cannot_create_order(self):
         payload = self._delivery_order()
         payload['uber_quote_id'] += 'x'
